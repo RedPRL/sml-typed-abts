@@ -1,0 +1,24 @@
+Library
+  signature ABT
+  signature ABT_UTIL
+  signature VARIABLE
+  signature VALENCE
+  signature SORT
+  signature ARITY
+
+  functor Variable
+  functor Arity
+  functor Abt
+  functor AbtUtil
+  functor ShowAbt
+is
+  $/basis.cm
+  basis/basis.cm
+
+  src/variable.sig
+  src/variable.fun
+
+  src/abt.sig
+  src/valence.fun
+  src/arity.fun
+  src/abt.fun

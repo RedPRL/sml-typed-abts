@@ -1,0 +1,23 @@
+Library
+  signature EQ
+  signature SHOW
+
+  signature FUNCTOR
+  signature MONAD
+
+  functor FunctorOfMonad
+  structure ListMonad
+  structure ListFunctor
+
+  signature LIST_PRETTY
+  structure ListPretty
+is
+  eq.sig
+  show.sig
+  list_pretty.sig
+  list_pretty.sml
+
+  functor.sig
+  monad.sig
+  functor.fun
+  monad.fun
