@@ -18,6 +18,10 @@ is
   src/variable.sig
   src/variable.fun
 
+  src/sort.sig
+  src/valence.sig
+  src/arity.sig
+  src/operator.sig
   src/abt.sig
   src/valence.fun
   src/arity.fun

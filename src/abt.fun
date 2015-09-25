@@ -53,6 +53,7 @@ struct
   type variable = Variable.t
   type operator = Operator.t
   type sort = Arity.Sort.t
+  type valence = Arity.Valence.t
   type 'a spine = 'a list
 
   datatype abt =
