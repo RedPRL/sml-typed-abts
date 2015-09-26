@@ -6,7 +6,8 @@ struct
   fun toString e =
     case #2 (infer e) of
          `x => Variable.toString x
-       | x \ e => Variable.toString x ^ "." ^ toString e
+       | xs \ e =>
+           ListPretty.pretty Variable.toString (",", xs) ^ "." ^ toString e
        | theta $ es =>
            Operator.toString theta ^ "(" ^ ListPretty.pretty toString ("; ", es) ^ ")"
 end
@@ -21,11 +22,11 @@ struct
   infix 5 $
 
   fun checkStar (STAR (`x) , valence) = check (`x, valence)
-    | checkStar (STAR (x \ ast), valence as (sigma :: sorts, tau)) =
+    | checkStar (STAR (xs \ ast), valence as (sorts, tau)) =
       let
-        val e = checkStar (ast, (sorts, tau))
+        val e = checkStar (ast, ([], tau))
       in
-        check (x \ e, valence)
+        check (xs \ e, valence)
       end
     | checkStar (STAR (theta $ asts), valence) =
       let
@@ -41,8 +42,15 @@ struct
       in
         e
       end
-    | checkStar _ = raise Match
+end
 
+signature COORD =
+sig
+  type t
+  val origin : t
+  val shiftRight : t -> t
+  val shiftDown : t -> t
+  include EQ
 end
 
 functor Abt (structure Variable : VARIABLE and Operator : OPERATOR) : ABT =
@@ -56,16 +64,25 @@ struct
   type valence = Arity.Valence.t
   type 'a spine = 'a list
 
+  structure Coord :> COORD =
+  struct
+    type t = int * int
+    val origin = (0,0)
+    fun shiftRight (i, j) = (i, j + 1)
+    fun shiftDown (i, j) = (i + 1, j)
+    fun eq (x : t, y : t) = x = y
+  end
+
   datatype abt =
       FV of variable * sort
-    | BV of int * sort
-    | ABS of variable * sort * abt
+    | BV of Coord.t * sort
+    | ABS of (variable * sort) list * abt
     | APP of operator * abt spine
 
   datatype 'a view =
       ` of variable
     | $ of operator * 'a spine
-    | \ of variable * 'a
+    | \ of variable list * 'a
 
   infixr 5 \
   infix 5 $
@@ -80,27 +97,54 @@ struct
        | theta $ es => theta $ List.map f es
   end
 
-  fun shiftVariable v n e =
-    case e of
-        FV (v', sigma) =>
-        if Variable.eq (v, v') then
-          BV (n, sigma)
-        else
-          FV (v', sigma)
-      | BV v => BV v
-      | ABS (x, sigma, e') => ABS (x, sigma, shiftVariable v (n + 1) e')
-      | APP (theta, es) => APP (theta, List.map (shiftVariable v n) es)
+  (* TODO: replace with efficient check! *)
+  fun disjoint [] = true
+    | disjoint (v::vs) =
+        disjoint vs andalso List.all (fn v' => not (Variable.eq (v, v'))) vs
 
-  fun addVariable v n e =
+  fun shiftVariable v coord e =
     case e of
-        FV v' => FV v'
-      | BV (v' as (m, sigma)) =>
-        if m = n then FV (v, sigma) else BV v'
-      | ABS (x, sigma, e) => ABS (x, sigma, addVariable v (n + 1) e)
-      | APP (theta, es) => APP (theta, List.map (addVariable v n) es)
+         FV (v', sigma) => if Variable.eq (v, v') then BV (coord, sigma) else e
+       | BV _ => e
+       | ABS (xs, e') => ABS (xs, shiftVariable v (Coord.shiftRight coord) e')
+       | APP (theta, es) => APP (theta, List.map (shiftVariable v coord) es)
 
-  fun check (` x, ([], sigma)) = FV (x, sigma)
-    | check (x \ e, (sigma::sorts, tau)) = ABS (x, sigma, shiftVariable x 0 e)
+  fun shiftVariables vs =
+    let
+      val true = disjoint vs
+      fun go [] coord e = e
+        | go (v::vs) coord e =
+            go vs (Coord.shiftDown coord) (shiftVariable v coord e)
+    in
+      go vs
+    end
+
+  fun addVariable v coord e =
+    case e of
+         FV _ => e
+       | BV (ann as (coord', sigma)) =>
+           if Coord.eq (coord, coord') then FV (v, sigma) else BV ann
+       | ABS (xs, e) => ABS (xs, addVariable v (Coord.shiftRight coord) e)
+       | APP (theta, es) => APP (theta, List.map (addVariable v coord) es)
+
+  fun addVariables vs =
+    let
+      val true = disjoint vs
+      fun go [] coord e = e
+        | go (v::vs) coord e =
+            go vs (Coord.shiftDown coord) (addVariable v coord e)
+    in
+      go vs
+    end
+
+  fun check (`x, ([], sigma)) = FV (x, sigma)
+    | check (xs \ e, (sorts, tau)) =
+      let
+        val ((_, tau'), _) = infer e
+        val true = Arity.Sort.eq (tau, tau')
+      in
+        ABS (ListPair.zipEq (xs, sorts), shiftVariables xs Coord.origin e)
+      end
     | check (theta $ es, ([], tau)) =
       let
         val (valences, tau') = Operator.arity theta
@@ -119,17 +163,17 @@ struct
       in
         APP (theta, es')
       end
-    | check _ = raise Match
+    | check (_, (sorts, _)) = raise Match
 
   and infer (FV (v, sigma)) = (([], sigma), ` v)
-    | infer (BV i) = raise Fail "Impossible: Unexpected bound variable"
-    | infer (ABS (x, sigma, e)) =
+    | infer (BV _) = raise Fail "Impossible: unexpected bound variable"
+    | infer (ABS (xs, e)) =
       let
-        val x' = Variable.clone x
-        val ((sorts, tau), e') = infer e
-        val valence = (sigma :: sorts, tau)
+        val xs' = List.map (Variable.clone o #1) xs
+        val (([], tau), e') = infer e
+        val valence = (List.map #2 xs, tau)
       in
-        (valence, x' \ addVariable x' 0 e)
+        (valence, xs' \ addVariables xs' Coord.origin e)
       end
     | infer (APP (theta, es)) =
       let
@@ -142,8 +186,8 @@ struct
   struct
     type t = abt
     fun eq (FV (v, _), FV (v', _)) = Variable.eq (v, v')
-      | eq (BV (i, _), BV (j, _)) = i = j
-      | eq (ABS (_, _, e), ABS (_, _, e')) = eq (e, e')
+      | eq (BV (i, _), BV (j, _)) = Coord.eq (i, j)
+      | eq (ABS (_, e), ABS (_, e')) = eq (e, e')
       | eq (APP (theta, es), APP (theta', es')) =
           Operator.eq (theta, theta') andalso ListPair.allEq eq (es, es')
       | eq _ = false

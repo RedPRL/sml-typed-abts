@@ -15,11 +15,11 @@ struct
 
     structure Arity = Arity (Sort)
 
-    datatype operator = LAM | AP | NUM | ZE | SU | RET
+    datatype operator = LAM of int | AP | NUM | ZE | SU | RET
     type t = operator
 
     fun eq (x:t, y) = x = y
-    fun toString LAM = "lam"
+    fun toString (LAM i) = "lam"
       | toString AP = "ap"
       | toString NUM = "num"
       | toString ZE = "ze"
@@ -33,8 +33,14 @@ struct
 
     local
       open Sort
+      fun replicate 0 x = []
+        | replicate i x =
+            if i < 0 then
+              raise Match
+            else
+              x :: replicate (i - 1) x
     in
-      fun arity LAM = [[EXP] ->> EXP] ->> VAL
+      fun arity (LAM i) = [replicate i EXP ->> EXP] ->> VAL
         | arity RET = [c VAL] ->> EXP
         | arity AP = [c EXP, c EXP] ->> EXP
         | arity NUM = [c NAT] ->> VAL
@@ -58,6 +64,7 @@ struct
 
   val `` = STAR o `
   val f = V.named "f"
-  val example = checkStar (LAM $$ [f \\ AP $$ [``f, RET $$ [NUM $$ [SU $$ [ZE $$ []]]]]], c VAL)
+  val g = V.named "g"
+  val example = checkStar (LAM 2 $$ [[f,g] \\ AP $$ [``f, ``g]],  c VAL)
   val _ = print (ShowAbt.toString example ^ "\n")
 end

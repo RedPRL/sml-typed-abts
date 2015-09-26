@@ -15,7 +15,7 @@ sig
   datatype 'a view =
       ` of variable
     | $ of operator * 'a spine
-    | \ of variable * 'a
+    | \ of variable list * 'a
 
   structure ViewFunctor : FUNCTOR where type 'a t = 'a view
   val check : abt view * valence -> abt
