@@ -1,4 +1,7 @@
 Group
 is
   abt.cm (bind:(anchor:libs value:lib))
+  basis/basis.cm
+  example/rose_tree.sig
+  example/rose_tree.fun
   example/example.sml

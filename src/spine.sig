@@ -14,6 +14,7 @@ sig
 
   structure Pair :
   sig
+    exception UnequalLengths
     val mapEq : ('a * 'b -> 'c) -> 'a t * 'b t -> 'c t
     val zipEq : 'a t * 'b t -> ('a * 'b) t
     val allEq : ('a * 'b -> bool) -> 'a t * 'b t -> bool
