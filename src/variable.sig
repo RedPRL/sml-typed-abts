@@ -3,10 +3,12 @@ sig
   type variable
   val named : string -> variable
 
+  structure Show : SHOW where type t = variable
+  structure DebugShow : SHOW where type t = variable
+
   include
     sig
       include EQ
-      include SHOW
     end
     where type t = variable
 

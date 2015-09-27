@@ -1,16 +1,27 @@
-functor ShowAbt (Abt : ABT) :> SHOW where type t = Abt.abt =
+functor ShowAbt
+  (structure Abt : ABT
+   structure ShowVar : SHOW
+     where type t = Abt.variable) :> SHOW where type t = Abt.abt =
 struct
   open Abt infix $ infixr \
   type t = abt
 
   fun toString e =
     case #2 (infer e) of
-         `x => Variable.toString x
+         `x => ShowVar.toString x
        | xs \ e =>
-           ListPretty.pretty Variable.toString (",", xs) ^ "." ^ toString e
+           ListPretty.pretty ShowVar.toString (",", xs)
+              ^ "." ^ toString e
        | theta $ es =>
-           Operator.toString theta ^ "(" ^ ListPretty.pretty toString ("; ", es) ^ ")"
+           Operator.toString theta
+              ^ "(" ^ ListPretty.pretty toString ("; ", es) ^ ")"
 end
+
+functor PlainShowAbt (Abt : ABT) =
+  ShowAbt (structure Abt = Abt and ShowVar = Abt.Variable.Show)
+
+functor DebugShowAbt (Abt : ABT) =
+  ShowAbt (structure Abt = Abt and ShowVar = Abt.Variable.DebugShow)
 
 functor AbtUtil (Abt : ABT) : ABT_UTIL =
 struct
@@ -53,6 +64,16 @@ sig
   include EQ
 end
 
+structure Coord :> COORD =
+struct
+  type t = int * int
+  val origin = (0,0)
+  fun shiftRight (i, j) = (i, j + 1)
+  fun shiftDown (i, j) = (i + 1, j)
+  fun eq (x : t, y : t) = x = y
+end
+
+
 functor Abt (structure Variable : VARIABLE and Operator : OPERATOR) : ABT =
 struct
 
@@ -63,15 +84,6 @@ struct
   type sort = Arity.Sort.t
   type valence = Arity.Valence.t
   type 'a spine = 'a list
-
-  structure Coord :> COORD =
-  struct
-    type t = int * int
-    val origin = (0,0)
-    fun shiftRight (i, j) = (i, j + 1)
-    fun shiftDown (i, j) = (i + 1, j)
-    fun eq (x : t, y : t) = x = y
-  end
 
   datatype abt =
       FV of variable * sort
@@ -109,16 +121,6 @@ struct
        | ABS (xs, e') => ABS (xs, shiftVariable v (Coord.shiftRight coord) e')
        | APP (theta, es) => APP (theta, List.map (shiftVariable v coord) es)
 
-  fun shiftVariables vs =
-    let
-      val true = disjoint vs
-      fun go [] coord e = e
-        | go (v::vs) coord e =
-            go vs (Coord.shiftDown coord) (shiftVariable v coord e)
-    in
-      go vs
-    end
-
   fun addVariable v coord e =
     case e of
          FV _ => e
@@ -127,15 +129,18 @@ struct
        | ABS (xs, e) => ABS (xs, addVariable v (Coord.shiftRight coord) e)
        | APP (theta, es) => APP (theta, List.map (addVariable v coord) es)
 
-  fun addVariables vs =
+  fun traverseVariables f vs =
     let
       val true = disjoint vs
       fun go [] coord e = e
         | go (v::vs) coord e =
-            go vs (Coord.shiftDown coord) (addVariable v coord e)
+            go vs (Coord.shiftDown coord) (f v coord e)
     in
       go vs
     end
+
+  val shiftVariables = traverseVariables shiftVariable
+  val addVariables = traverseVariables addVariable
 
   fun check (`x, ([], sigma)) = FV (x, sigma)
     | check (xs \ e, (sorts, tau)) =

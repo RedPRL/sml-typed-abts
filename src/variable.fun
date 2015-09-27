@@ -20,6 +20,17 @@ struct
   fun clone (_, a) =
     named a
 
-  fun toString (_, a) = a
+  structure Show =
+  struct
+    type t = variable
+    fun toString (_, a) = a
+  end
+
+  structure DebugShow =
+  struct
+    type t = variable
+    fun toString (i, a) =
+      a ^ "@" ^ Int.toString i
+  end
 end
 

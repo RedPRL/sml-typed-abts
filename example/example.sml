@@ -50,7 +50,7 @@ struct
   end
 
   structure Abt = AbtUtil(Abt (structure Operator = O and Variable = V))
-  structure ShowAbt = ShowAbt (Abt)
+  structure ShowAbt = DebugShowAbt (Abt)
   open O O.Sort Abt
 
   infixr 5 \

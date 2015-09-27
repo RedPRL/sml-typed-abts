@@ -11,6 +11,8 @@ Library
   functor Abt
   functor AbtUtil
   functor ShowAbt
+  functor PlainShowAbt
+  functor DebugShowAbt
 is
   $/basis.cm
   basis/basis.cm
