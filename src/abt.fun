@@ -75,24 +75,33 @@ struct
       ShiftFoldMap.foldMap liberateVariable vs (Coord.origin, t)
   end
 
+  fun assert msg b =
+    if b then () else raise Fail msg
+
+  fun assertSortEq (sigma, tau) =
+    assert
+      ("expected " ^ Sort.toString sigma ^ " == " ^ Sort.toString tau)
+      (Sort.eq (sigma, tau))
+
+
   fun check (`x, (valence, sigma)) =
       let
-        val true = Spine.isEmpty valence
+        val () = assert "valence not empty" (Spine.isEmpty valence)
       in
         FV (x, sigma)
       end
     | check (xs \ e, (sorts, tau)) =
       let
         val ((_, tau'), _) = infer e
-        val true = Sort.eq (tau, tau')
+        val () = assertSortEq (tau, tau')
       in
         ABS (Spine.Pair.zipEq (xs, sorts), imprisonVariables xs e)
       end
     | check (theta $ es, (valence, tau)) =
       let
-        val true = Spine.isEmpty valence
+        val () = assert "valence not empty" (Spine.isEmpty valence)
         val (valences, tau') = Operator.arity theta
-        val true = Sort.eq (tau, tau')
+        val () = assertSortEq (tau, tau')
         fun chkInf (valence, e) =
           let
             val (valence', _) = infer e
@@ -114,7 +123,7 @@ struct
       let
         val xs' = Spine.Functor.map (Variable.clone o #1) xs
         val ((sorts, tau), e') = infer e
-        val true = Spine.isEmpty sorts
+        val () = assert "valence not empty" (Spine.isEmpty sorts)
         val valence = (Spine.Functor.map #2 xs, tau)
       in
         (valence, xs' \ liberateVariables xs' e)
