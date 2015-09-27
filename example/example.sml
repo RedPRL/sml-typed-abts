@@ -13,7 +13,9 @@ struct
         | toString NAT = "nat"
     end
 
-    structure Arity = Arity (structure Sort = Sort and Spine = ListSpine)
+    structure R = RoseTree
+    structure RoseTreeSpine = RoseTreeSpine (R)
+    structure Arity = Arity (structure Sort = Sort and Spine = RoseTreeSpine)
 
     datatype operator = LAM of int | AP | NUM | ZE | SU | RET
     type t = operator
@@ -29,7 +31,7 @@ struct
     fun ->> (rho, tau) = (rho, tau)
     infixr ->>
 
-    fun c x = [] ->> x
+    fun c x = R.NIL ->> x
 
     local
       open Sort
@@ -39,19 +41,31 @@ struct
               raise Match
             else
               x :: replicate (i - 1) x
+
+      fun multiplex 0 x = R.NIL
+        | multiplex i x =
+            if i < 0 then
+              raise Match
+            else
+              R.@^ (x, replicate i (multiplex (i - 1) x))
     in
-      fun arity (LAM i) = [replicate i EXP ->> EXP] ->> VAL
-        | arity RET = [c VAL] ->> EXP
-        | arity AP = [c EXP, c EXP] ->> EXP
-        | arity NUM = [c NAT] ->> VAL
+      val op@^ = R.@^
+      infix 4 @^
+      fun arity (LAM i) = ((multiplex i EXP ->> EXP) @^ []) ->> VAL
+        | arity RET = c VAL @^ [] ->> EXP
+        | arity AP = c EXP @^ [c EXP @^ []] ->> EXP
+        | arity NUM = c NAT @^ [] ->> VAL
         | arity ZE = c NAT
-        | arity SU = [c NAT] ->> NAT
+        | arity SU = c NAT @^ [] ->> NAT
     end
   end
 
   structure Abt = AbtUtil(Abt (structure Operator = O and Variable = V))
   structure ShowAbt = DebugShowAbt (Abt)
   open O O.Sort Abt
+
+  val op@^ = R.@^
+  infix 6 @^
 
   infixr 5 \
   infix 5 $
@@ -65,6 +79,11 @@ struct
   val `` = STAR o `
   val f = V.named "f"
   val g = V.named "g"
-  val example = checkStar (LAM 2 $$ [[f,g] \\ AP $$ [``f, ``g]],  c VAL)
+  val h = V.named "h"
+
+  val vars = f @^ [g @^ [R.NIL], h @^ [R.NIL]]
+
+  val expr = LAM 2 $$ (vars \\ AP $$ (``f @^ [``g @^ []])) @^ []
+  val example = checkStar (expr, c VAL)
   val _ = print (ShowAbt.toString example ^ "\n")
 end

@@ -1,11 +1,11 @@
-functor RoseTree (Forest : SPINE) :> ROSE_TREE =
+functor RoseTree (Forest : SPINE) : ROSE_TREE =
 struct
   structure Forest = Forest
   datatype 'a t = NIL | @^ of 'a * 'a t forest
   withtype 'a forest = 'a Forest.t
 end
 
-functor RoseTreeSpine (R : ROSE_TREE) :> SPINE where type 'a t = 'a R.t =
+functor RoseTreeSpine (R : ROSE_TREE) : SPINE where type 'a t = 'a R.t =
 struct
   open R
 
@@ -18,7 +18,7 @@ struct
   fun pretty f sep =
     let
       fun go NIL = "[]"
-        | go (a @^ ts) = f a ^ " ^ " ^ Forest.pretty go sep ts
+        | go (a @^ ts) = f a ^ " ^ [" ^ Forest.pretty go sep ts ^ "]"
     in
       go
     end
@@ -54,6 +54,7 @@ struct
 
     fun wrapExn f x =
       f x handle ListSpine.Pair.UnequalLengths => raise UnequalLengths
+               | E => raise E
 
     fun mapEq f =
       let
