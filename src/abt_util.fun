@@ -7,24 +7,27 @@ struct
   infixr 5 \
   infix 5 $
 
+  structure Arity = Operator.Arity
+  structure Spine = Arity.Valence.Spine
+
   fun checkStar (STAR (`x) , valence) = check (`x, valence)
-    | checkStar (STAR (xs \ ast), valence as (sorts, tau)) =
+    | checkStar (STAR (xs \ e), valence as (sorts, tau)) =
       let
-        val e = checkStar (ast, ([], tau))
+        val e = checkStar (e, (Spine.empty, tau))
       in
         check (xs \ e, valence)
       end
-    | checkStar (STAR (theta $ (asts : star spine)), valence) =
+    | checkStar (STAR (theta $ es), valence) =
       let
         val (valences, _) = Operator.arity theta
-        val es = Operator.Arity.Spine.Pair.mapEq checkStar (asts, valences)
+        val es = Spine.Pair.mapEq checkStar (es, valences)
       in
         check (theta $ es, valence)
       end
     | checkStar (EMB e, valence) =
       let
         val (valence', e') = infer e
-        val true = Operator.Arity.Valence.eq (valence, valence')
+        val true = Arity.Valence.eq (valence, valence')
       in
         e
       end

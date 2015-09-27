@@ -1,7 +1,8 @@
 signature VALENCE =
 sig
   type sort
-  type valence = sort list * sort
+  structure Spine : SPINE
+  type valence = sort Spine.t * sort
 
   include
     sig

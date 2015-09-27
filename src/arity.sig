@@ -4,9 +4,7 @@ sig
   structure Valence : VALENCE
   sharing type Valence.sort = Sort.sort
 
-  structure Spine : SPINE
-
-  type arity = Valence.t Spine.t * Sort.t
+  type arity = Valence.t Valence.Spine.t * Sort.t
 
   include
     sig

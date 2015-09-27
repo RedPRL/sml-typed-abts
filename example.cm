@@ -1,4 +1,4 @@
 Group
 is
-  abt.cm
+  abt.cm (bind:(anchor:libs value:lib))
   example/example.sml

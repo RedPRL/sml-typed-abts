@@ -13,7 +13,7 @@ struct
         | toString NAT = "nat"
     end
 
-    structure Arity = Arity (Sort)
+    structure Arity = Arity (structure Sort = Sort and Spine = ListSpine)
 
     datatype operator = LAM of int | AP | NUM | ZE | SU | RET
     type t = operator

@@ -7,7 +7,7 @@ sig
   type operator = Operator.t
   type sort = Operator.Arity.Sort.t
   type valence = Operator.Arity.Valence.t
-  type 'a spine = 'a Operator.Arity.Spine.t
+  type 'a spine = 'a Operator.Arity.Valence.Spine.t
 
   type abt
   include EQ where type t = abt
@@ -15,7 +15,7 @@ sig
   datatype 'a view =
       ` of variable
     | $ of operator * 'a spine
-    | \ of variable list * 'a
+    | \ of variable spine * 'a
 
   structure ViewFunctor : FUNCTOR where type 'a t = 'a view
   val check : abt view * valence -> abt

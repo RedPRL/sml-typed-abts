@@ -1,45 +1,27 @@
-signature COORD =
-sig
-  type t
-  val origin : t
-  val shiftRight : t -> t
-  val shiftDown : t -> t
-  include EQ
-end
-
-structure Coord :> COORD =
-struct
-  type t = int * int
-  val origin = (0,0)
-  fun shiftRight (i, j) = (i, j + 1)
-  fun shiftDown (i, j) = (i + 1, j)
-  fun eq (x : t, y : t) = x = y
-end
-
-
 functor Abt (structure Variable : VARIABLE and Operator : OPERATOR) : ABT =
 struct
 
   structure Variable = Variable and Operator = Operator and Arity = Operator.Arity
+  structure Sort = Arity.Sort and Valence = Arity.Valence
+  structure Spine = Valence.Spine
 
   type variable = Variable.t
   type operator = Operator.t
-  type sort = Arity.Sort.t
-  type valence = Arity.Valence.t
+  type sort = Sort.t
+  type valence = Valence.t
 
-  structure Spine = Arity.Spine
   type 'a spine = 'a Spine.t
 
   datatype abt =
       FV of variable * sort
     | BV of Coord.t * sort
-    | ABS of (variable * sort) list * abt
+    | ABS of (variable * sort) spine * abt
     | APP of operator * abt spine
 
   datatype 'a view =
       ` of variable
     | $ of operator * 'a spine
-    | \ of variable list * 'a
+    | \ of variable spine * 'a
 
   infixr 5 \
   infix 5 $
@@ -54,56 +36,68 @@ struct
        | theta $ es => theta $ Spine.Functor.map f es
   end
 
-  (* TODO: replace with efficient check! *)
-  fun disjoint [] = true
-    | disjoint (v::vs) =
-        disjoint vs andalso List.all (fn v' => not (Variable.eq (v, v'))) vs
 
-  fun shiftVariable v coord e =
+  fun imprisonVariable v (coord, e) =
     case e of
-         FV (v', sigma) => if Variable.eq (v, v') then BV (coord, sigma) else e
+         FV (v', sigma) =>
+           if Variable.eq (v, v') then BV (coord, sigma) else e
        | BV _ => e
-       | ABS (xs, e') => ABS (xs, shiftVariable v (Coord.shiftRight coord) e')
-       | APP (theta, es) => APP (theta, Spine.Functor.map (shiftVariable v coord) es)
+       | ABS (xs, e') => ABS (xs, imprisonVariable v (Coord.shiftRight coord, e'))
+       | APP (theta, es) =>
+           APP (theta, Spine.Functor.map (fn e => imprisonVariable v (coord, e)) es)
 
-  fun addVariable v coord e =
+  fun liberateVariable v (coord, e) =
     case e of
          FV _ => e
        | BV (ann as (coord', sigma)) =>
            if Coord.eq (coord, coord') then FV (v, sigma) else BV ann
-       | ABS (xs, e) => ABS (xs, addVariable v (Coord.shiftRight coord) e)
-       | APP (theta, es) => APP (theta, Spine.Functor.map (addVariable v coord) es)
+       | ABS (xs, e) => ABS (xs, liberateVariable v (Coord.shiftRight coord, e))
+       | APP (theta, es) =>
+           APP (theta, Spine.Functor.map (fn e => liberateVariable v (coord, e)) es)
 
-  fun traverseVariables f vs =
-    let
-      val true = disjoint vs
-      fun go [] coord e = e
-        | go (v::vs) coord e =
-            go vs (Coord.shiftDown coord) (f v coord e)
-    in
-      go vs
+  local
+    structure ShiftFunCat : CATEGORY =
+    struct
+      type ('a, 'b) hom = (Coord.t * 'a -> 'b)
+      fun id (_, x) = x
+      fun comp (f, g) (coord, a) = f (Coord.shiftDown coord, g (coord, a))
     end
 
-  val shiftVariables = traverseVariables shiftVariable
-  val addVariables = traverseVariables addVariable
+    structure ShiftFoldMap =
+      CategoryFoldMap
+        (structure C = ShiftFunCat
+         structure F = Spine.Foldable)
+  in
+    fun imprisonVariables vs t =
+      ShiftFoldMap.foldMap imprisonVariable vs (Coord.origin, t)
 
-  fun check (`x, ([], sigma)) = FV (x, sigma)
+    fun liberateVariables vs t =
+      ShiftFoldMap.foldMap liberateVariable vs (Coord.origin, t)
+  end
+
+  fun check (`x, (valence, sigma)) =
+      let
+        val true = Spine.isEmpty valence
+      in
+        FV (x, sigma)
+      end
     | check (xs \ e, (sorts, tau)) =
       let
         val ((_, tau'), _) = infer e
-        val true = Arity.Sort.eq (tau, tau')
+        val true = Sort.eq (tau, tau')
       in
-        ABS (ListPair.zipEq (xs, sorts), shiftVariables xs Coord.origin e)
+        ABS (Spine.Pair.zipEq (xs, sorts), imprisonVariables xs e)
       end
-    | check (theta $ es, ([], tau)) =
+    | check (theta $ es, (valence, tau)) =
       let
+        val true = Spine.isEmpty valence
         val (valences, tau') = Operator.arity theta
-        val true = Arity.Sort.eq (tau, tau')
-        fun chkInf (valence : Arity.Valence.t, e) =
+        val true = Sort.eq (tau, tau')
+        fun chkInf (valence, e) =
           let
-            val (valence' : Arity.Valence.t, _) = infer e
+            val (valence', _) = infer e
           in
-            if Arity.Valence.eq (valence, valence') then
+            if Valence.eq (valence, valence') then
               e
             else
               raise Fail "valence mismatch"
@@ -113,23 +107,23 @@ struct
       in
         APP (theta, es')
       end
-    | check (_, (sorts, _)) = raise Match
 
-  and infer (FV (v, sigma)) = (([], sigma), ` v)
+  and infer (FV (v, sigma)) = ((Spine.empty, sigma), ` v)
     | infer (BV _) = raise Fail "Impossible: unexpected bound variable"
     | infer (ABS (xs, e)) =
       let
-        val xs' = List.map (Variable.clone o #1) xs
-        val (([], tau), e') = infer e
-        val valence = (List.map #2 xs, tau)
+        val xs' = Spine.Functor.map (Variable.clone o #1) xs
+        val ((sorts, tau), e') = infer e
+        val true = Spine.isEmpty sorts
+        val valence = (Spine.Functor.map #2 xs, tau)
       in
-        (valence, xs' \ addVariables xs' Coord.origin e)
+        (valence, xs' \ liberateVariables xs' e)
       end
     | infer (APP (theta, es)) =
       let
         val (_, tau) = Operator.arity theta
       in
-        (([], tau), theta $ es)
+        ((Spine.empty, tau), theta $ es)
       end
 
   structure Eq : EQ =

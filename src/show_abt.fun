@@ -6,15 +6,17 @@ struct
   open Abt infix $ infixr \
   type t = abt
 
+  structure Spine = Abt.Operator.Arity.Valence.Spine
+
   fun toString e =
     case #2 (infer e) of
          `x => ShowVar.toString x
        | xs \ e =>
-           ListPretty.pretty ShowVar.toString (",", xs)
+          Spine.pretty ShowVar.toString "," xs
               ^ "." ^ toString e
        | theta $ es =>
            Operator.toString theta
-              ^ "(" ^ Abt.Operator.Arity.Spine.pretty toString "; " es ^ ")"
+              ^ "(" ^ Spine.pretty toString "; " es ^ ")"
 end
 
 functor PlainShowAbt (Abt : ABT) =

@@ -2,12 +2,18 @@ Library
   signature EQ
   signature SHOW
 
+  signature CATEGORY
   signature FUNCTOR
   signature MONAD
+  signature FOLDABLE
+
+  structure FunctionCategory
 
   functor FunctorOfMonad
   structure ListMonad
   structure ListFunctor
+
+  functor CategoryFoldMap
 
   signature LIST_PRETTY
   structure ListPretty
@@ -21,3 +27,9 @@ is
   monad.sig
   functor.fun
   monad.fun
+
+  category.sig
+  foldable.sig
+
+  foldable.fun
+  category.sml

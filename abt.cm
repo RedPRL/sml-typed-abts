@@ -36,3 +36,6 @@ is
   src/valence.fun
   src/arity.fun
   src/abt.fun
+
+  src/coord.sig
+  src/coord.sml
