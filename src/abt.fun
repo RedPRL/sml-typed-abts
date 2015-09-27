@@ -60,7 +60,7 @@ struct
     struct
       type ('a, 'b) hom = (Coord.t * 'a -> 'b)
       fun id (_, x) = x
-      fun comp (f, g) (coord, a) = f (Coord.shiftDown coord, g (coord, a))
+      fun comp (f, g) (coord, a) = f (coord, g (Coord.shiftDown coord, a))
     end
 
     structure ShiftFoldMap =
