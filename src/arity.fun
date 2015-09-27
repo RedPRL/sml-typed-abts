@@ -2,6 +2,8 @@ functor Arity (Sort : SORT) : ARITY =
 struct
   structure Sort = Sort
   structure Valence = Valence (Sort)
+  structure Spine = ListSpine
+
   type valence = Sort.t list * Sort.t
   type arity = valence list * Sort.t
   type t = arity

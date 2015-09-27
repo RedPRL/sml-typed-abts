@@ -7,7 +7,7 @@ sig
   type operator = Operator.t
   type sort = Operator.Arity.Sort.t
   type valence = Operator.Arity.Valence.t
-  type 'a spine = 'a list
+  type 'a spine = 'a Operator.Arity.Spine.t
 
   type abt
   include EQ where type t = abt

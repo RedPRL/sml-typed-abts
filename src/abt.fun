@@ -14,7 +14,7 @@ struct
               ^ "." ^ toString e
        | theta $ es =>
            Operator.toString theta
-              ^ "(" ^ ListPretty.pretty toString ("; ", es) ^ ")"
+              ^ "(" ^ Abt.Operator.Arity.Spine.pretty toString "; " es ^ ")"
 end
 
 functor PlainShowAbt (Abt : ABT) =
@@ -39,10 +39,10 @@ struct
       in
         check (xs \ e, valence)
       end
-    | checkStar (STAR (theta $ asts), valence) =
+    | checkStar (STAR (theta $ (asts : star spine)), valence) =
       let
         val (valences, _) = Operator.arity theta
-        val es = ListPair.mapEq checkStar (asts, valences)
+        val es = Operator.Arity.Spine.Pair.mapEq checkStar (asts, valences)
       in
         check (theta $ es, valence)
       end
@@ -83,7 +83,9 @@ struct
   type operator = Operator.t
   type sort = Arity.Sort.t
   type valence = Arity.Valence.t
-  type 'a spine = 'a list
+
+  structure Spine = Arity.Spine
+  type 'a spine = 'a Spine.t
 
   datatype abt =
       FV of variable * sort
@@ -106,7 +108,7 @@ struct
       case e of
           ` x => ` x
        | x \ e => x \ f e
-       | theta $ es => theta $ List.map f es
+       | theta $ es => theta $ Spine.Functor.map f es
   end
 
   (* TODO: replace with efficient check! *)
@@ -119,7 +121,7 @@ struct
          FV (v', sigma) => if Variable.eq (v, v') then BV (coord, sigma) else e
        | BV _ => e
        | ABS (xs, e') => ABS (xs, shiftVariable v (Coord.shiftRight coord) e')
-       | APP (theta, es) => APP (theta, List.map (shiftVariable v coord) es)
+       | APP (theta, es) => APP (theta, Spine.Functor.map (shiftVariable v coord) es)
 
   fun addVariable v coord e =
     case e of
@@ -127,7 +129,7 @@ struct
        | BV (ann as (coord', sigma)) =>
            if Coord.eq (coord, coord') then FV (v, sigma) else BV ann
        | ABS (xs, e) => ABS (xs, addVariable v (Coord.shiftRight coord) e)
-       | APP (theta, es) => APP (theta, List.map (addVariable v coord) es)
+       | APP (theta, es) => APP (theta, Spine.Functor.map (addVariable v coord) es)
 
   fun traverseVariables f vs =
     let
@@ -164,7 +166,7 @@ struct
               raise Fail "valence mismatch"
           end
 
-        val es' = ListPair.mapEq chkInf (valences, es)
+        val es' = Spine.Pair.mapEq chkInf (valences, es)
       in
         APP (theta, es')
       end
@@ -194,7 +196,7 @@ struct
       | eq (BV (i, _), BV (j, _)) = Coord.eq (i, j)
       | eq (ABS (_, e), ABS (_, e')) = eq (e, e')
       | eq (APP (theta, es), APP (theta', es')) =
-          Operator.eq (theta, theta') andalso ListPair.allEq eq (es, es')
+          Operator.eq (theta, theta') andalso Spine.Pair.allEq eq (es, es')
       | eq _ = false
   end
 

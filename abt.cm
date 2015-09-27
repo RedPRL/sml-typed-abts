@@ -4,9 +4,11 @@ Library
   signature VARIABLE
   signature VALENCE
   signature SORT
+  signature SPINE
   signature ARITY
 
   functor Variable
+  structure ListSpine
   functor Arity
   functor Abt
   functor AbtUtil
@@ -22,6 +24,8 @@ is
 
   src/sort.sig
   src/valence.sig
+  src/spine.sig
+  src/spine.sml
   src/arity.sig
   src/operator.sig
   src/abt.sig
