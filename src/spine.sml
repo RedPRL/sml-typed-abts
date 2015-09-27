@@ -1,7 +1,6 @@
 structure ListSpine : SPINE =
 struct
   type 'a t = 'a list
-  type path = int
 
   val empty = []
   val all = List.all
