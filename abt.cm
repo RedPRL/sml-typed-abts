@@ -17,6 +17,7 @@ Library
   functor DebugShowAbt
 is
   $/basis.cm
+
   basis/basis.cm
 
   src/variable.sig
@@ -29,6 +30,9 @@ is
   src/arity.sig
   src/operator.sig
   src/abt.sig
+  src/abt_util.sig
+  src/abt_util.fun
+  src/show_abt.fun
   src/valence.fun
   src/arity.fun
   src/abt.fun

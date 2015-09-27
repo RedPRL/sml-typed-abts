@@ -21,12 +21,3 @@ sig
   val check : abt view * valence -> abt
   val infer : abt -> valence * abt view
 end
-
-signature ABT_UTIL =
-sig
-  include ABT
-
-  datatype star = STAR of star view | EMB of abt
-  val checkStar : star * valence -> abt
-end
-
