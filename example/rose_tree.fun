@@ -48,6 +48,22 @@ struct
       end
   end
 
+  fun all p =
+    let
+      fun go NIL = true
+        | go (a @^ ts) = p a andalso Forest.all go ts
+    in
+      go
+    end
+
+  fun exists p =
+    let
+      fun go NIL = false
+        | go (a @^ ts) = p a orelse Forest.exists go ts
+    in
+      go
+    end
+
   structure Pair =
   struct
     exception UnequalLengths

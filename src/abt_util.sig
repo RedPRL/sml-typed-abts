@@ -2,6 +2,9 @@ signature ABT_UTIL =
 sig
   include ABT
 
+  val subst : abt * variable -> abt -> abt
+
+  (* abt patterns of variable depth *)
   datatype star = STAR of star view | EMB of abt
   val checkStar : star * valence -> abt
 end

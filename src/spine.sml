@@ -5,7 +5,9 @@ struct
   type 'a t = 'a list
 
   fun empty () = []
-  val all = List.all
+
+  val all = L.all
+  val exists = L.exists
 
   fun isEmpty [] = true
     | isEmpty _ = false
