@@ -1,6 +1,7 @@
 Group
 is
   abt.cm (bind:(anchor:libs value:lib))
+  $/basis.cm
   basis/basis.cm
   example/rose_tree.sig
   example/rose_tree.fun

@@ -13,25 +13,22 @@ struct
         | toString NAT = "nat"
     end
 
-    structure R = RoseTree
-    structure RoseTreeSpine = RoseTreeSpine (R)
-    structure Arity = Arity (structure Sort = Sort and Spine = RoseTreeSpine)
+    structure Arity = Arity (structure Sort = Sort and Spine = ListSpine)
 
-    datatype operator = LAM of int | AP | NUM | ZE | SU | RET
+    datatype operator = LAM of int | AP of int | NUM | LIT of int | RET
     type t = operator
 
     fun eq (x:t, y) = x = y
     fun toString (LAM i) = "lam"
-      | toString AP = "ap"
+      | toString (AP i) = "ap"
       | toString NUM = "num"
-      | toString ZE = "ze"
-      | toString SU = "su"
+      | toString (LIT n) = Int.toString n
       | toString RET = "ret"
 
     fun ->> (rho, tau) = (rho, tau)
     infixr ->>
 
-    fun c x = R.NIL ->> x
+    fun c x = [] ->> x
 
     local
       open Sort
@@ -41,31 +38,19 @@ struct
               raise Match
             else
               x :: replicate (i - 1) x
-
-      fun multiplex 0 x = R.NIL
-        | multiplex i x =
-            if i < 0 then
-              raise Match
-            else
-              R.@^ (x, replicate i (multiplex (i - 1) x))
     in
-      val op@^ = R.@^
-      infix 4 @^
-      fun arity (LAM i) = ((multiplex i EXP ->> EXP) @^ []) ->> VAL
-        | arity RET = c VAL @^ [] ->> EXP
-        | arity AP = c EXP @^ [c EXP @^ []] ->> EXP
-        | arity NUM = c NAT @^ [] ->> VAL
-        | arity ZE = c NAT
-        | arity SU = c NAT @^ [] ->> NAT
+      fun arity (LAM i) = [replicate i EXP ->> EXP] ->> VAL
+        | arity RET = [c VAL] ->> EXP
+        | arity (AP i) = replicate i (c EXP) ->> EXP
+        | arity NUM = [c NAT] ->> VAL
+        | arity (LIT _) = c NAT
     end
   end
 
   structure Abt = AbtUtil(Abt (structure Operator = O and Variable = V))
-  structure ShowAbt = DebugShowAbt (Abt)
+  structure ShowAbt = PlainShowAbt (Abt)
   open O O.Sort Abt
 
-  val op@^ = R.@^
-  infix 6 @^
 
   infixr 5 \
   infix 5 $
@@ -81,9 +66,7 @@ struct
   val g = V.named "g"
   val h = V.named "h"
 
-  val vars = f @^ [g @^ [R.NIL], h @^ [R.NIL]]
-
-  val expr = LAM 2 $$ (vars \\ AP $$ (``f @^ [``g @^ []])) @^ []
+  val expr = LAM 3 $$ [[f,g,h] \\ AP 3 $$ [``f,``g,``h]]
   val example = checkStar (expr, c VAL)
   val _ = print (ShowAbt.toString example ^ "\n")
 end
