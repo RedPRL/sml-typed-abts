@@ -121,20 +121,36 @@ struct
 
   and infer (FV (v, sigma)) = ((Spine.empty (), sigma), ` v)
     | infer (BV _) = raise Fail "Impossible: unexpected bound variable"
-    | infer (ABS (xs, e)) =
+    | infer (ABS (bindings, e)) =
       let
-        val xs' = Spine.Functor.map (Variable.clone o #1) xs
-        val ((sorts, tau), e') = infer e
+        val xs = Spine.Functor.map (Variable.clone o #1) bindings
+        val (sorts, tau) = inferValence e
         val () = assert "sorts not empty" (Spine.isEmpty sorts)
-        val valence = (Spine.Functor.map #2 xs, tau)
+        val valence = (Spine.Functor.map #2 bindings, tau)
       in
-        (valence, xs' \ liberateVariables xs' e)
+        (valence, xs \ liberateVariables xs e)
       end
     | infer (APP (theta, es)) =
       let
         val (_, tau) = Operator.arity theta
       in
         ((Spine.empty (), tau), theta $ es)
+      end
+
+  and inferValence (FV (v, sigma)) = (Spine.empty (), sigma)
+    | inferValence (BV (i, sigma)) = (Spine.empty (), sigma)
+    | inferValence (ABS (bindings, e)) =
+      let
+        val (_, sigma) = inferValence e
+        val sorts = Spine.Functor.map #2 bindings
+      in
+        (sorts, sigma)
+      end
+    | inferValence (APP (theta, es)) =
+      let
+        val (_, sigma) = Operator.arity theta
+      in
+        (Spine.empty (), sigma)
       end
 
   structure Eq : EQ =

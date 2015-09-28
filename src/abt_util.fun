@@ -14,11 +14,11 @@ struct
   fun subst (rho as (e, x)) e' =
     case infer e' of
          (_, ` y) => if Variable.eq (x, y) then e else e'
-       | ((sorts, sigma), xs \ e'') =>
+       | (valence, xs \ e'') =>
            if Spine.exists (fn y => Variable.eq (x, y)) xs then
              e'
            else
-             check (xs \ subst rho e'', (Spine.empty (), sigma))
+             check (xs \ subst rho e'', valence)
        | (valence, theta $ es) =>
            check (theta $ Spine.Functor.map (subst rho) es, valence)
 
