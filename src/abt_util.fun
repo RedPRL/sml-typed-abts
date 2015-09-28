@@ -8,28 +8,34 @@ struct
   infix 5 $
 
   structure Arity = Operator.Arity
-  structure Spine = Arity.Valence.Spine
+  structure Valence = Arity.Valence
+  structure Spine = Valence.Spine
 
-  fun checkStar (STAR (`x) , valence) = check (`x, valence)
-    | checkStar (STAR (xs \ e), valence as (sorts, tau)) =
-      let
-        val e = checkStar (e, (Spine.empty (), tau))
-      in
-        check (xs \ e, valence)
-      end
-    | checkStar (STAR (theta $ es), valence) =
-      let
-        val (valences, _) = Operator.arity theta
-        val es = Spine.Pair.mapEq checkStar (es, valences)
-      in
-        check (theta $ es, valence)
-      end
-    | checkStar (EMB e, valence) =
-      let
-        val (valence', e') = infer e
-        val true = Arity.Valence.eq (valence, valence')
-      in
-        e
-      end
+  fun checkStar (e, valence as (sorts, tau)) =
+    case e of
+         STAR (`x) => check (`x, valence)
+       | STAR (xs \ e) =>
+           let
+             val e = checkStar (e, (Spine.empty (), tau))
+           in
+             check (xs \ e, valence)
+           end
+       | STAR (theta $ es) =>
+           let
+             val (valences, _) = Operator.arity theta
+             val es = Spine.Pair.mapEq checkStar (es, valences)
+           in
+             check (theta $ es, valence)
+           end
+       | EMB e =>
+           let
+             val (valence', e') = infer e
+             val true = Arity.Valence.eq (valence, valence')
+           in
+             if Arity.Valence.eq (valence, valence') then
+               e
+             else
+               raise Fail ("Expected valence " ^ Valence.toString valence ^ " but got " ^ Valence.toString valence')
+           end
 end
 
