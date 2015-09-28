@@ -15,8 +15,11 @@ struct
           Spine.pretty ShowVar.toString "," xs
               ^ "." ^ toString e
        | theta $ es =>
-           Operator.toString theta
-              ^ "(" ^ Spine.pretty toString "; " es ^ ")"
+           if Spine.isEmpty es then
+             Operator.toString theta
+           else
+             Operator.toString theta
+                ^ "(" ^ Spine.pretty toString "; " es ^ ")"
 end
 
 functor PlainShowAbt (Abt : ABT) =
