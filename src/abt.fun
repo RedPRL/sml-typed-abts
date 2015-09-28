@@ -83,39 +83,41 @@ struct
       ("expected " ^ Sort.toString sigma ^ " == " ^ Sort.toString tau)
       (Sort.eq (sigma, tau))
 
+  fun assertValenceEq (v1, v2) =
+    assert
+      ("expected " ^ Valence.toString v1 ^ " == " ^ Valence.toString v2)
+      (Valence.eq (v1, v2))
 
-  fun check (`x, (valence, sigma)) =
-      let
-        val () = assert "valence not empty" (Spine.isEmpty valence)
-      in
-        FV (x, sigma)
-      end
-    | check (xs \ e, (sorts, tau)) =
-      let
-        val ((_, tau'), _) = infer e
-        val () = assertSortEq (tau, tau')
-      in
-        ABS (Spine.Pair.zipEq (xs, sorts), imprisonVariables xs e)
-      end
-    | check (theta $ es, (valence, tau)) =
-      let
-        val () = assert "valence not empty" (Spine.isEmpty valence)
-        val (valences, tau') = Operator.arity theta
-        val () = assertSortEq (tau, tau')
-        fun chkInf (valence, e) =
-          let
-            val (valence', _) = infer e
-          in
-            if Valence.eq (valence, valence') then
-              e
-            else
-              raise Fail "valence mismatch"
-          end
-
-        val es' = Spine.Pair.mapEq chkInf (valences, es)
-      in
-        APP (theta, es')
-      end
+  fun check (e, valence as (sorts, sigma)) =
+    case e of
+         `x =>
+           let
+             val () = assert "sorts not empty" (Spine.isEmpty sorts)
+           in
+             FV (x, sigma)
+           end
+       | xs \ e =>
+           let
+             val ((_, tau), _) = infer e
+             val () = assertSortEq (sigma, tau)
+           in
+             ABS (Spine.Pair.zipEq (xs, sorts), imprisonVariables xs e)
+           end
+       | theta $ es =>
+           let
+             val () = assert "sorts not empty" (Spine.isEmpty sorts)
+             val (valences, tau) = Operator.arity theta
+             val () = assertSortEq (sigma, tau)
+             fun chkInf (e, valence) =
+               let
+                 val (valence', _) = infer e
+                 val () = assertValenceEq (valence, valence')
+               in
+                 e
+               end
+           in
+             APP (theta, Spine.Pair.mapEq chkInf (es, valences))
+           end
 
   and infer (FV (v, sigma)) = ((Spine.empty (), sigma), ` v)
     | infer (BV _) = raise Fail "Impossible: unexpected bound variable"
@@ -123,7 +125,7 @@ struct
       let
         val xs' = Spine.Functor.map (Variable.clone o #1) xs
         val ((sorts, tau), e') = infer e
-        val () = assert "valence not empty" (Spine.isEmpty sorts)
+        val () = assert "sorts not empty" (Spine.isEmpty sorts)
         val valence = (Spine.Functor.map #2 xs, tau)
       in
         (valence, xs' \ liberateVariables xs' e)
