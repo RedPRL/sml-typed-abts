@@ -9,7 +9,7 @@ functor RoseTreeSpine (R : ROSE_TREE) : SPINE where type 'a t = 'a R.t =
 struct
   open R
 
-  val empty = NIL
+  fun empty () = NIL
   fun isEmpty NIL = true
     | isEmpty _ = false
 

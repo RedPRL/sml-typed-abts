@@ -13,7 +13,7 @@ struct
   fun checkStar (STAR (`x) , valence) = check (`x, valence)
     | checkStar (STAR (xs \ e), valence as (sorts, tau)) =
       let
-        val e = checkStar (e, (Spine.empty, tau))
+        val e = checkStar (e, (Spine.empty (), tau))
       in
         check (xs \ e, valence)
       end

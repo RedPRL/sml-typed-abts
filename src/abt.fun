@@ -117,7 +117,7 @@ struct
         APP (theta, es')
       end
 
-  and infer (FV (v, sigma)) = ((Spine.empty, sigma), ` v)
+  and infer (FV (v, sigma)) = ((Spine.empty (), sigma), ` v)
     | infer (BV _) = raise Fail "Impossible: unexpected bound variable"
     | infer (ABS (xs, e)) =
       let
@@ -132,7 +132,7 @@ struct
       let
         val (_, tau) = Operator.arity theta
       in
-        ((Spine.empty, tau), theta $ es)
+        ((Spine.empty (), tau), theta $ es)
       end
 
   structure Eq : EQ =

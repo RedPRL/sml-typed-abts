@@ -2,7 +2,7 @@ signature SPINE =
 sig
   type 'a t
 
-  val empty : 'a t
+  val empty : unit -> 'a t
   val isEmpty : 'a t -> bool
   val pretty : ('a -> string) -> string -> 'a t -> string
 
@@ -19,5 +19,4 @@ sig
     val zipEq : 'a t * 'b t -> ('a * 'b) t
     val allEq : ('a * 'b -> bool) -> 'a t * 'b t -> bool
   end
-
 end

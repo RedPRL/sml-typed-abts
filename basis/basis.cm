@@ -15,13 +15,9 @@ Library
 
   functor CategoryFoldMap
 
-  signature LIST_PRETTY
-  structure ListPretty
 is
   eq.sig
   show.sig
-  list_pretty.sig
-  list_pretty.sml
 
   functor.sig
   monad.sig
