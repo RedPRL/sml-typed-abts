@@ -46,6 +46,14 @@ struct
       fun map f (FREE v) = FREE (f v)
         | map f (BOUND i) = BOUND i
     end
+
+    structure Monad : MONAD =
+    struct
+      type 'a t = 'a t
+      fun pure v = FREE v
+      fun bind f (FREE v) = f v
+        | bind f (BOUND i) = BOUND i
+    end
   end
 
   datatype abt =
@@ -154,9 +162,8 @@ struct
        | ABS (us, xs, e') => ABS (us, xs, imprisonSymbol v (Coord.shiftRight coord, e'))
        | APP (theta, es) =>
          let
-           fun rho (LN.FREE v') = if Symbol.Eq.eq (v, v') then LN.BOUND coord else LN.FREE v'
-             | rho v' = v'
-           val theta' = Operator.Presheaf.map rho theta
+           fun rho v' = if Symbol.Eq.eq (v, v') then LN.BOUND coord else LN.FREE v'
+           val theta' = Operator.Presheaf.map (LN.Monad.bind rho) theta
          in
            APP (theta', Spine.Functor.map (fn e => imprisonSymbol v (coord, e)) es)
          end
