@@ -11,29 +11,18 @@ struct
   structure Valence = Arity.Valence
   structure Spine = Valence.Spine
 
-  fun subst (rho as (e, x)) e' =
-    case infer e' of
-         (_, ` y) => if Variable.Eq.eq (x, y) then e else e'
-       | (valence, xs \ e'') =>
-           if Spine.exists (fn y => Variable.Eq.eq (x, y)) xs then
-             e'
-           else
-             check (xs \ subst rho e'', valence)
-       | (valence, theta $ es) =>
-           check (theta $ Spine.Functor.map (subst rho) es, valence)
-
-  fun checkStar (e, valence as (sorts, tau)) =
+  fun checkStar (e, valence as ((symbols, variables), tau)) =
     case e of
          STAR (`x) => check (`x, valence)
-       | STAR (xs \ e) =>
+       | STAR ((us, xs) \ e) =>
            let
-             val e = checkStar (e, (Spine.empty (), tau))
+             val e = checkStar (e, ((Spine.empty (), Spine.empty ()), tau))
            in
-             check (xs \ e, valence)
+             check ((us, xs) \ e, valence)
            end
        | STAR (theta $ es) =>
            let
-             val (valences, _) = Operator.arity theta
+             val (_, (valences, _)) = Operator.proj theta
              val es = Spine.Pair.mapEq checkStar (es, valences)
            in
              check (theta $ es, valence)

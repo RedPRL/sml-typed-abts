@@ -1,10 +1,12 @@
 signature ABT =
 sig
+  structure Symbol : SYMBOL
   structure Variable : SYMBOL
   structure Operator : OPERATOR
 
+  type symbol = Symbol.t
   type variable = Variable.t
-  type operator = Operator.t
+  type operator = symbol Operator.t
   type sort = Operator.Arity.Sort.t
   type valence = Operator.Arity.Valence.t
   type 'a spine = 'a Operator.Arity.Valence.Spine.t
@@ -12,11 +14,21 @@ sig
   type abt
   structure Eq : EQ where type t = abt
 
+  val freeVariables : abt -> variable list
+  val freeSymbols : abt -> symbol list
+
+  (* subst (N, x) M ==== [N/x]M *)
+  val subst : abt * variable -> abt -> abt
+
+  (* rename (v, u) M === {v/u}M *)
+  val rename : symbol * symbol -> abt -> abt
+
+
   (* Patterns for abstract binding trees. *)
   datatype 'a view =
       ` of variable
     | $ of operator * 'a spine
-    | \ of variable spine * 'a
+    | \ of (symbol spine * variable spine) * 'a
 
   structure ViewFunctor : FUNCTOR where type 'a t = 'a view
 

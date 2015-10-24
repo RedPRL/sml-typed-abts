@@ -1,6 +1,8 @@
 structure Example =
 struct
   structure V = Symbol ()
+  structure I = Symbol ()
+
   structure O =
   struct
     structure Sort =
@@ -24,90 +26,72 @@ struct
 
     structure Arity = Arity (structure Sort = Sort and Spine = ListSpine)
 
-    datatype operator = LAM of int | AP of int | NUM | LIT of int | RET
-    type t = operator
+    datatype 'i t =
+        LAM | AP | NUM | LIT of int | RET
+      | DECL | GET of 'i | SET of 'i
 
-    structure Eq =
+    functor Eq (I : EQ) =
     struct
-      type t = operator
-      fun eq (x:t, y) = x = y
+      type t = I.t t
+      fun eq (LAM, LAM) = true
+        | eq (AP, AP) = true
+        | eq (NUM, NUM) = true
+        | eq (LIT m, LIT n) = m = n
+        | eq (RET, RET) = true
+        | eq (DECL, DECL) = true
+        | eq (GET i, GET j) = I.eq (i, j)
+        | eq (SET i, SET j) = I.eq (i, j)
+        | eq _ = false
     end
 
-    structure Show =
+    functor Show (I : SHOW) =
     struct
-      type t = operator
-      fun toString (LAM i) = "lam"
-        | toString (AP i) = "ap"
+      type t = I.t t
+      fun toString LAM = "lam"
+        | toString AP = "ap"
         | toString NUM = "#"
         | toString (LIT n) = Int.toString n
         | toString RET = "ret"
+        | toString DECL = "∇"
+        | toString (GET i) = "get[" ^ I.toString i ^ "]"
+        | toString (SET i) = "set[" ^ I.toString i ^ "]"
     end
-
-    fun ->> (rho, tau) = (rho, tau)
-    infixr ->>
-
-    fun c x = [] ->> x
 
     local
       open Sort
       fun replicate i x = List.tabulate (i, fn _ => x)
+      fun mkValence p q s = ((p, q), s)
     in
-      fun arity (LAM i) = [replicate i EXP ->> EXP] ->> VAL
-        | arity RET = [c VAL] ->> EXP
-        | arity (AP i) = replicate (i + 1) (c EXP) ->> EXP
-        | arity NUM = [c NAT] ->> VAL
-        | arity (LIT _) = c NAT
+      fun proj LAM = ([], ([mkValence [] [EXP] EXP], EXP))
+        | proj RET = ([], ([mkValence [] [] VAL], EXP))
+        | proj AP = ([], ([mkValence [] [] EXP, mkValence [] [] EXP], EXP))
+        | proj NUM = ([], ([mkValence [] [] NAT], VAL))
+        | proj (LIT _) = ([], ([], NAT))
+        | proj DECL = ([], ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP))
+        | proj (GET i) = ([(i, EXP)], ([], EXP))
+        | proj (SET i) = ([(i, EXP)], ([mkValence [] [] EXP], EXP))
+    end
+
+    structure Presheaf =
+    struct
+      type 'i t = 'i t
+      fun map f LAM = LAM
+        | map f AP = AP
+        | map f NUM = NUM
+        | map f (LIT n) = LIT n
+        | map f RET = RET
+        | map f DECL = DECL
+        | map f (GET i) = GET (f i)
+        | map f (SET i) = SET (f i)
     end
   end
 
-  structure Abt = AbtUtil(Abt (structure Operator = O and Variable = V))
-  structure ShowAbt = DebugShowAbt (Abt)
+  structure Abt = AbtUtil(Abt (structure Operator = O and Variable = V and Symbol = I))
+  structure ShowAbt = PlainShowAbt (Abt)
   open O O.Sort Abt
 
   infixr 5 \
   infix 5 $
-
-  structure Eval =
-  struct
-    fun eval e =
-      let
-        val ((_, sigma), pat) = infer e
-      in
-        case pat of
-             `x => raise Fail "free variable"
-           | _ \ _ => raise Fail "unexpected binding"
-           | LAM i $ _ => e
-           | RET $ _ => e
-           | AP i $ es =>
-               let
-                 fun go (m :: []) = eval m
-                   | go (m :: es) =
-                     let
-                       val ((_, tau), RET $ [m']) = infer (eval m)
-                       val (_, LAM i $ [xsE]) = infer m'
-                       val (_, xs \ E) = infer xsE
-                       val i' = Int.min (i, List.length es)
-                       val es1 = List.take (es, i')
-                       val es2 = List.drop (es, i')
-                       val j = List.length es2
-                       val E' =
-                         ListPair.foldr
-                           (fn (x,e,mem) => subst (e,x) mem)
-                           E
-                           (xs, es1)
-                     in
-                       if j > 0 then
-                         go (E'::es2)
-                       else
-                         eval E'
-                     end
-                   | go _ = raise Match
-               in
-                 go es
-               end
-           | _ => raise Match
-      end
-  end
 
   val $$ = STAR o op$
   infix 5 $$
@@ -117,21 +101,12 @@ struct
 
   val `` = STAR o `
   val a = V.named "a"
-  val b = V.named "b"
+  val u = I.named "u"
 
-  fun lam xs e = LAM (List.length xs) $$ [xs \\ e]
-  fun ap es = AP (List.length es - 1) $$ es
-  fun ret x = RET $$ [x]
-  fun num x = NUM $$ [x]
-  fun lit n = LIT n $$ []
+  val expr1 =
+    checkStar
+      (DECL $$ [``a, ([u], []) \\ GET u $$ []],
+       (([], []), EXP))
 
-  (* Two different implementations of const; one with multiabstraction, and
-   * another with iterated abstraction. *)
-  val const = lam [a,b] (``a)
-  val const' = lam [a] (ret (lam [b] (``a)))
-
-  val expr1 = checkStar (ap [ret const, ret (num (lit 1)), ret (num (lit 23))], c EXP)
-  val expr2 = checkStar (ap [ret const', ret (num (lit 1)), ret (num (lit 23))], c EXP)
-
-  val _ = print (ShowAbt.toString (Eval.eval expr1) ^ " == " ^ ShowAbt.toString (Eval.eval expr2) ^ "\n")
+  val _ = print ("\n\n" ^ ShowAbt.toString expr1 ^ "\n\n")
 end

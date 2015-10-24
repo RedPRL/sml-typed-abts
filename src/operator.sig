@@ -1,12 +1,15 @@
-(* An arity-indexed family of operators *)
 signature OPERATOR =
 sig
   structure Arity : ARITY
 
-  type t
+  type 'i t
 
-  structure Eq : EQ where type t = t
-  structure Show : SHOW where type t = t
+  (* not Definition-compliant, but included in Successor ML *)
+  functor Eq (I : EQ) : EQ where type t = I.t t
+  functor Show (I : SHOW) : SHOW where type t = I.t t
 
-  val arity : t -> Arity.t
+  val proj : 'i t -> ('i * Arity.Valence.sort) list * Arity.t
+
+  structure Presheaf : FUNCTOR where type 'i t = 'i t
 end
+
