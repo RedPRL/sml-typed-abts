@@ -107,7 +107,6 @@ struct
 
   val u = I.named "u"
 
-
   fun mkValence p q s = ({symbols = p, variables = q}, s)
   val n1 = RET $$ [NUM $$ [LIT 1 $$ []]]
   val expr1 =

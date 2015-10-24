@@ -14,6 +14,9 @@ sig
   type abt
   structure Eq : EQ where type t = abt
 
+  val freeVariables : abt -> variable list
+  val freeSymbols : abt -> symbol list
+
   (* Patterns for abstract binding trees. *)
   datatype 'a view =
       ` of variable

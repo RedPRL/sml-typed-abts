@@ -54,6 +54,46 @@ struct
   infixr 5 \
   infix 5 $
 
+  functor Union (Eq : EQ) =
+  struct
+    fun elem (X, x) = List.exists (fn y => Eq.eq (x, y)) X
+    fun union ([], Y) = Y
+      | union (x :: X, Y) = if elem (Y, x) then union (X, Y) else x :: (union (X,  Y))
+  end
+
+  local
+    structure VS = Union (Symbol.Eq)
+    structure VU = Union (Variable.Eq)
+  in
+    fun freeVariables M =
+      let
+        fun go R (V (LN.FREE v, _)) = VU.union ([v], R)
+          | go R (ABS (_, _, M)) = go R M
+          | go R (APP (theta, Es)) =
+              Spine.Foldable.foldr VU.union R (Spine.Functor.map (go []) Es)
+          | go R _ = R
+      in
+        go [] M
+      end
+
+    fun freeSymbols M =
+      let
+        fun opFreeSymbols theta =
+          let
+            val (Ypsilon, _) = Operator.proj theta
+          in
+            List.foldl (fn ((u, _), R) => LN.getFree u :: R handle _ => R) [] Ypsilon
+          end
+        fun go R (ABS (_, _, M)) = go R M
+          | go R (APP (theta, Es)) =
+              VS.union (opFreeSymbols theta, Spine.Foldable.foldr VS.union R (Spine.Functor.map (go []) Es))
+          | go R _ = R
+      in
+        go [] M
+      end
+  end
+
+
   structure ViewFunctor =
   struct
     type 'a t = 'a view
