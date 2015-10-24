@@ -4,6 +4,7 @@ sig
   val origin : t
   val shiftRight : t -> t
   val shiftDown : t -> t
-  include EQ
+
+  structure Eq : EQ where type t = t
 end
 

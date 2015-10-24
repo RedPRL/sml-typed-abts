@@ -13,9 +13,9 @@ struct
 
   fun subst (rho as (e, x)) e' =
     case infer e' of
-         (_, ` y) => if Variable.eq (x, y) then e else e'
+         (_, ` y) => if Variable.Eq.eq (x, y) then e else e'
        | (valence, xs \ e'') =>
-           if Spine.exists (fn y => Variable.eq (x, y)) xs then
+           if Spine.exists (fn y => Variable.Eq.eq (x, y)) xs then
              e'
            else
              check (xs \ subst rho e'', valence)
@@ -41,12 +41,12 @@ struct
        | EMB e =>
            let
              val (valence', e') = infer e
-             val true = Arity.Valence.eq (valence, valence')
+             val true = Arity.Valence.Eq.eq (valence, valence')
            in
-             if Arity.Valence.eq (valence, valence') then
+             if Arity.Valence.Eq.eq (valence, valence') then
                e
              else
-               raise Fail ("Expected valence " ^ Valence.toString valence ^ " but got " ^ Valence.toString valence')
+               raise Fail ("Expected valence " ^ Valence.Show.toString valence ^ " but got " ^ Valence.Show.toString valence')
            end
 end
 

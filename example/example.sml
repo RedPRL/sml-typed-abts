@@ -5,12 +5,21 @@ struct
   struct
     structure Sort =
     struct
-      datatype sort = EXP | VAL | NAT
-      type t = sort
-      val eq : sort * sort -> bool = op=
-      fun toString EXP = "exp"
-        | toString VAL = "val"
-        | toString NAT = "nat"
+      datatype t = EXP | VAL | NAT
+
+      structure Eq =
+      struct
+        type t = t
+        val eq : t * t -> bool = op=
+      end
+
+      structure Show =
+      struct
+        type t = t
+        fun toString EXP = "exp"
+          | toString VAL = "val"
+          | toString NAT = "nat"
+      end
     end
 
     structure Arity = Arity (structure Sort = Sort and Spine = ListSpine)
@@ -18,12 +27,21 @@ struct
     datatype operator = LAM of int | AP of int | NUM | LIT of int | RET
     type t = operator
 
-    fun eq (x:t, y) = x = y
-    fun toString (LAM i) = "lam"
-      | toString (AP i) = "ap"
-      | toString NUM = "#"
-      | toString (LIT n) = Int.toString n
-      | toString RET = "ret"
+    structure Eq =
+    struct
+      type t = operator
+      fun eq (x:t, y) = x = y
+    end
+
+    structure Show =
+    struct
+      type t = operator
+      fun toString (LAM i) = "lam"
+        | toString (AP i) = "ap"
+        | toString NUM = "#"
+        | toString (LIT n) = Int.toString n
+        | toString RET = "ret"
+    end
 
     fun ->> (rho, tau) = (rho, tau)
     infixr ->>

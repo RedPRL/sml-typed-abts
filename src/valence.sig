@@ -2,13 +2,9 @@ signature VALENCE =
 sig
   type sort
   structure Spine : SPINE
-  type valence = sort Spine.t * sort
+  type t = sort Spine.t * sort
 
-  include
-    sig
-      include SHOW
-      include EQ
-    end
-    where type t = valence
+  structure Show : SHOW where type t = t
+  structure Eq : EQ where type t = t
 end
 

@@ -3,14 +3,10 @@ signature OPERATOR =
 sig
   structure Arity : ARITY
 
-  type operator
-  include
-    sig
-      include EQ
-      include SHOW
-    end
-    where type t = operator
+  type t
 
-  val arity : operator -> Arity.arity
+  structure Eq : EQ where type t = t
+  structure Show : SHOW where type t = t
+
+  val arity : t -> Arity.t
 end
-

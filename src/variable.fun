@@ -1,7 +1,6 @@
 functor Variable () :> VARIABLE =
 struct
-  type variable = int * string
-  type t = variable
+  type t = int * string
   val counter = ref 0
   fun named a =
     let
@@ -14,21 +13,24 @@ struct
   fun compare ((i, _), (j, _)) =
     Int.compare (i, j)
 
-  fun eq ((i : int, _), (j, _)) =
-    i = j
+  structure Eq =
+  struct
+    type t = t
+    fun eq ((i : int, _), (j, _)) = i = j
+  end
 
   fun clone (_, a) =
     named a
 
   structure Show =
   struct
-    type t = variable
+    type t = t
     fun toString (_, a) = a
   end
 
   structure DebugShow =
   struct
-    type t = variable
+    type t = t
     fun toString (i, a) =
       a ^ "@" ^ Int.toString i
   end

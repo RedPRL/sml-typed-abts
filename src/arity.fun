@@ -4,20 +4,27 @@ struct
   structure Valence = Valence (structure Sort = Sort and Spine = Spine)
 
   type valence = Valence.t
-  type arity = valence Spine.t * Sort.t
-  type t = arity
+  type t = valence Spine.t * Sort.t
 
-  fun eq ((valences, sigma), (valences', sigma')) =
-    Spine.Pair.allEq Valence.eq (valences, valences')
-      andalso Sort.eq (sigma, sigma')
+  structure Eq =
+  struct
+    type t = t
+    fun eq ((valences, sigma), (valences', sigma')) =
+      Spine.Pair.allEq Valence.Eq.eq (valences, valences')
+        andalso Sort.Eq.eq (sigma, sigma')
+  end
 
-  fun toString (valences, sigma) =
-      let
-        val valences' = Spine.pretty Valence.toString ", " valences
-        val sigma' = Sort.toString sigma
-      in
-        "(" ^ valences' ^ ")" ^ sigma'
-      end
+  structure Show =
+  struct
+    type t = t
+    fun toString (valences, sigma) =
+        let
+          val valences' = Spine.pretty Valence.Show.toString ", " valences
+          val sigma' = Sort.Show.toString sigma
+        in
+          "(" ^ valences' ^ ")" ^ sigma'
+        end
+  end
 end
 
 

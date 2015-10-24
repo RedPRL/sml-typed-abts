@@ -1,11 +1,7 @@
 signature SORT =
 sig
-  type sort
-  include
-    sig
-      include EQ
-      include SHOW
-    end
-    where type t = sort
+  type t
+  structure Eq : EQ where type t = t
+  structure Show : SHOW where type t = t
 end
 

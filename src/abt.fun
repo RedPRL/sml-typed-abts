@@ -40,7 +40,7 @@ struct
   fun imprisonVariable v (coord, e) =
     case e of
          FV (v', sigma) =>
-           if Variable.eq (v, v') then BV (coord, sigma) else e
+           if Variable.Eq.eq (v, v') then BV (coord, sigma) else e
        | BV _ => e
        | ABS (xs, e') => ABS (xs, imprisonVariable v (Coord.shiftRight coord, e'))
        | APP (theta, es) =>
@@ -50,7 +50,7 @@ struct
     case e of
          FV _ => e
        | BV (ann as (coord', sigma)) =>
-           if Coord.eq (coord, coord') then FV (v, sigma) else BV ann
+           if Coord.Eq.eq (coord, coord') then FV (v, sigma) else BV ann
        | ABS (xs, e) => ABS (xs, liberateVariable v (Coord.shiftRight coord, e))
        | APP (theta, es) =>
            APP (theta, Spine.Functor.map (fn e => liberateVariable v (coord, e)) es)
@@ -80,13 +80,13 @@ struct
 
   fun assertSortEq (sigma, tau) =
     assert
-      ("expected " ^ Sort.toString sigma ^ " == " ^ Sort.toString tau)
-      (Sort.eq (sigma, tau))
+      ("expected " ^ Sort.Show.toString sigma ^ " == " ^ Sort.Show.toString tau)
+      (Sort.Eq.eq (sigma, tau))
 
   fun assertValenceEq (v1, v2) =
     assert
-      ("expected " ^ Valence.toString v1 ^ " == " ^ Valence.toString v2)
-      (Valence.eq (v1, v2))
+      ("expected " ^ Valence.Show.toString v1 ^ " == " ^ Valence.Show.toString v2)
+      (Valence.Eq.eq (v1, v2))
 
   fun check (e, valence as (sorts, sigma)) =
     case e of
@@ -156,11 +156,11 @@ struct
   structure Eq : EQ =
   struct
     type t = abt
-    fun eq (FV (v, _), FV (v', _)) = Variable.eq (v, v')
-      | eq (BV (i, _), BV (j, _)) = Coord.eq (i, j)
+    fun eq (FV (v, _), FV (v', _)) = Variable.Eq.eq (v, v')
+      | eq (BV (i, _), BV (j, _)) = Coord.Eq.eq (i, j)
       | eq (ABS (_, e), ABS (_, e')) = eq (e, e')
       | eq (APP (theta, es), APP (theta', es')) =
-          Operator.eq (theta, theta') andalso Spine.Pair.allEq eq (es, es')
+          Operator.Eq.eq (theta, theta') andalso Spine.Pair.allEq eq (es, es')
       | eq _ = false
   end
 

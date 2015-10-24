@@ -1,18 +1,13 @@
 signature VARIABLE =
 sig
-  type variable
-  val named : string -> variable
+  type t
+  val named : string -> t
 
-  structure Show : SHOW where type t = variable
-  structure DebugShow : SHOW where type t = variable
+  structure Show : SHOW where type t = t
+  structure DebugShow : SHOW where type t = t
+  structure Eq : EQ where type t = t
 
-  include
-    sig
-      include EQ
-    end
-    where type t = variable
-
-  val compare : variable * variable -> order
-  val clone : variable -> variable
+  val compare : t * t -> order
+  val clone : t -> t
 end
 

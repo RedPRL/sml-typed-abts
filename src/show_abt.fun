@@ -16,9 +16,9 @@ struct
               ^ "." ^ toString e
        | theta $ es =>
            if Spine.isEmpty es then
-             Operator.toString theta
+             Operator.Show.toString theta
            else
-             Operator.toString theta
+             Operator.Show.toString theta
                 ^ "(" ^ Spine.pretty toString "; " es ^ ")"
 end
 

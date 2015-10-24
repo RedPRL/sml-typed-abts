@@ -10,7 +10,7 @@ sig
   type 'a spine = 'a Operator.Arity.Valence.Spine.t
 
   type abt
-  include EQ where type t = abt
+  structure Eq : EQ where type t = abt
 
   (* Patterns for abstract binding trees. *)
   datatype 'a view =
