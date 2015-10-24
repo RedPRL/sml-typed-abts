@@ -39,6 +39,13 @@ struct
 
     fun getFree (FREE v) = v
       | getFree (BOUND i) = raise UnexpectedBoundName i
+
+    structure Functor : FUNCTOR =
+    struct
+      type 'a t = 'a t
+      fun map f (FREE v) = FREE (f v)
+        | map f (BOUND i) = BOUND i
+    end
   end
 
   datatype abt =
@@ -93,6 +100,34 @@ struct
       end
   end
 
+  fun subst (N, x) M =
+    case M of
+         V (LN.FREE y, sigma) => if Variable.Eq.eq (x, y) then N else M
+       | V _ => M
+       | ABS (_, _, M') => subst (N, x) M'
+       | APP (theta, Es) =>
+           APP (theta, Spine.Functor.map (subst (N, x)) Es)
+
+  fun rename (v, u) =
+    let
+      fun go M =
+        case M of
+             V _ => M
+           | ABS (_, _, M') => go M'
+           | APP (theta, Es) =>
+             let
+               fun rho u' = if Symbol.Eq.eq (u, u') then v else u'
+               val theta' = Operator.Presheaf.map (LN.Functor.map rho) theta
+             in
+               APP (theta', Spine.Functor.map go Es)
+             end
+    in
+      fn M =>
+        if List.exists (fn v' => Symbol.Eq.eq (v', v)) (freeSymbols M) then
+          raise Fail "Renaming fails to preserve apartness"
+        else
+          go M
+    end
 
   structure ViewFunctor =
   struct
@@ -184,7 +219,7 @@ struct
                in
                  e
                end
-             val theta' = Operator.Renaming.map LN.FREE theta
+             val theta' = Operator.Presheaf.map LN.FREE theta
            in
              APP (theta', Spine.Pair.mapEq chkInf (es, valences))
            end
@@ -209,7 +244,7 @@ struct
     | infer (APP (theta, es)) =
       let
         val (_, (_, tau)) = Operator.proj theta
-        val theta' = Operator.Renaming.map LN.getFree theta
+        val theta' = Operator.Presheaf.map LN.getFree theta
         val valence = ((Spine.empty (), Spine.empty ()), tau)
       in
         (valence, theta' $ es)

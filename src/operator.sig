@@ -10,6 +10,6 @@ sig
 
   val proj : 'i t -> ('i * Arity.Valence.sort) list * Arity.t
 
-  structure Renaming : FUNCTOR where type 'i t = 'i t
+  structure Presheaf : FUNCTOR where type 'i t = 'i t
 end
 

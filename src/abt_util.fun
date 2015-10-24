@@ -11,17 +11,6 @@ struct
   structure Valence = Arity.Valence
   structure Spine = Valence.Spine
 
-  fun subst (rho as (e, x)) e' =
-    case infer e' of
-         (_, ` y) => if Variable.Eq.eq (x, y) then e else e'
-       | (valence, (us, xs) \ e'') =>
-           if Spine.exists (fn y => Variable.Eq.eq (x, y)) xs then
-             e'
-           else
-             check ((us, xs) \ subst rho e'', valence)
-       | (valence, theta $ es) =>
-           check (theta $ Spine.Functor.map (subst rho) es, valence)
-
   fun checkStar (e, valence as ((symbols, variables), tau)) =
     case e of
          STAR (`x) => check (`x, valence)

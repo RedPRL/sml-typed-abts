@@ -74,7 +74,7 @@ struct
       fun proj theta = ([], arity theta)
     end
 
-    structure Renaming =
+    structure Presheaf =
     struct
       type 'i t = 'i t
       fun map f LAM = LAM

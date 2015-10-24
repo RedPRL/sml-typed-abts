@@ -17,6 +17,13 @@ sig
   val freeVariables : abt -> variable list
   val freeSymbols : abt -> symbol list
 
+  (* subst (N, x) M ==== [N/x]M *)
+  val subst : abt * variable -> abt -> abt
+
+  (* rename (v, u) M === {v/u}M *)
+  val rename : symbol * symbol -> abt -> abt
+
+
   (* Patterns for abstract binding trees. *)
   datatype 'a view =
       ` of variable
