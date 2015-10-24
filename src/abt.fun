@@ -89,7 +89,7 @@ struct
           let
             val (Ypsilon, _) = Operator.proj theta
           in
-            List.foldl (fn ((u, _), R) => LN.getFree u :: R handle _ => R) [] Ypsilon
+            List.foldl (fn ((u, _), R) => (LN.getFree u :: R) handle _ => R) [] Ypsilon
           end
         fun go R (ABS (_, _, M)) = go R M
           | go R (APP (theta, Es)) =
@@ -148,6 +148,19 @@ struct
        | APP (theta, es) =>
            APP (theta, Spine.Functor.map (fn e => imprisonVariable v (coord, e)) es)
 
+  fun imprisonSymbol v (coord, e) =
+    case e of
+         V _ => e
+       | ABS (us, xs, e') => ABS (us, xs, imprisonSymbol v (Coord.shiftRight coord, e'))
+       | APP (theta, es) =>
+         let
+           fun rho (LN.FREE v') = if Symbol.Eq.eq (v, v') then LN.BOUND coord else LN.FREE v'
+             | rho v' = v'
+           val theta' = Operator.Presheaf.map rho theta
+         in
+           APP (theta', Spine.Functor.map (fn e => imprisonSymbol v (coord, e)) es)
+         end
+
   fun liberateVariable v (coord, e) =
     case e of
          V (LN.FREE _, _) => e
@@ -156,6 +169,20 @@ struct
        | ABS (us, xs, e) => ABS (us, xs, liberateVariable v (Coord.shiftRight coord, e))
        | APP (theta, es) =>
            APP (theta, Spine.Functor.map (fn e => liberateVariable v (coord, e)) es)
+
+  fun liberateSymbol v (coord, e) =
+    case e of
+         V _ => e
+       | ABS (us, xs, e) => ABS (us, xs, liberateSymbol v (Coord.shiftRight coord, e))
+       | APP (theta, es) =>
+         let
+           fun rho (LN.BOUND coord') =
+               if Coord.Eq.eq (coord, coord') then LN.FREE v else LN.BOUND coord'
+             | rho v' = v'
+           val theta' = Operator.Presheaf.map rho theta
+         in
+           APP (theta', Spine.Functor.map (fn e => liberateSymbol v (coord, e)) es)
+         end
 
   local
     structure ShiftFunCat : CATEGORY =
@@ -173,8 +200,14 @@ struct
     fun imprisonVariables vs t =
       ShiftFoldMap.foldMap imprisonVariable vs (Coord.origin, t)
 
+    fun imprisonSymbols vs t =
+      ShiftFoldMap.foldMap imprisonSymbol vs (Coord.origin, t)
+
     fun liberateVariables vs t =
       ShiftFoldMap.foldMap liberateVariable vs (Coord.origin, t)
+
+    fun liberateSymbols vs t =
+      ShiftFoldMap.foldMap liberateSymbol vs (Coord.origin, t)
   end
 
   fun assert msg b =
@@ -204,7 +237,9 @@ struct
              val ((_, tau), _) = infer e
              val () = assertSortEq (sigma, tau)
            in
-             ABS (Spine.Pair.zipEq (us, symbols), Spine.Pair.zipEq (xs, variables), imprisonVariables xs e)
+             ABS (Spine.Pair.zipEq (us, symbols),
+                  Spine.Pair.zipEq (xs, variables),
+                  imprisonSymbols us (imprisonVariables xs e))
            end
        | theta $ es =>
            let
@@ -239,7 +274,7 @@ struct
         val () = assert "symbols not empty" (Spine.isEmpty symbols)
         val valence = ((Spine.Functor.map #2 Ypsilon, Spine.Functor.map #2 Gamma), tau)
       in
-        (valence, (us, xs) \ liberateVariables xs e)
+        (valence, (us, xs) \ liberateSymbols us (liberateVariables xs e))
       end
     | infer (APP (theta, es)) =
       let

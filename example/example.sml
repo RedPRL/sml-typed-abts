@@ -62,16 +62,14 @@ struct
       fun replicate i x = List.tabulate (i, fn _ => x)
       fun mkValence p q s = ((p, q), s)
     in
-      fun arity LAM = ([mkValence [] [EXP] EXP], EXP)
-        | arity RET = ([mkValence [] [] VAL], EXP)
-        | arity AP = ([mkValence [] [] EXP, mkValence [] [] EXP], EXP)
-        | arity NUM = ([mkValence [] [] NAT], VAL)
-        | arity (LIT _) = ([], NAT)
-        | arity DECL = ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP)
-        | arity (GET _) = ([], EXP)
-        | arity (SET _) = ([mkValence [] [] EXP], EXP)
-
-      fun proj theta = ([], arity theta)
+      fun proj LAM = ([], ([mkValence [] [EXP] EXP], EXP))
+        | proj RET = ([], ([mkValence [] [] VAL], EXP))
+        | proj AP = ([], ([mkValence [] [] EXP, mkValence [] [] EXP], EXP))
+        | proj NUM = ([], ([mkValence [] [] NAT], VAL))
+        | proj (LIT _) = ([], ([], NAT))
+        | proj DECL = ([], ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP))
+        | proj (GET i) = ([(i, EXP)], ([], EXP))
+        | proj (SET i) = ([(i, EXP)], ([mkValence [] [] EXP], EXP))
     end
 
     structure Presheaf =
@@ -103,11 +101,8 @@ struct
 
   val `` = STAR o `
   val a = V.named "a"
-  val b = V.named "b"
-
   val u = I.named "u"
 
-  val n1 = RET $$ [NUM $$ [LIT 1 $$ []]]
   val expr1 =
     checkStar
       (DECL $$ [``a, ([u], []) \\ GET u $$ []],
