@@ -116,11 +116,12 @@ struct
       ("expected " ^ Valence.Show.toString v1 ^ " == " ^ Valence.Show.toString v2)
       (Valence.Eq.eq (v1, v2))
 
-  fun check (e, valence as (sorts, sigma)) =
+  fun check (e, valence as ({symbols,variables}, sigma)) =
     case e of
          `x =>
            let
-             val () = assert "sorts not empty" (Spine.isEmpty sorts)
+             val () = assert "symbols not empty" (Spine.isEmpty symbols)
+             val () = assert "variables not empty" (Spine.isEmpty variables)
            in
              V (LN.FREE x, sigma)
            end
@@ -129,11 +130,12 @@ struct
              val ((_, tau), _) = infer e
              val () = assertSortEq (sigma, tau)
            in
-             ABS (Spine.Pair.zipEq (xs, sorts), imprisonVariables xs e)
+             ABS (Spine.Pair.zipEq (xs, variables), imprisonVariables xs e)
            end
        | theta $ es =>
            let
-             val () = assert "sorts not empty" (Spine.isEmpty sorts)
+             val () = assert "symbols not empty" (Spine.isEmpty symbols)
+             val () = assert "variables not empty" (Spine.isEmpty variables)
              val (_, (valences, tau)) = Operator.proj theta
              val () = assertSortEq (sigma, tau)
              fun chkInf (e, valence) =
@@ -148,13 +150,21 @@ struct
              APP (theta', Spine.Pair.mapEq chkInf (es, valences))
            end
 
-  and infer (V (v, sigma)) = ((Spine.empty (), sigma), ` (LN.getFree v))
+  and infer (V (v, sigma)) =
+      let
+        val valence = ({symbols = Spine.empty (), variables = Spine.empty ()}, sigma)
+      in
+        (valence, ` (LN.getFree v))
+      end
     | infer (ABS (bindings, e)) =
       let
         val xs = Spine.Functor.map (Variable.clone o #1) bindings
         val (sorts, tau) = inferValence e
-        val () = assert "sorts not empty" (Spine.isEmpty sorts)
-        val valence = (Spine.Functor.map #2 bindings, tau)
+        val () = assert "variables not empty" (Spine.isEmpty sorts)
+        val valence =
+          ({symbols = Spine.empty (),
+            variables = Spine.Functor.map #2 bindings},
+           tau)
       in
         (valence, xs \ liberateVariables xs e)
       end
@@ -162,8 +172,9 @@ struct
       let
         val (_, (_, tau)) = Operator.proj theta
         val theta' = Operator.Renaming.map LN.getFree theta
+        val valence = ({symbols = Spine.empty (), variables = Spine.empty ()}, tau)
       in
-        ((Spine.empty (), tau), theta' $ es)
+        (valence, theta' $ es)
       end
 
   and inferValence (V (LN.FREE v, sigma)) = (Spine.empty (), sigma)
