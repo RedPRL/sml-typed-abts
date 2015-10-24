@@ -22,12 +22,12 @@ struct
        | (valence, theta $ es) =>
            check (theta $ Spine.Functor.map (subst rho) es, valence)
 
-  fun checkStar (e, valence as ({symbols, variables}, tau)) =
+  fun checkStar (e, valence as ((symbols, variables), tau)) =
     case e of
          STAR (`x) => check (`x, valence)
        | STAR ((us, xs) \ e) =>
            let
-             val e = checkStar (e, ({symbols = Spine.empty (), variables = Spine.empty ()}, tau))
+             val e = checkStar (e, ((Spine.empty (), Spine.empty ()), tau))
            in
              check ((us, xs) \ e, valence)
            end

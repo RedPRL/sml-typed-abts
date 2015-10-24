@@ -155,7 +155,7 @@ struct
       ("expected " ^ Valence.Show.toString v1 ^ " == " ^ Valence.Show.toString v2)
       (Valence.Eq.eq (v1, v2))
 
-  fun check (e, valence as ({symbols,variables}, sigma)) =
+  fun check (e, valence as ((symbols,variables), sigma)) =
     case e of
          `x =>
            let
@@ -191,7 +191,7 @@ struct
 
   and infer (V (v, sigma)) =
       let
-        val valence = ({symbols = Spine.empty (), variables = Spine.empty ()}, sigma)
+        val valence = ((Spine.empty (), Spine.empty ()), sigma)
       in
         (valence, ` (LN.getFree v))
       end
@@ -199,13 +199,10 @@ struct
       let
         val us = Spine.Functor.map (Symbol.clone o #1) Ypsilon
         val xs = Spine.Functor.map (Variable.clone o #1) Gamma
-        val ({symbols, variables}, tau) = inferValence e
+        val ((symbols, variables), tau) = inferValence e
         val () = assert "variables not empty" (Spine.isEmpty variables)
         val () = assert "symbols not empty" (Spine.isEmpty symbols)
-        val valence =
-          ({symbols = Spine.Functor.map #2 Ypsilon,
-            variables = Spine.Functor.map #2 Gamma},
-           tau)
+        val valence = ((Spine.Functor.map #2 Ypsilon, Spine.Functor.map #2 Gamma), tau)
       in
         (valence, (us, xs) \ liberateVariables xs e)
       end
@@ -213,25 +210,25 @@ struct
       let
         val (_, (_, tau)) = Operator.proj theta
         val theta' = Operator.Renaming.map LN.getFree theta
-        val valence = ({symbols = Spine.empty (), variables = Spine.empty ()}, tau)
+        val valence = ((Spine.empty (), Spine.empty ()), tau)
       in
         (valence, theta' $ es)
       end
 
-  and inferValence (V (_, sigma)) = ({symbols = Spine.empty (), variables = Spine.empty ()}, sigma)
+  and inferValence (V (_, sigma)) = ((Spine.empty (), Spine.empty ()), sigma)
     | inferValence (ABS (Ypsilon, Gamma, e)) =
       let
         val (_, sigma) = inferValence e
         val symbolSorts = Spine.Functor.map #2 Ypsilon
         val variableSorts = Spine.Functor.map #2 Gamma
       in
-        ({symbols = symbolSorts, variables = variableSorts}, sigma)
+        ((symbolSorts, variableSorts), sigma)
       end
     | inferValence (APP (theta, es)) =
       let
         val (_, (_, sigma)) = Operator.proj theta
       in
-        ({symbols = Spine.empty (), variables = Spine.empty ()}, sigma)
+        ((Spine.empty (), Spine.empty ()), sigma)
       end
 
   structure Eq : EQ =

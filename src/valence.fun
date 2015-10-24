@@ -2,27 +2,25 @@ functor Valence (structure Sort : SORT and Spine : SPINE) : VALENCE =
 struct
   type sort = Sort.t
   structure Spine = Spine
-  type bindings =
-    {symbols : sort Spine.t,
-     variables : sort Spine.t}
+  type bindings = sort Spine.t * sort Spine.t
   type t = bindings * sort
 
   structure Eq =
   struct
     type t = t
-    fun eq ((bindings : bindings, sigma), (bindings' : bindings, sigma')) =
-      Spine.Pair.allEq Sort.Eq.eq (#symbols bindings, #symbols bindings')
-        andalso Spine.Pair.allEq Sort.Eq.eq (#variables bindings, #variables bindings')
+    fun eq (((symbolSorts, variableSorts), sigma), ((symbolSorts', variableSorts'), sigma')) =
+      Spine.Pair.allEq Sort.Eq.eq (symbolSorts, symbolSorts')
+        andalso Spine.Pair.allEq Sort.Eq.eq (variableSorts, variableSorts')
         andalso Sort.Eq.eq (sigma, sigma')
   end
 
   structure Show =
   struct
     type t = t
-    fun toString ({symbols,variables}, sigma) =
+    fun toString ((symbolSorts,variableSorts), sigma) =
       let
-        val symbols' = Spine.pretty Sort.Show.toString ", " symbols
-        val variables' = Spine.pretty Sort.Show.toString ", " variables
+        val symbols' = Spine.pretty Sort.Show.toString ", " symbolSorts
+        val variables' = Spine.pretty Sort.Show.toString ", " variableSorts
         val sigma' = Sort.Show.toString sigma
       in
         "{" ^ symbols' ^ "}(" ^ variables' ^ ")" ^ sigma'

@@ -60,7 +60,7 @@ struct
     local
       open Sort
       fun replicate i x = List.tabulate (i, fn _ => x)
-      fun mkValence p q s = ({symbols = p, variables = q}, s)
+      fun mkValence p q s = ((p, q), s)
     in
       fun arity LAM = ([mkValence [] [EXP] EXP], EXP)
         | arity RET = ([mkValence [] [] VAL], EXP)
@@ -107,12 +107,11 @@ struct
 
   val u = I.named "u"
 
-  fun mkValence p q s = ({symbols = p, variables = q}, s)
   val n1 = RET $$ [NUM $$ [LIT 1 $$ []]]
   val expr1 =
     checkStar
       (DECL $$ [``a, ([u], []) \\ GET u $$ []],
-       mkValence [] [] EXP)
+       (([], []), EXP))
 
   val _ = print ("\n\n" ^ ShowAbt.toString expr1 ^ "\n\n")
 end
