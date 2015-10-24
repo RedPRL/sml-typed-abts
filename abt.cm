@@ -1,13 +1,13 @@
 Library
   signature ABT
   signature ABT_UTIL
-  signature VARIABLE
+  signature SYMBOL
   signature VALENCE
   signature SORT
   signature SPINE
   signature ARITY
 
-  functor Variable
+  functor Symbol
   structure ListSpine
   functor Arity
   functor Abt
@@ -20,8 +20,8 @@ is
 
   basis/basis.cm
 
-  src/variable.sig
-  src/variable.fun
+  src/symbol.sig
+  src/symbol.fun
 
   src/sort.sig
   src/valence.sig

@@ -1,6 +1,6 @@
 signature ABT =
 sig
-  structure Variable : VARIABLE
+  structure Variable : SYMBOL
   structure Operator : OPERATOR
 
   type variable = Variable.t

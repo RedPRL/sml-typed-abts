@@ -1,4 +1,4 @@
-functor Abt (structure Variable : VARIABLE and Operator : OPERATOR) : ABT =
+functor Abt (structure Variable : SYMBOL and Operator : OPERATOR) : ABT =
 struct
 
   structure Variable = Variable and Operator = Operator and Arity = Operator.Arity

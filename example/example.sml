@@ -1,6 +1,6 @@
 structure Example =
 struct
-  structure V = Variable ()
+  structure V = Symbol ()
   structure O =
   struct
     structure Sort =

@@ -1,4 +1,4 @@
-functor Variable () :> VARIABLE =
+functor Symbol () :> SYMBOL =
 struct
   type t = int * string
   val counter = ref 0

@@ -1,4 +1,4 @@
-signature VARIABLE =
+signature SYMBOL =
 sig
   type t
   val named : string -> t
