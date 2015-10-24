@@ -8,6 +8,8 @@ struct
 
   structure Spine = Abt.Operator.Arity.Valence.Spine
 
+  structure OShow = Operator.Show (Abt.Symbol.Show)
+
   fun toString e =
     case #2 (infer e) of
          `x => ShowVar.toString x
@@ -16,9 +18,9 @@ struct
               ^ "." ^ toString e
        | theta $ es =>
            if Spine.isEmpty es then
-             Operator.Show.toString theta
+             OShow.toString theta
            else
-             Operator.Show.toString theta
+             OShow.toString theta
                 ^ "(" ^ Spine.pretty toString "; " es ^ ")"
 end
 

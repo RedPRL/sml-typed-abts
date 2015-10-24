@@ -1,6 +1,8 @@
 structure Example =
 struct
   structure V = Symbol ()
+  structure I = Symbol ()
+
   structure O =
   struct
     structure Sort =
@@ -25,15 +27,15 @@ struct
     structure Arity = Arity (structure Sort = Sort and Spine = ListSpine)
 
     datatype operator = LAM of int | AP of int | NUM | LIT of int | RET
-    type t = operator
+    type 'i t = operator
 
-    structure Eq =
+    functor Eq (I : EQ) =
     struct
       type t = operator
       fun eq (x:t, y) = x = y
     end
 
-    structure Show =
+    functor Show (I : SHOW) =
     struct
       type t = operator
       fun toString (LAM i) = "lam"
@@ -57,10 +59,18 @@ struct
         | arity (AP i) = replicate (i + 1) (c EXP) ->> EXP
         | arity NUM = [c NAT] ->> VAL
         | arity (LIT _) = c NAT
+
+      fun proj theta = ([], arity theta)
+    end
+
+    structure Renaming =
+    struct
+      type 'i t = 'i t
+      fun map f theta = theta
     end
   end
 
-  structure Abt = AbtUtil(Abt (structure Operator = O and Variable = V))
+  structure Abt = AbtUtil(Abt (structure Operator = O and Variable = V and Symbol = I))
   structure ShowAbt = DebugShowAbt (Abt)
   open O O.Sort Abt
 

@@ -1,10 +1,12 @@
 signature ABT =
 sig
+  structure Symbol : SYMBOL
   structure Variable : SYMBOL
   structure Operator : OPERATOR
 
+  type symbol = Symbol.t
   type variable = Variable.t
-  type operator = Operator.t
+  type operator = symbol Operator.t
   type sort = Operator.Arity.Sort.t
   type valence = Operator.Arity.Valence.t
   type 'a spine = 'a Operator.Arity.Valence.Spine.t

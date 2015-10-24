@@ -1,22 +1,49 @@
-functor Abt (structure Variable : SYMBOL and Operator : OPERATOR) : ABT =
+functor Abt
+  (structure Symbol : SYMBOL
+   structure Variable : SYMBOL
+   structure Operator : OPERATOR) : ABT =
 struct
 
-  structure Variable = Variable and Operator = Operator and Arity = Operator.Arity
+  structure Symbol = Symbol and Variable = Variable and Operator = Operator and Arity = Operator.Arity
   structure Sort = Arity.Sort and Valence = Arity.Valence
   structure Spine = Valence.Spine
 
+  type symbol = Symbol.t
   type variable = Variable.t
-  type operator = Operator.t
+  type operator = symbol Operator.t
   type sort = Sort.t
   type valence = Valence.t
+  type coord = Coord.t
 
   type 'a spine = 'a Spine.t
 
+  structure LN =
+  struct
+    datatype 'a t =
+        FREE of 'a
+      | BOUND of coord
+
+    functor Eq (I : EQ) : EQ =
+    struct
+      type t = I.t t
+      fun eq (FREE v, FREE v') = I.eq (v, v')
+        | eq (BOUND i, BOUND j) = Coord.Eq.eq (i, j)
+        | eq _ = false
+    end
+
+    type symbol = symbol t
+    type operator = symbol Operator.t
+    type variable = variable t
+
+    exception UnexpectedBoundName of coord
+    fun getFree (FREE v) = v
+      | getFree (BOUND i) = raise UnexpectedBoundName i
+  end
+
   datatype abt =
-      FV of variable * sort
-    | BV of Coord.t * sort
+      V of LN.variable * sort
     | ABS of (variable * sort) spine * abt
-    | APP of operator * abt spine
+    | APP of LN.operator * abt spine
 
   datatype 'a view =
       ` of variable
@@ -39,18 +66,18 @@ struct
 
   fun imprisonVariable v (coord, e) =
     case e of
-         FV (v', sigma) =>
-           if Variable.Eq.eq (v, v') then BV (coord, sigma) else e
-       | BV _ => e
+         V (LN.FREE v', sigma) =>
+           if Variable.Eq.eq (v, v') then V (LN.BOUND coord, sigma) else e
+       | V _ => e
        | ABS (xs, e') => ABS (xs, imprisonVariable v (Coord.shiftRight coord, e'))
        | APP (theta, es) =>
            APP (theta, Spine.Functor.map (fn e => imprisonVariable v (coord, e)) es)
 
   fun liberateVariable v (coord, e) =
     case e of
-         FV _ => e
-       | BV (ann as (coord', sigma)) =>
-           if Coord.Eq.eq (coord, coord') then FV (v, sigma) else BV ann
+         V (LN.FREE _, _) => e
+       | ann as V (LN.BOUND coord', sigma) =>
+           if Coord.Eq.eq (coord, coord') then V (LN.FREE v, sigma) else ann
        | ABS (xs, e) => ABS (xs, liberateVariable v (Coord.shiftRight coord, e))
        | APP (theta, es) =>
            APP (theta, Spine.Functor.map (fn e => liberateVariable v (coord, e)) es)
@@ -58,7 +85,7 @@ struct
   local
     structure ShiftFunCat : CATEGORY =
     struct
-      type ('a, 'b) hom = (Coord.t * 'a -> 'b)
+      type ('a, 'b) hom = (coord * 'a -> 'b)
       fun id (_, x) = x
       fun comp (f, g) (coord, a) = f (coord, g (Coord.shiftDown coord, a))
     end
@@ -94,7 +121,7 @@ struct
            let
              val () = assert "sorts not empty" (Spine.isEmpty sorts)
            in
-             FV (x, sigma)
+             V (LN.FREE x, sigma)
            end
        | xs \ e =>
            let
@@ -106,7 +133,7 @@ struct
        | theta $ es =>
            let
              val () = assert "sorts not empty" (Spine.isEmpty sorts)
-             val (valences, tau) = Operator.arity theta
+             val (_, (valences, tau)) = Operator.proj theta
              val () = assertSortEq (sigma, tau)
              fun chkInf (e, valence) =
                let
@@ -115,12 +142,13 @@ struct
                in
                  e
                end
+             val theta' = Operator.Renaming.map LN.FREE theta
            in
-             APP (theta, Spine.Pair.mapEq chkInf (es, valences))
+             APP (theta', Spine.Pair.mapEq chkInf (es, valences))
            end
 
-  and infer (FV (v, sigma)) = ((Spine.empty (), sigma), ` v)
-    | infer (BV _) = raise Fail "Impossible: unexpected bound variable"
+  and infer (V (LN.FREE v, sigma)) = ((Spine.empty (), sigma), ` v)
+    | infer (V _) = raise Fail "Impossible: unexpected bound variable"
     | infer (ABS (bindings, e)) =
       let
         val xs = Spine.Functor.map (Variable.clone o #1) bindings
@@ -132,13 +160,14 @@ struct
       end
     | infer (APP (theta, es)) =
       let
-        val (_, tau) = Operator.arity theta
+        val (_, (_, tau)) = Operator.proj theta
+        val theta' = Operator.Renaming.map LN.getFree theta
       in
-        ((Spine.empty (), tau), theta $ es)
+        ((Spine.empty (), tau), theta' $ es)
       end
 
-  and inferValence (FV (v, sigma)) = (Spine.empty (), sigma)
-    | inferValence (BV (i, sigma)) = (Spine.empty (), sigma)
+  and inferValence (V (LN.FREE v, sigma)) = (Spine.empty (), sigma)
+    | inferValence (V (LN.BOUND i, sigma)) = (Spine.empty (), sigma)
     | inferValence (ABS (bindings, e)) =
       let
         val (_, sigma) = inferValence e
@@ -148,7 +177,7 @@ struct
       end
     | inferValence (APP (theta, es)) =
       let
-        val (_, sigma) = Operator.arity theta
+        val (_, (_, sigma)) = Operator.proj theta
       in
         (Spine.empty (), sigma)
       end
@@ -156,13 +185,14 @@ struct
   structure Eq : EQ =
   struct
     type t = abt
-    fun eq (FV (v, _), FV (v', _)) = Variable.Eq.eq (v, v')
-      | eq (BV (i, _), BV (j, _)) = Coord.Eq.eq (i, j)
+    structure LnVarEq = LN.Eq (Variable.Eq)
+    structure LnSymEq = LN.Eq (Symbol.Eq)
+    structure OpLnEq = Operator.Eq (LnSymEq)
+    structure OpEq = Operator.Eq (Symbol.Eq)
+    fun eq (V (v, _), V (v', _)) = LnVarEq.eq (v, v')
       | eq (ABS (_, e), ABS (_, e')) = eq (e, e')
       | eq (APP (theta, es), APP (theta', es')) =
-          Operator.Eq.eq (theta, theta') andalso Spine.Pair.allEq eq (es, es')
+          OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eq (es, es')
       | eq _ = false
   end
-
-  open Eq
 end

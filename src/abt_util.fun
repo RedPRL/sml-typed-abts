@@ -33,7 +33,7 @@ struct
            end
        | STAR (theta $ es) =>
            let
-             val (valences, _) = Operator.arity theta
+             val (_, (valences, _)) = Operator.proj theta
              val es = Spine.Pair.mapEq checkStar (es, valences)
            in
              check (theta $ es, valence)
