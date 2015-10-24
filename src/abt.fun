@@ -36,6 +36,7 @@ struct
     type variable = variable t
 
     exception UnexpectedBoundName of coord
+
     fun getFree (FREE v) = v
       | getFree (BOUND i) = raise UnexpectedBoundName i
   end
@@ -147,8 +148,7 @@ struct
              APP (theta', Spine.Pair.mapEq chkInf (es, valences))
            end
 
-  and infer (V (LN.FREE v, sigma)) = ((Spine.empty (), sigma), ` v)
-    | infer (V _) = raise Fail "Impossible: unexpected bound variable"
+  and infer (V (v, sigma)) = ((Spine.empty (), sigma), ` (LN.getFree v))
     | infer (ABS (bindings, e)) =
       let
         val xs = Spine.Functor.map (Variable.clone o #1) bindings
