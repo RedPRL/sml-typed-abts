@@ -14,22 +14,22 @@ struct
   fun subst (rho as (e, x)) e' =
     case infer e' of
          (_, ` y) => if Variable.Eq.eq (x, y) then e else e'
-       | (valence, xs \ e'') =>
+       | (valence, (us, xs) \ e'') =>
            if Spine.exists (fn y => Variable.Eq.eq (x, y)) xs then
              e'
            else
-             check (xs \ subst rho e'', valence)
+             check ((us, xs) \ subst rho e'', valence)
        | (valence, theta $ es) =>
            check (theta $ Spine.Functor.map (subst rho) es, valence)
 
   fun checkStar (e, valence as ({symbols, variables}, tau)) =
     case e of
          STAR (`x) => check (`x, valence)
-       | STAR (xs \ e) =>
+       | STAR ((us, xs) \ e) =>
            let
              val e = checkStar (e, ({symbols = Spine.empty (), variables = Spine.empty ()}, tau))
            in
-             check (xs \ e, valence)
+             check ((us, xs) \ e, valence)
            end
        | STAR (theta $ es) =>
            let

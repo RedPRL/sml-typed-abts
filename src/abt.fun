@@ -43,13 +43,13 @@ struct
 
   datatype abt =
       V of LN.variable * sort
-    | ABS of (variable * sort) spine * abt
+    | ABS of (symbol * sort) spine * (variable * sort) spine * abt
     | APP of LN.operator * abt spine
 
   datatype 'a view =
       ` of variable
     | $ of operator * 'a spine
-    | \ of variable spine * 'a
+    | \ of (symbol spine * variable spine) * 'a
 
   infixr 5 \
   infix 5 $
@@ -60,17 +60,16 @@ struct
     fun map f e =
       case e of
           ` x => ` x
-       | x \ e => x \ f e
+       | (us, xs) \ e => (us, xs) \ f e
        | theta $ es => theta $ Spine.Functor.map f es
   end
-
 
   fun imprisonVariable v (coord, e) =
     case e of
          V (LN.FREE v', sigma) =>
            if Variable.Eq.eq (v, v') then V (LN.BOUND coord, sigma) else e
        | V _ => e
-       | ABS (xs, e') => ABS (xs, imprisonVariable v (Coord.shiftRight coord, e'))
+       | ABS (us, xs, e') => ABS (us, xs, imprisonVariable v (Coord.shiftRight coord, e'))
        | APP (theta, es) =>
            APP (theta, Spine.Functor.map (fn e => imprisonVariable v (coord, e)) es)
 
@@ -79,7 +78,7 @@ struct
          V (LN.FREE _, _) => e
        | ann as V (LN.BOUND coord', sigma) =>
            if Coord.Eq.eq (coord, coord') then V (LN.FREE v, sigma) else ann
-       | ABS (xs, e) => ABS (xs, liberateVariable v (Coord.shiftRight coord, e))
+       | ABS (us, xs, e) => ABS (us, xs, liberateVariable v (Coord.shiftRight coord, e))
        | APP (theta, es) =>
            APP (theta, Spine.Functor.map (fn e => liberateVariable v (coord, e)) es)
 
@@ -125,12 +124,12 @@ struct
            in
              V (LN.FREE x, sigma)
            end
-       | xs \ e =>
+       | (us, xs) \ e =>
            let
              val ((_, tau), _) = infer e
              val () = assertSortEq (sigma, tau)
            in
-             ABS (Spine.Pair.zipEq (xs, variables), imprisonVariables xs e)
+             ABS (Spine.Pair.zipEq (us, symbols), Spine.Pair.zipEq (xs, variables), imprisonVariables xs e)
            end
        | theta $ es =>
            let
@@ -156,17 +155,19 @@ struct
       in
         (valence, ` (LN.getFree v))
       end
-    | infer (ABS (bindings, e)) =
+    | infer (ABS (Ypsilon, Gamma, e)) =
       let
-        val xs = Spine.Functor.map (Variable.clone o #1) bindings
-        val (sorts, tau) = inferValence e
-        val () = assert "variables not empty" (Spine.isEmpty sorts)
+        val us = Spine.Functor.map (Symbol.clone o #1) Ypsilon
+        val xs = Spine.Functor.map (Variable.clone o #1) Gamma
+        val ({symbols, variables}, tau) = inferValence e
+        val () = assert "variables not empty" (Spine.isEmpty variables)
+        val () = assert "symbols not empty" (Spine.isEmpty symbols)
         val valence =
-          ({symbols = Spine.empty (),
-            variables = Spine.Functor.map #2 bindings},
+          ({symbols = Spine.Functor.map #2 Ypsilon,
+            variables = Spine.Functor.map #2 Gamma},
            tau)
       in
-        (valence, xs \ liberateVariables xs e)
+        (valence, (us, xs) \ liberateVariables xs e)
       end
     | infer (APP (theta, es)) =
       let
@@ -177,20 +178,20 @@ struct
         (valence, theta' $ es)
       end
 
-  and inferValence (V (LN.FREE v, sigma)) = (Spine.empty (), sigma)
-    | inferValence (V (LN.BOUND i, sigma)) = (Spine.empty (), sigma)
-    | inferValence (ABS (bindings, e)) =
+  and inferValence (V (_, sigma)) = ({symbols = Spine.empty (), variables = Spine.empty ()}, sigma)
+    | inferValence (ABS (Ypsilon, Gamma, e)) =
       let
         val (_, sigma) = inferValence e
-        val sorts = Spine.Functor.map #2 bindings
+        val symbolSorts = Spine.Functor.map #2 Ypsilon
+        val variableSorts = Spine.Functor.map #2 Gamma
       in
-        (sorts, sigma)
+        ({symbols = symbolSorts, variables = variableSorts}, sigma)
       end
     | inferValence (APP (theta, es)) =
       let
         val (_, (_, sigma)) = Operator.proj theta
       in
-        (Spine.empty (), sigma)
+        ({symbols = Spine.empty (), variables = Spine.empty ()}, sigma)
       end
 
   structure Eq : EQ =
@@ -201,7 +202,7 @@ struct
     structure OpLnEq = Operator.Eq (LnSymEq)
     structure OpEq = Operator.Eq (Symbol.Eq)
     fun eq (V (v, _), V (v', _)) = LnVarEq.eq (v, v')
-      | eq (ABS (_, e), ABS (_, e')) = eq (e, e')
+      | eq (ABS (_, _, e), ABS (_, _, e')) = eq (e, e')
       | eq (APP (theta, es), APP (theta', es')) =
           OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eq (es, es')
       | eq _ = false

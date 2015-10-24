@@ -18,7 +18,7 @@ sig
   datatype 'a view =
       ` of variable
     | $ of operator * 'a spine
-    | \ of variable spine * 'a
+    | \ of (symbol spine * variable spine) * 'a
 
   structure ViewFunctor : FUNCTOR where type 'a t = 'a view
 
