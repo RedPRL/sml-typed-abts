@@ -6,10 +6,12 @@ Library
   signature SORT
   signature SPINE
   signature ARITY
+  signature METACONTEXT
 
   functor Symbol
   structure ListSpine
   functor Arity
+  functor Metacontext
   functor Abt
   functor AbtUtil
   functor ShowAbt
@@ -22,6 +24,9 @@ is
 
   src/symbol.sig
   src/symbol.fun
+
+  src/context.sig
+  src/context.fun
 
   src/sort.sig
   src/valence.sig

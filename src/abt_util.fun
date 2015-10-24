@@ -5,31 +5,39 @@ struct
   datatype star = STAR of star view | EMB of abt
 
   infixr 5 \
-  infix 5 $
+  infix 5 $ $#
 
   structure Arity = Operator.Arity
   structure Valence = Arity.Valence
   structure Spine = Valence.Spine
 
-  fun checkStar (e, valence as ((symbols, variables), tau)) =
+  fun checkStar Omega (e, valence as ((symbols, variables), tau)) =
     case e of
-         STAR (`x) => check (`x, valence)
+         STAR (`x) => check Omega (`x, valence)
        | STAR ((us, xs) \ e) =>
            let
-             val e = checkStar (e, ((Spine.empty (), Spine.empty ()), tau))
+             val e = checkStar Omega (e, ((Spine.empty (), Spine.empty ()), tau))
            in
-             check ((us, xs) \ e, valence)
+             check Omega ((us, xs) \ e, valence)
            end
        | STAR (theta $ es) =>
            let
              val (valences, _) = Operator.arity theta
-             val es = Spine.Pair.mapEq checkStar (es, valences)
+             val es = Spine.Pair.mapEq (checkStar Omega) (es, valences)
            in
-             check (theta $ es, valence)
+             check Omega (theta $ es, valence)
+           end
+       | STAR (mv $# (us, es)) =>
+           let
+             val ((symbolSorts, variableSorts), tau) = Abt.Metacontext.lookup Omega mv
+             val valences = Spine.Functor.map (fn sigma => ((Spine.empty (), Spine.empty ()), sigma)) symbolSorts
+             val es = Spine.Pair.mapEq (checkStar Omega) (es, valences)
+           in
+             check Omega (mv $# (us, es), valence)
            end
        | EMB e =>
            let
-             val (valence', e') = infer e
+             val (valence', e') = infer Omega e
              val true = Arity.Valence.Eq.eq (valence, valence')
            in
              if Arity.Valence.Eq.eq (valence, valence') then

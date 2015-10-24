@@ -1,5 +1,6 @@
 structure Example =
 struct
+  structure M = Symbol ()
   structure V = Symbol ()
   structure I = Symbol ()
 
@@ -90,7 +91,9 @@ struct
     end
   end
 
-  structure Abt = AbtUtil(Abt (structure Operator = O and Variable = V and Symbol = I))
+  structure MC = Metacontext (structure Metavariable = M type valence = O.Arity.Valence.t)
+
+  structure Abt = AbtUtil(Abt (structure Operator = O and Metavariable = M and Metacontext = MC and Variable = V and Symbol = I))
   structure ShowAbt = PlainShowAbt (Abt)
   open O O.Sort Abt
 
@@ -109,8 +112,9 @@ struct
 
   val expr1 =
     checkStar
+      MC.empty
       (DECL $$ [``a, ([u], []) \\ GET u $$ []],
        (([], []), EXP))
 
-  val _ = print ("\n\n" ^ ShowAbt.toString expr1 ^ "\n\n")
+  val _ = print ("\n\n" ^ ShowAbt.toString (MC.empty, expr1) ^ "\n\n")
 end
