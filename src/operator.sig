@@ -8,7 +8,8 @@ sig
   functor Eq (I : EQ) : EQ where type t = I.t t
   functor Show (I : SHOW) : SHOW where type t = I.t t
 
-  val proj : 'i t -> ('i * Arity.Valence.sort) list * Arity.t
+  val arity : 'i t -> Arity.t
+  val support : 'i t -> ('i * Arity.Valence.sort) list
 
   structure Presheaf : FUNCTOR where type 'i t = 'i t
 end

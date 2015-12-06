@@ -95,7 +95,7 @@ struct
       let
         fun opFreeSymbols theta =
           let
-            val (Ypsilon, _) = Operator.proj theta
+            val Ypsilon = Operator.support theta
           in
             List.foldl (fn ((u, _), R) => (LN.getFree u :: R) handle _ => R) [] Ypsilon
           end
@@ -252,7 +252,7 @@ struct
            let
              val () = assert "symbols not empty" (Spine.isEmpty symbols)
              val () = assert "variables not empty" (Spine.isEmpty variables)
-             val (_, (valences, tau)) = Operator.proj theta
+             val (valences, tau) = Operator.arity theta
              val () = assertSortEq (sigma, tau)
              fun chkInf (e, valence) =
                let
@@ -285,7 +285,7 @@ struct
       end
     | infer (APP (theta, es)) =
       let
-        val (_, (_, tau)) = Operator.proj theta
+        val (_, tau) = Operator.arity theta
         val theta' = Operator.Presheaf.map LN.getFree theta
         val valence = ((Spine.empty (), Spine.empty ()), tau)
       in
@@ -303,7 +303,7 @@ struct
       end
     | inferValence (APP (theta, es)) =
       let
-        val (_, (_, sigma)) = Operator.proj theta
+        val (_, sigma) = Operator.arity theta
       in
         ((Spine.empty (), Spine.empty ()), sigma)
       end

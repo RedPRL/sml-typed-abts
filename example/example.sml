@@ -62,14 +62,18 @@ struct
       fun replicate i x = List.tabulate (i, fn _ => x)
       fun mkValence p q s = ((p, q), s)
     in
-      fun proj LAM = ([], ([mkValence [] [EXP] EXP], EXP))
-        | proj RET = ([], ([mkValence [] [] VAL], EXP))
-        | proj AP = ([], ([mkValence [] [] EXP, mkValence [] [] EXP], EXP))
-        | proj NUM = ([], ([mkValence [] [] NAT], VAL))
-        | proj (LIT _) = ([], ([], NAT))
-        | proj DECL = ([], ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP))
-        | proj (GET i) = ([(i, EXP)], ([], EXP))
-        | proj (SET i) = ([(i, EXP)], ([mkValence [] [] EXP], EXP))
+      fun arity LAM = ([mkValence [] [EXP] EXP], EXP)
+        | arity RET = ([mkValence [] [] VAL], EXP)
+        | arity AP = ([mkValence [] [] EXP, mkValence [] [] EXP], EXP)
+        | arity NUM = ([mkValence [] [] NAT], VAL)
+        | arity (LIT _) = ([], NAT)
+        | arity DECL = ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP)
+        | arity (GET i) = ([], EXP)
+        | arity (SET i) = ([mkValence [] [] EXP], EXP)
+
+      fun support (GET i) = [(i, EXP)]
+        | support (SET i) = [(i, EXP)]
+        | support _ = []
     end
 
     structure Presheaf =
