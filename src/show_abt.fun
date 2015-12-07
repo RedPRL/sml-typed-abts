@@ -11,22 +11,15 @@ struct
 
   structure OShow = Operator.Show (Abt.Symbol.Show)
 
-  fun toString (Omega, e) =
-    case #2 (infer Omega e) of
+  fun toString (Omega, M) =
+    case #1 (infer Omega M) of
          `x => ShowVar.toString x
-       | (us, xs) \ e =>
-           let
-             val us' = Spine.pretty ShowSym.toString "," us
-             val xs' = Spine.pretty ShowVar.toString "," xs
-           in
-             "{" ^ us' ^ "}[" ^ xs' ^ "]." ^ toString (Omega, e)
-           end
        | theta $ es =>
            if Spine.isEmpty es then
              OShow.toString theta
            else
              OShow.toString theta
-                ^ "(" ^ Spine.pretty (fn x => toString (Omega, x)) "; " es ^ ")"
+                ^ "(" ^ Spine.pretty (fn x => toStringB (Omega, x)) "; " es ^ ")"
        | mv $# (us, es) =>
            let
              val us' = Spine.pretty ShowSym.toString "," us
@@ -34,6 +27,16 @@ struct
            in
              ShowMetavar.toString mv ^ "{" ^ us' ^ "}[" ^ es' ^ "]"
            end
+
+  and toStringB (Omega, (us, xs) \ M) =
+    let
+      val us' = Spine.pretty ShowSym.toString "," us
+      val xs' = Spine.pretty ShowVar.toString "," xs
+    in
+      "{" ^ us' ^ "}[" ^ xs' ^ "]." ^ toString (Omega, M)
+    end
+
+
 end
 
 functor PlainShowAbt (Abt : ABT) =

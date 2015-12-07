@@ -29,7 +29,7 @@ struct
 
     datatype 'i t =
         LAM | AP | NUM | LIT of int | RET
-      | DECL | GET of 'i | SET of 'i
+      | DECL | GET of 'i | SET of 'i | WELP
 
     functor Eq (I : EQ) =
     struct
@@ -42,6 +42,7 @@ struct
         | eq (DECL, DECL) = true
         | eq (GET i, GET j) = I.eq (i, j)
         | eq (SET i, SET j) = I.eq (i, j)
+        | eq (WELP, WELP) = true
         | eq _ = false
     end
 
@@ -54,6 +55,7 @@ struct
         | toString (LIT n) = Int.toString n
         | toString RET = "ret"
         | toString DECL = "∇"
+        | toString WELP = "welp"
         | toString (GET i) = "get[" ^ I.toString i ^ "]"
         | toString (SET i) = "set[" ^ I.toString i ^ "]"
     end
@@ -70,6 +72,7 @@ struct
         | arity (LIT _) = ([], NAT)
         | arity DECL = ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP)
         | arity (GET i) = ([], EXP)
+        | arity WELP = ([], EXP)
         | arity (SET i) = ([mkValence [] [] EXP], EXP)
 
       fun support (GET i) = [(i, EXP)]
@@ -86,6 +89,7 @@ struct
         | map f (LIT n) = LIT n
         | map f RET = RET
         | map f DECL = DECL
+        | map f WELP = WELP
         | map f (GET i) = GET (f i)
         | map f (SET i) = SET (f i)
     end
@@ -97,24 +101,22 @@ struct
   structure ShowAbt = PlainShowAbt (Abt)
   open O O.Sort Abt
 
-  infixr 5 \
+  infixr 4 \
   infix 5 $
 
   val $$ = STAR o op$
   infix 5 $$
 
-  val \\ = STAR o op\
-  infixr 4 \\
-
   val `` = STAR o `
   val a = V.named "a"
   val u = I.named "u"
 
+  fun K x = ([], []) \ x
+
   val expr1 =
     checkStar
       MC.empty
-      (DECL $$ [``a, ([u], []) \\ GET u $$ []],
-       (([], []), EXP))
-
+      (DECL $$ [K (``a), ([u], []) \ GET u $$ []])
+      EXP
   val _ = print ("\n\n" ^ ShowAbt.toString (MC.empty, expr1) ^ "\n\n")
 end

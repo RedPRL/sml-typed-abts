@@ -11,39 +11,32 @@ struct
   structure Valence = Arity.Valence
   structure Spine = Valence.Spine
 
-  fun checkStar Omega (e, valence as ((symbols, variables), tau)) =
-    case e of
-         STAR (`x) => check Omega (`x, valence)
-       | STAR ((us, xs) \ e) =>
-           let
-             val e = checkStar Omega (e, ((Spine.empty (), Spine.empty ()), tau))
-           in
-             check Omega ((us, xs) \ e, valence)
-           end
-       | STAR (theta $ es) =>
+  fun checkStar Theta M tau =
+    case M of
+         STAR (`x) => check Theta (`x) tau
+       | STAR (theta $ Es) =>
            let
              val (valences, _) = Operator.arity theta
-             val es = Spine.Pair.mapEq (checkStar Omega) (es, valences)
+             val Es' =
+               Spine.Pair.mapEq
+                 (fn (E, valence as (_, sigma)) =>
+                     BFunctor.map (fn M => checkStar Theta M sigma) E)
+                 (Es, valences)
            in
-             check Omega (theta $ es, valence)
+             check Theta (theta $ Es') tau
            end
-       | STAR (mv $# (us, es)) =>
+       | STAR (mv $# (us, Ms)) =>
            let
-             val ((symbolSorts, variableSorts), tau) = Abt.Metacontext.lookup Omega mv
-             val valences = Spine.Functor.map (fn sigma => ((Spine.empty (), Spine.empty ()), sigma)) symbolSorts
-             val es = Spine.Pair.mapEq (checkStar Omega) (es, valences)
+             val ((_, vsorts), tau) = Abt.Metacontext.lookup Theta mv
+             val Ms' = Spine.Pair.mapEq (fn (M, sigma) => checkStar Theta M sigma) (Ms, vsorts)
            in
-             check Omega (mv $# (us, es), valence)
+             check Theta (mv $# (us, Ms')) tau
            end
-       | EMB e =>
+       | EMB M =>
            let
-             val (valence', e') = infer Omega e
-             val true = Arity.Valence.Eq.eq (valence, valence')
+             val (M', _) = infer Theta M
            in
-             if Arity.Valence.Eq.eq (valence, valence') then
-               e
-             else
-               raise Fail ("Expected valence " ^ Valence.Show.toString valence ^ " but got " ^ Valence.Show.toString valence')
+             check Theta M' tau
            end
 end
 
