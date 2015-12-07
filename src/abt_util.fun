@@ -5,37 +5,38 @@ struct
   datatype star = STAR of star view | EMB of abt
 
   infixr 5 \
-  infix 5 $
+  infix 5 $ $#
 
   structure Arity = Operator.Arity
   structure Valence = Arity.Valence
   structure Spine = Valence.Spine
 
-  fun checkStar (e, valence as ((symbols, variables), tau)) =
-    case e of
-         STAR (`x) => check (`x, valence)
-       | STAR ((us, xs) \ e) =>
-           let
-             val e = checkStar (e, ((Spine.empty (), Spine.empty ()), tau))
-           in
-             check ((us, xs) \ e, valence)
-           end
-       | STAR (theta $ es) =>
+  fun checkStar Theta M tau =
+    case M of
+         STAR (`x) => check Theta (`x) tau
+       | STAR (theta $ Es) =>
            let
              val (valences, _) = Operator.arity theta
-             val es = Spine.Pair.mapEq checkStar (es, valences)
+             val Es' =
+               Spine.Pair.mapEq
+                 (fn (E, valence as (_, sigma)) =>
+                     BFunctor.map (fn M => checkStar Theta M sigma) E)
+                 (Es, valences)
            in
-             check (theta $ es, valence)
+             check Theta (theta $ Es') tau
            end
-       | EMB e =>
+       | STAR (mv $# (us, Ms)) =>
            let
-             val (valence', e') = infer e
-             val true = Arity.Valence.Eq.eq (valence, valence')
+             val ((_, vsorts), tau) = Abt.Metacontext.lookup Theta mv
+             val Ms' = Spine.Pair.mapEq (fn (M, sigma) => checkStar Theta M sigma) (Ms, vsorts)
            in
-             if Arity.Valence.Eq.eq (valence, valence') then
-               e
-             else
-               raise Fail ("Expected valence " ^ Valence.Show.toString valence ^ " but got " ^ Valence.Show.toString valence')
+             check Theta (mv $# (us, Ms')) tau
+           end
+       | EMB M =>
+           let
+             val (M', _) = infer M
+           in
+             check Theta M' tau
            end
 end
 

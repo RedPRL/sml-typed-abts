@@ -3,38 +3,56 @@ sig
   structure Symbol : SYMBOL
   structure Variable : SYMBOL
   structure Operator : OPERATOR
+  structure Metavariable : SYMBOL
+  structure Metacontext : METACONTEXT
+    where type metavariable = Metavariable.t
+    where type valence = Operator.Arity.Valence.t
 
   type symbol = Symbol.t
   type variable = Variable.t
+  type metavariable = Metavariable.t
   type operator = symbol Operator.t
   type sort = Operator.Arity.Sort.t
   type valence = Operator.Arity.Valence.t
+  type metacontext = Metacontext.t
   type 'a spine = 'a Operator.Arity.Valence.Spine.t
 
   type abt
+  type btm
+
   structure Eq : EQ where type t = abt
 
-  val freeVariables : abt -> variable list
-  val freeSymbols : abt -> symbol list
+  val freeVariables : abt -> (variable * sort) list
+  val freeSymbols : abt -> (symbol * sort) list
 
   (* subst (N, x) M ==== [N/x]M *)
   val subst : abt * variable -> abt -> abt
+  val metasubst : btm * metavariable -> abt -> abt
 
   (* rename (v, u) M === {v/u}M *)
   val rename : symbol * symbol -> abt -> abt
 
-
   (* Patterns for abstract binding trees. *)
-  datatype 'a view =
+  datatype 'tm view =
       ` of variable
-    | $ of operator * 'a spine
-    | \ of (symbol spine * variable spine) * 'a
+    | $ of operator * 'tm bview spine
+    | $# of metavariable * (symbol spine * 'tm spine)
+  and 'tm bview =
+     \ of (symbol spine * variable spine) * 'tm
 
-  structure ViewFunctor : FUNCTOR where type 'a t = 'a view
+  structure BFunctor : FUNCTOR
+    where type 'a t = 'a bview
 
+  val check : metacontext -> abt view -> sort -> abt
+  val checkb : metacontext -> abt bview -> valence -> btm
+  val infer : abt -> abt view * sort
+  val inferb : btm -> abt bview * valence
+
+     (*
   (* Construct an abt from a view by checking it against a valence. *)
-  val check : abt view * valence -> abt
+  val check : metacontext -> abt btm * valence -> abt
 
   (* Pattern match on an abt and its valence. *)
-  val infer : abt -> valence * abt view
+  val infer : metacontext -> abt -> valence * abt view
+  *)
 end
