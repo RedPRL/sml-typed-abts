@@ -1,0 +1,32 @@
+local
+  $(SML_LIB)/basis/basis.mlb
+  eq.sig
+  show.sig
+
+  functor.sig
+  monad.sig
+  functor.fun
+  monad.fun
+
+  category.sig
+  foldable.sig
+
+  foldable.fun
+  category.sml
+in
+  signature EQ
+  signature SHOW
+
+  signature CATEGORY
+  signature FUNCTOR
+  signature MONAD
+  signature FOLDABLE
+
+  structure FunctionCategory
+
+  functor FunctorOfMonad
+  structure ListMonad
+  structure ListFunctor
+
+  functor CategoryFoldMap
+end

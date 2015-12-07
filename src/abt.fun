@@ -1,3 +1,16 @@
+functor Union (Eq : EQ) =
+struct
+  fun elem (X, x) = List.exists (fn y => Eq.eq (x, y)) X
+  fun union ([], Y) = Y
+    | union (x :: X, Y) = if elem (Y, x) then union (X, Y) else x :: (union (X,  Y))
+end
+
+functor AnnotatedEq (type t structure Eq : EQ) =
+struct
+  type t = Eq.t * t
+  fun eq ((a, _), (b, _)) = Eq.eq (a, b)
+end
+
 functor Abt
   (structure Symbol : SYMBOL
    structure Variable : SYMBOL
@@ -36,13 +49,9 @@ struct
         FREE of 'a
       | BOUND of coord
 
-    functor Eq (I : EQ) : EQ =
-    struct
-      type t = I.t t
-      fun eq (FREE v, FREE v') = I.eq (v, v')
-        | eq (BOUND i, BOUND j) = Coord.Eq.eq (i, j)
-        | eq _ = false
-    end
+    fun eq f (FREE v, FREE v') = f (v, v')
+      | eq f (BOUND i, BOUND j) = Coord.Eq.eq (i, j)
+      | eq _ _ = false
 
     type symbol = symbol t
     type operator = symbol Operator.t
@@ -86,19 +95,6 @@ struct
   infixr 5 \
   infix 5 $ $#
 
-  functor Union (Eq : EQ) =
-  struct
-    fun elem (X, x) = List.exists (fn y => Eq.eq (x, y)) X
-    fun union ([], Y) = Y
-      | union (x :: X, Y) = if elem (Y, x) then union (X, Y) else x :: (union (X,  Y))
-  end
-
-  functor AnnotatedEq (Eq : EQ) =
-  struct
-    type t = Eq.t * sort
-    fun eq ((a, sigma), (b, tau)) = Eq.eq (a, b)
-  end
-
   fun assert msg b =
     if b then () else raise Fail msg
 
@@ -113,8 +109,8 @@ struct
       (Valence.Eq.eq (v1, v2))
 
   local
-    structure VS = Union (AnnotatedEq (Symbol.Eq))
-    structure VU = Union (AnnotatedEq (Variable.Eq))
+    structure VS = Union (AnnotatedEq (type t = sort structure Eq = Symbol.Eq))
+    structure VU = Union (AnnotatedEq (type t = sort structure Eq = Variable.Eq))
   in
     fun freeVariables M =
       let
@@ -415,16 +411,23 @@ struct
   structure Eq : EQ =
   struct
     type t = abt
-    structure LnVarEq = LN.Eq (Variable.Eq)
-    structure LnSymEq = LN.Eq (Symbol.Eq)
-    structure OpLnEq = Operator.Eq (LnSymEq)
-    structure OpEq = Operator.Eq (Symbol.Eq)
-    fun eq (V (v, _), V (v', _)) = LnVarEq.eq (v, v')
+
+    structure OpLnEq =
+    struct
+      val eq = Operator.eq (LN.eq Symbol.Eq.eq)
+    end
+
+    structure OpEq =
+    struct
+      val eq = Operator.eq Symbol.Eq.eq
+    end
+
+    fun eq (V (v, _), V (v', _)) = LN.eq Variable.Eq.eq (v, v')
       | eq (APP (theta, es), APP (theta', es')) =
           OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eq' (es, es')
       | eq (META_APP ((mv, _), us, es), META_APP ((mv', _), us', es')) =
           Metavariable.Eq.eq (mv, mv')
-            andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LnSymEq.eq (x,y)) (us, us')
+            andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Symbol.Eq.eq (x,y)) (us, us')
             andalso Spine.Pair.allEq eq (es, es')
       | eq _ = false
     and eq' (ABS (_, _, e), ABS (_, _, e')) = eq (e, e')

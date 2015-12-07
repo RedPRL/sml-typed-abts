@@ -1,0 +1,48 @@
+local
+  $(SML_LIB)/basis/basis.mlb
+
+  basis/basis.mlb
+
+  src/coord.sig
+  src/coord.sml
+
+  src/symbol.sig
+  src/symbol.fun
+
+  src/context.sig
+  src/context.fun
+
+  src/sort.sig
+  src/spine.sig
+  src/valence.sig
+  src/spine.sml
+  src/arity.sig
+  src/operator.sig
+  src/abt.sig
+  src/abt_util.sig
+  src/abt_util.fun
+  src/show_abt.fun
+  src/valence.fun
+  src/arity.fun
+  src/abt.fun
+
+in
+  signature ABT
+  signature ABT_UTIL
+  signature SYMBOL
+  signature SORT
+  signature SPINE
+  signature VALENCE
+  signature ARITY
+  signature METACONTEXT
+
+  functor Symbol
+  structure ListSpine
+  functor Arity
+  functor Metacontext
+  functor Abt
+  functor AbtUtil
+  functor ShowAbt
+  functor PlainShowAbt
+  functor DebugShowAbt
+end

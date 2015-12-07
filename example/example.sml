@@ -29,36 +29,26 @@ struct
 
     datatype 'i t =
         LAM | AP | NUM | LIT of int | RET
-      | DECL | GET of 'i | SET of 'i | WELP
+      | DECL | GET of 'i | SET of 'i
 
-    functor Eq (I : EQ) =
-    struct
-      type t = I.t t
-      fun eq (LAM, LAM) = true
-        | eq (AP, AP) = true
-        | eq (NUM, NUM) = true
-        | eq (LIT m, LIT n) = m = n
-        | eq (RET, RET) = true
-        | eq (DECL, DECL) = true
-        | eq (GET i, GET j) = I.eq (i, j)
-        | eq (SET i, SET j) = I.eq (i, j)
-        | eq (WELP, WELP) = true
-        | eq _ = false
-    end
+    fun eq f (LAM, LAM) = true
+      | eq f (AP, AP) = true
+      | eq f (NUM, NUM) = true
+      | eq f (LIT m, LIT n) = m = n
+      | eq f (RET, RET) = true
+      | eq f (DECL, DECL) = true
+      | eq f (GET i, GET j) = f (i, j)
+      | eq f (SET i, SET j) = f (i, j)
+      | eq _ _ = false
 
-    functor Show (I : SHOW) =
-    struct
-      type t = I.t t
-      fun toString LAM = "lam"
-        | toString AP = "ap"
-        | toString NUM = "#"
-        | toString (LIT n) = Int.toString n
-        | toString RET = "ret"
-        | toString DECL = "∇"
-        | toString WELP = "welp"
-        | toString (GET i) = "get[" ^ I.toString i ^ "]"
-        | toString (SET i) = "set[" ^ I.toString i ^ "]"
-    end
+    fun toString f LAM = "lam"
+      | toString f AP = "ap"
+      | toString f NUM = "#"
+      | toString f (LIT n) = Int.toString n
+      | toString f RET = "ret"
+      | toString f DECL = "decl"
+      | toString f (GET i) = "get[" ^ f i ^ "]"
+      | toString f (SET i) = "set[" ^ f i ^ "]"
 
     local
       open Sort
@@ -72,7 +62,6 @@ struct
         | arity (LIT _) = ([], NAT)
         | arity DECL = ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP)
         | arity (GET i) = ([], EXP)
-        | arity WELP = ([], EXP)
         | arity (SET i) = ([mkValence [] [] EXP], EXP)
 
       fun support (GET i) = [(i, EXP)]
@@ -89,7 +78,6 @@ struct
         | map f (LIT n) = LIT n
         | map f RET = RET
         | map f DECL = DECL
-        | map f WELP = WELP
         | map f (GET i) = GET (f i)
         | map f (SET i) = SET (f i)
     end

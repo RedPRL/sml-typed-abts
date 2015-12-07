@@ -9,16 +9,16 @@ struct
 
   structure Spine = Abt.Operator.Arity.Valence.Spine
 
-  structure OShow = Operator.Show (Abt.Symbol.Show)
+  structure SShow = Abt.Symbol.Show
 
   fun toString M =
     case #1 (infer M) of
          `x => ShowVar.toString x
        | theta $ es =>
            if Spine.isEmpty es then
-             OShow.toString theta
+             Operator.toString SShow.toString theta
            else
-             OShow.toString theta
+             Operator.toString SShow.toString theta
                 ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
        | mv $# (us, es) =>
            let

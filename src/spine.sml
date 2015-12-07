@@ -1,13 +1,9 @@
-functor ListSpine (L : LIST where type 'a list = 'a list) :> SPINE  where type 'a t = 'a list=
+structure ListSpine :> SPINE  where type 'a t = 'a list =
 struct
-  open L
-
   type 'a t = 'a list
+  open List
 
   fun empty () = []
-
-  val all = L.all
-  val exists = L.exists
 
   fun isEmpty [] = true
     | isEmpty _ = false
@@ -25,14 +21,12 @@ struct
   structure Util =
   struct
     type 'a t = 'a t
-    open L
+    open List
   end
 
   structure Functor = Util
   structure Foldable = Util
 end
-
-structure ListSpine = ListSpine (List)
 
 functor VectorSpine (V : VECTOR) :> SPINE where type 'a t = 'a V.vector =
 struct

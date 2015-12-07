@@ -4,9 +4,8 @@ sig
 
   type 'i t
 
-  (* not Definition-compliant, but included in Successor ML *)
-  functor Eq (I : EQ) : EQ where type t = I.t t
-  functor Show (I : SHOW) : SHOW where type t = I.t t
+  val eq : ('i * 'i -> bool) -> 'i t * 'i t -> bool
+  val toString : ('i -> string) -> 'i t -> string
 
   val arity : 'i t -> Arity.t
   val support : 'i t -> ('i * Arity.Valence.sort) list

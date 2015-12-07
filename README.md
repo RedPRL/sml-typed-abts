@@ -24,7 +24,10 @@ respects:
 
 ### Getting Started
 #### Prerequisites
-You need SML/NJ. Either [download the binary installer](http://www.smlnj.org/) or, on OS X, use homebrew:
+
+You need either SML/NJ or MLton. Either [download the binary installer](http://www.smlnj.org/)
+or, on OS X, use homebrew:
+
 
     brew update && brew install smlnj
 
@@ -38,10 +41,10 @@ Clone, then start the SML REPL:
     Standard ML of New Jersey v110.78 [built: Sun Apr 26 01:06:11 2015]
     -
 
-At the '-' prompt, type:
+At the `-` prompt, type:
 
-    - CM.make "example.cm";
+    - CM.make "example/example.cm";
 
 You should see a lot of compilation messages and then:
 
-    ∇(a; {u}[].get[u])
+    decl({}[].m{}[]; {u}[].get[u])
