@@ -105,18 +105,22 @@ struct
   infix 5 $
 
   val $$ = STAR o op$
-  infix 5 $$
+  val $$# = STAR o op$#
+  infix 5 $$ $$#
 
   val `` = STAR o `
   val a = V.named "a"
   val u = I.named "u"
+  val mv = M.named "m"
+  val mvap = mv $$# ([], [])
+  val Theta = MC.extend MC.empty (mv, (([], []), EXP))
 
   fun K x = ([], []) \ x
 
   val expr1 =
     checkStar
-      MC.empty
-      (DECL $$ [K (``a), ([u], []) \ GET u $$ []])
+      Theta
+      (DECL $$ [K mvap, ([u], []) \ GET u $$ []])
       EXP
-  val _ = print ("\n\n" ^ ShowAbt.toString (MC.empty, expr1) ^ "\n\n")
+  val _ = print ("\n\n" ^ ShowAbt.toString (Theta, expr1) ^ "\n\n")
 end
