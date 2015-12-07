@@ -2,38 +2,38 @@ functor ShowAbt
   (structure Abt : ABT
    structure ShowMetavar : SHOW where type t = Abt.metavariable
    structure ShowVar : SHOW where type t = Abt.variable
-   structure ShowSym : SHOW where type t = Abt.symbol) :> SHOW where type t = Abt.metacontext * Abt.abt =
+   structure ShowSym : SHOW where type t = Abt.symbol) :> SHOW where type t = Abt.abt =
 struct
   open Abt infix $ $# infixr \
-  type t = metacontext * abt
+  type t = abt
 
   structure Spine = Abt.Operator.Arity.Valence.Spine
 
   structure OShow = Operator.Show (Abt.Symbol.Show)
 
-  fun toString (Omega, M) =
-    case #1 (infer Omega M) of
+  fun toString M =
+    case #1 (infer M) of
          `x => ShowVar.toString x
        | theta $ es =>
            if Spine.isEmpty es then
              OShow.toString theta
            else
              OShow.toString theta
-                ^ "(" ^ Spine.pretty (fn x => toStringB (Omega, x)) "; " es ^ ")"
+                ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
        | mv $# (us, es) =>
            let
              val us' = Spine.pretty ShowSym.toString "," us
-             val es' = Spine.pretty (fn x => toString (Omega, x)) "," es
+             val es' = Spine.pretty toString "," es
            in
              ShowMetavar.toString mv ^ "{" ^ us' ^ "}[" ^ es' ^ "]"
            end
 
-  and toStringB (Omega, (us, xs) \ M) =
+  and toStringB ((us, xs) \ M) =
     let
       val us' = Spine.pretty ShowSym.toString "," us
       val xs' = Spine.pretty ShowVar.toString "," xs
     in
-      "{" ^ us' ^ "}[" ^ xs' ^ "]." ^ toString (Omega, M)
+      "{" ^ us' ^ "}[" ^ xs' ^ "]." ^ toString M
     end
 
 

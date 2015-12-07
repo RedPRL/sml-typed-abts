@@ -18,6 +18,7 @@ sig
   type 'a spine = 'a Operator.Arity.Valence.Spine.t
 
   type abt
+  type btm
 
   structure Eq : EQ where type t = abt
 
@@ -26,6 +27,7 @@ sig
 
   (* subst (N, x) M ==== [N/x]M *)
   val subst : abt * variable -> abt -> abt
+  val metasubst : btm * metavariable -> abt -> abt
 
   (* rename (v, u) M === {v/u}M *)
   val rename : symbol * symbol -> abt -> abt
@@ -42,7 +44,9 @@ sig
     where type 'a t = 'a bview
 
   val check : metacontext -> abt view -> sort -> abt
-  val infer : metacontext -> abt -> abt view * sort
+  val checkb : metacontext -> abt bview -> valence -> btm
+  val infer : abt -> abt view * sort
+  val inferb : btm -> abt bview * valence
 
      (*
   (* Construct an abt from a view by checking it against a valence. *)

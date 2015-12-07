@@ -34,7 +34,7 @@ struct
            end
        | EMB M =>
            let
-             val (M', _) = infer Theta M
+             val (M', _) = infer M
            in
              check Theta M' tau
            end

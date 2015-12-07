@@ -122,5 +122,5 @@ struct
       Theta
       (DECL $$ [K mvap, ([u], []) \ GET u $$ []])
       EXP
-  val _ = print ("\n\n" ^ ShowAbt.toString (Theta, expr1) ^ "\n\n")
+  val _ = print ("\n\n" ^ ShowAbt.toString expr1 ^ "\n\n")
 end

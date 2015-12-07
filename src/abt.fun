@@ -72,7 +72,7 @@ struct
   datatype abt =
       V of LN.variable * sort
     | APP of LN.operator * btm spine
-    | META_APP of metavariable * (LN.symbol * sort) spine * abt spine
+    | META_APP of (metavariable * valence) * (LN.symbol * sort) spine * abt spine
   and btm = ABS of (symbol * sort) spine * (variable * sort) spine * abt
 
   (* Patterns for abstract binding trees. *)
@@ -303,9 +303,30 @@ struct
       ShiftFoldMap.foldMap liberateSymbol vs (Coord.origin, t)
   end
 
+  fun metasubst (E, mv) M =
+    case M of
+         V _ => M
+       | APP (theta, Es) =>
+           APP (theta, Spine.Functor.map (metasubstBtm (E, mv)) Es)
+       | META_APP ((mv', valence), us, Ms) =>
+           if Metavariable.Eq.eq (mv, mv') then
+             let
+               val ABS (Upsilon, Gamma, M) = E
+               val us = Spine.Functor.map #1 Upsilon
+               val xs = Spine.Functor.map #1 Gamma
+               val M' = liberateVariables xs (liberateSymbols us M)
+               val env = Spine.Pair.zipEq (Ms, xs)
+             in
+               Spine.Foldable.foldr (fn (s, M) => subst s M) M' env
+             end
+           else
+             META_APP ((mv', valence), us, Spine.Functor.map (metasubst (E, mv)) Ms)
+  and metasubstBtm (E, mv) (ABS (us, xs, M)) =
+    ABS (us, xs, metasubst (E, mv) M)
+
   fun checkb Theta ((us, xs) \ M) ((ssorts, vsorts), sigma) =
     let
-      val (_, tau) = infer Theta M
+      val (_, tau) = infer M
       val () = assertSortEq (sigma, tau)
     in
       ABS (Spine.Pair.zipEq (us, ssorts),
@@ -313,20 +334,19 @@ struct
            imprisonSymbols (us, ssorts) (imprisonVariables (xs, vsorts) M))
     end
 
-  and infer Theta M =
+  and infer M =
     case M of
          V (x, tau) => (` (LN.getFree x), tau)
        | APP (theta, Es) =>
          let
            val (_, tau) = Operator.arity theta
            val theta' = Operator.Presheaf.map LN.getFree theta
-           val Es' = Spine.Functor.map (#1 o inferb Theta) Es
+           val Es' = Spine.Functor.map (#1 o inferb) Es
          in
            (theta' $ Es', tau)
          end
-       | META_APP (mv, us, Ms) =>
+       | META_APP ((mv, (_, tau)), us, Ms) =>
          let
-           val (_, tau) = Metacontext.lookup Theta mv
            val us' = Spine.Functor.map (LN.getFree o #1) us
          in
            (mv $# (us', Ms), tau)
@@ -349,31 +369,32 @@ struct
            end
        | mv $# (us, Ms) =>
            let
-             val ((ssorts, vsorts), tau) = Metacontext.lookup Theta mv
+             val valence as ((ssorts, vsorts), tau) = Metacontext.lookup Theta mv
              val () = assertSortEq (sigma, tau)
              val us' = Spine.Pair.zipEq (Spine.Functor.map LN.FREE us, ssorts)
              fun chkInf (M, tau) =
                let
-                 val (_, tau') = infer Theta M
+                 val (_, tau') = infer M
                in
                  assertSortEq (tau, tau'); M
                end
              val Ms' = Spine.Pair.mapEq chkInf (Ms, vsorts)
            in
-             META_APP (mv, us', Ms')
+             META_APP ((mv, valence), us', Ms')
            end
 
-  and inferb Theta (ABS (Upsilon, Gamma, M)) =
+  and inferb (ABS (Upsilon, Gamma, M)) =
     let
       val us = Spine.Functor.map (Symbol.clone o #1) Upsilon
       val xs = Spine.Functor.map (Variable.clone o #1) Gamma
       val M' = liberateSymbols us (liberateVariables xs M)
-      val (_, tau) = infer Theta M'
+      val (_, tau) = infer M'
       val valence = ((Spine.Functor.map #2 Upsilon, Spine.Functor.map #2 Gamma), tau)
     in
       ((us, xs) \ M',
        valence)
     end
+
 
   structure BFunctor =
   struct
@@ -392,7 +413,7 @@ struct
     fun eq (V (v, _), V (v', _)) = LnVarEq.eq (v, v')
       | eq (APP (theta, es), APP (theta', es')) =
           OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eq' (es, es')
-      | eq (META_APP (mv, us, es), META_APP (mv', us', es')) =
+      | eq (META_APP ((mv, _), us, es), META_APP ((mv', _), us', es')) =
           Metavariable.Eq.eq (mv, mv')
             andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LnSymEq.eq (x,y)) (us, us')
             andalso Spine.Pair.allEq eq (es, es')
