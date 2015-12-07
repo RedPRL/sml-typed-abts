@@ -76,13 +76,12 @@ struct
   and btm = ABS of (symbol * sort) spine * (variable * sort) spine * abt
 
   (* Patterns for abstract binding trees. *)
-  datatype 'tm view =
+  datatype 'a view =
       ` of variable
-    | $ of operator * 'tm bview spine
-    | $# of metavariable * (symbol spine * 'tm spine)
-
-  and 'tm bview =
-     \ of (symbol spine * variable spine) * 'tm
+    | $ of operator * 'a bview spine
+    | $# of metavariable * (symbol spine * 'a spine)
+  and 'a bview =
+     \ of (symbol spine * variable spine) * 'a
 
   infixr 5 \
   infix 5 $ $#
@@ -324,7 +323,7 @@ struct
   and metasubstBtm (E, mv) (ABS (us, xs, M)) =
     ABS (us, xs, metasubst (E, mv) M)
 
-  fun checkb Theta ((us, xs) \ M) ((ssorts, vsorts), sigma) =
+  fun checkb Theta ((us, xs) \ M, ((ssorts, vsorts), sigma)) =
     let
       val (_, tau) = infer M
       val () = assertSortEq (sigma, tau)
@@ -352,7 +351,7 @@ struct
            (mv $# (us', Ms), tau)
          end
 
-  and check Theta M sigma =
+  and check Theta (M, sigma) =
     case M of
          `x => V (LN.FREE x, sigma)
        | theta $ Es =>
@@ -360,10 +359,7 @@ struct
              val (valences, tau)  = Operator.arity theta
              val () = assertSortEq (sigma, tau)
              val theta' = Operator.Presheaf.map LN.FREE theta
-             val Es' =
-               Spine.Pair.mapEq
-                 (fn (E, valence) => checkb Theta E valence)
-                 (Es, valences)
+             val Es' = Spine.Pair.mapEq (checkb Theta) (Es, valences)
            in
              APP (theta', Es')
            end
@@ -402,6 +398,19 @@ struct
     fun map f ((us, xs) \ M) =
       (us, xs) \ f M
   end
+
+  structure Functor =
+  struct
+    type 'a t = 'a view
+    fun map f M =
+      case M of
+           `x => `x
+         | theta $ Es =>
+             theta $ Spine.Functor.map (BFunctor.map f) Es
+         | mv $# (us, Ms) =>
+              mv $# (us, Spine.Functor.map f Ms)
+  end
+
 
   structure Eq : EQ =
   struct

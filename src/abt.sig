@@ -25,34 +25,38 @@ sig
   val freeVariables : abt -> (variable * sort) list
   val freeSymbols : abt -> (symbol * sort) list
 
-  (* subst (N, x) M ==== [N/x]M *)
+  (* subst (N, x) M === [N/x]M *)
   val subst : abt * variable -> abt -> abt
+
+  (* metasubst (E, m) M === [E/m]M *)
   val metasubst : btm * metavariable -> abt -> abt
 
   (* rename (v, u) M === {v/u}M *)
   val rename : symbol * symbol -> abt -> abt
 
   (* Patterns for abstract binding trees. *)
-  datatype 'tm view =
+  datatype 'a view =
       ` of variable
-    | $ of operator * 'tm bview spine
-    | $# of metavariable * (symbol spine * 'tm spine)
-  and 'tm bview =
-     \ of (symbol spine * variable spine) * 'tm
+    | $ of operator * 'a bview spine
+    | $# of metavariable * (symbol spine * 'a spine)
+  and 'a bview =
+     \ of (symbol spine * variable spine) * 'a
 
+  structure Functor : FUNCTOR
+    where type 'a t = 'a view
   structure BFunctor : FUNCTOR
     where type 'a t = 'a bview
 
-  val check : metacontext -> abt view -> sort -> abt
-  val checkb : metacontext -> abt bview -> valence -> btm
+  (* construct an abt from a view by checking it against a sort *)
+  val check : metacontext -> abt view * sort -> abt
+
+  (* pattern match on an abt and its sort *)
   val infer : abt -> abt view * sort
+
+  (* construct a bound term from a view by checking it against a valence *)
+  val checkb : metacontext -> abt bview * valence -> btm
+
+  (* pattern match on a bound term and its valence *)
   val inferb : btm -> abt bview * valence
 
-     (*
-  (* Construct an abt from a view by checking it against a valence. *)
-  val check : metacontext -> abt btm * valence -> abt
-
-  (* Pattern match on an abt and its valence. *)
-  val infer : metacontext -> abt -> valence * abt view
-  *)
 end

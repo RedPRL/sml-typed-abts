@@ -13,7 +13,7 @@ struct
 
   fun checkStar Theta M tau =
     case M of
-         STAR (`x) => check Theta (`x) tau
+         STAR (`x) => check Theta (`x, tau)
        | STAR (theta $ Es) =>
            let
              val (valences, _) = Operator.arity theta
@@ -23,20 +23,20 @@ struct
                      BFunctor.map (fn M => checkStar Theta M sigma) E)
                  (Es, valences)
            in
-             check Theta (theta $ Es') tau
+             check Theta (theta $ Es', tau)
            end
        | STAR (mv $# (us, Ms)) =>
            let
              val ((_, vsorts), tau) = Abt.Metacontext.lookup Theta mv
              val Ms' = Spine.Pair.mapEq (fn (M, sigma) => checkStar Theta M sigma) (Ms, vsorts)
            in
-             check Theta (mv $# (us, Ms')) tau
+             check Theta (mv $# (us, Ms'), tau)
            end
        | EMB M =>
            let
              val (M', _) = infer M
            in
-             check Theta M' tau
+             check Theta (M', tau)
            end
 end
 
