@@ -27,6 +27,7 @@ local
   src/abt.fun
 
 in
+  signature OPERATOR
   signature ABT
   signature ABT_UTIL
   signature SYMBOL

@@ -1,6 +1,7 @@
 Library
   signature ABT
   signature ABT_UTIL
+  signature OPERATOR
   signature SYMBOL
   signature VALENCE
   signature SORT
