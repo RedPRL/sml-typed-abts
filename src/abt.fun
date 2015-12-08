@@ -111,6 +111,7 @@ struct
   local
     structure VS = Union (AnnotatedEq (type t = sort structure Eq = Symbol.Eq))
     structure VU = Union (AnnotatedEq (type t = sort structure Eq = Variable.Eq))
+    structure MVU = Union (AnnotatedEq (type t = valence structure Eq = Metavariable.Eq))
   in
     fun freeVariables M =
       let
@@ -120,6 +121,18 @@ struct
           | go R (META_APP (m, us, Ms)) =
               Spine.Foldable.foldr VU.union R (Spine.Functor.map (go []) Ms)
           | go R _ = R
+        and go' R (ABS (_, _, M)) = go R M
+      in
+        go [] M
+      end
+
+    fun freeMetavariables M =
+      let
+        fun go R (V _) = R
+          | go R (APP (theta, Es)) =
+              Spine.Foldable.foldr MVU.union R (Spine.Functor.map (go' []) Es)
+          | go R (META_APP (mv, us, Ms)) =
+              Spine.Foldable.foldr MVU.union (MVU.union (R, [mv])) (Spine.Functor.map (go []) Ms)
         and go' R (ABS (_, _, M)) = go R M
       in
         go [] M
@@ -144,6 +157,7 @@ struct
       in
         go [] M
       end
+
   end
 
   fun subst (N, x) M =

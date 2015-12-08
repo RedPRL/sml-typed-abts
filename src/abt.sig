@@ -24,6 +24,7 @@ sig
 
   val freeVariables : abt -> (variable * sort) list
   val freeSymbols : abt -> (symbol * sort) list
+  val freeMetavariables : abt -> (metavariable * valence) list
 
   (* subst (N, x) M === [N/x]M *)
   val subst : abt * variable -> abt -> abt
