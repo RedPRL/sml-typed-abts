@@ -5,8 +5,19 @@ sig
   type valence
 
   val empty : t
+
+  exception NameClash
+
+  (* raises NameClash *)
   val extend : t -> metavariable * valence -> t
 
-  val lookup : t -> metavariable -> valence
+  (* raises NameClash *)
+  val concat : t * t -> t
+
   exception MetavariableNotFound
+
+  (* raises MetavariableNotFound *)
+  val lookup : t -> metavariable -> valence
+
+  val find : t -> metavariable -> valence option
 end

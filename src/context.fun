@@ -4,16 +4,32 @@ functor Metacontext
 struct
   type metavariable = Metavariable.t
   type valence = valence
-  type t = metavariable -> valence
+  type t = (metavariable * valence) list
 
   exception MetavariableNotFound
+  exception NameClash
 
-  fun empty _ = raise MetavariableNotFound
-  fun extend Omega (m, v) m'=
-    if Metavariable.Eq.eq (m, m') then
-      v
-    else
-      Omega m'
+  val empty = []
 
-  fun lookup Omega = Omega
+  fun fiber m (m', _) =
+    Metavariable.Eq.eq (m, m')
+
+  fun find Theta m =
+    Option.map #2 (List.find (fiber m) Theta)
+
+  fun lookup Theta m =
+    case find Theta m of
+         SOME vl => vl
+       | NONE => raise MetavariableNotFound
+
+  fun extend Theta (m, vl) =
+    case find Theta m of
+         SOME _ => raise NameClash
+       | NONE => (m, vl) :: Theta
+
+  fun concat (Theta, Theta') =
+    List.foldl
+      (fn (h, Theta'') => extend Theta'' h)
+      Theta
+      Theta'
 end
