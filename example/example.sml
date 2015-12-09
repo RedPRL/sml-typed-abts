@@ -83,7 +83,7 @@ struct
     end
   end
 
-  structure MC = Metacontext (structure Metavariable = M type valence = O.Arity.Valence.t)
+  structure MC = Metacontext (structure Metavariable = M structure Valence = O.Arity.Valence.Eq)
 
   structure Abt = AbtUtil(Abt (structure Operator = O and Metavariable = M and Metacontext = MC and Variable = V and Symbol = I))
   structure ShowAbt = PlainShowAbt (Abt)

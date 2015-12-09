@@ -111,7 +111,7 @@ struct
   local
     structure VS = Union (AnnotatedEq (type t = sort structure Eq = Symbol.Eq))
     structure VU = Union (AnnotatedEq (type t = sort structure Eq = Variable.Eq))
-    structure MVU = Union (AnnotatedEq (type t = valence structure Eq = Metavariable.Eq))
+    structure MCtx = Metacontext
   in
     fun freeVariables M =
       let
@@ -126,16 +126,16 @@ struct
         go [] M
       end
 
-    fun freeMetavariables M =
+    fun metacontext M =
       let
         fun go R (V _) = R
           | go R (APP (theta, Es)) =
-              Spine.Foldable.foldr MVU.union R (Spine.Functor.map (go' []) Es)
+              Spine.Foldable.foldr MCtx.union R (Spine.Functor.map (go' MCtx.empty) Es)
           | go R (META_APP (mv, us, Ms)) =
-              Spine.Foldable.foldr MVU.union (MVU.union (R, [mv])) (Spine.Functor.map (go []) Ms)
+              Spine.Foldable.foldr MCtx.union (MCtx.updateMonotonic R mv) (Spine.Functor.map (go MCtx.empty) Ms)
         and go' R (ABS (_, _, M)) = go R M
       in
-        go [] M
+        go MCtx.empty M
       end
 
     fun freeSymbols M =
