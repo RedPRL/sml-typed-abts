@@ -25,9 +25,17 @@ struct
     Ctx.insertMerge Th m v
       (fn v' => merge (v, v'))
 
+  fun extendUnique Th (m, v) =
+    Ctx.insertMerge Th m v
+      (fn _ => raise MergeFailure)
+
   fun union (Th, Th') =
     Ctx.union Th Th'
       (fn (_, v, v') => merge (v, v'))
+
+  fun concat (Th, Th') =
+    Ctx.union Th Th'
+      (fn _ => raise MergeFailure)
 
   fun lookup Th m =
     Ctx.lookup Th m
