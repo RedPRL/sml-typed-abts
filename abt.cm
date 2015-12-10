@@ -3,6 +3,7 @@ Library
   signature ABT_UTIL
   signature AST
   signature OPERATOR
+  signature PRESYMBOL
   signature SYMBOL
   signature VALENCE
   signature SORT
@@ -11,6 +12,7 @@ Library
   signature METACONTEXT
 
   functor Symbol
+  structure StringPresymbol
   structure ListSpine
   functor Arity
   functor Metacontext

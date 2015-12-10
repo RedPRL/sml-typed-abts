@@ -1,6 +1,5 @@
 functor ShowAbt
   (structure Abt : ABT
-   structure ShowMetavar : SHOW where type t = Abt.metavariable
    structure ShowVar : SHOW where type t = Abt.variable
    structure ShowSym : SHOW where type t = Abt.symbol) :> SHOW where type t = Abt.abt =
 struct
@@ -24,7 +23,7 @@ struct
              val us' = Spine.pretty ShowSym.toString "," us
              val es' = Spine.pretty toString "," es
            in
-             "#" ^ ShowMetavar.toString mv
+             "#" ^ Abt.Metavariable.Show.toString mv
                  ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
                  ^ (if Spine.isEmpty es then "" else "[" ^ es' ^ "]")
            end
@@ -48,14 +47,12 @@ end
 functor PlainShowAbt (Abt : ABT) =
   ShowAbt
     (structure Abt = Abt
-     and ShowMetavar = Abt.Metavariable.Show
      and ShowVar = Abt.Variable.Show
      and ShowSym = Abt.Symbol.Show)
 
 functor DebugShowAbt (Abt : ABT) =
   ShowAbt
     (structure Abt = Abt
-     and ShowMetavar = Abt.Metavariable.DebugShow
      and ShowVar = Abt.Variable.DebugShow
      and ShowSym = Abt.Symbol.DebugShow)
 

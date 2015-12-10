@@ -3,7 +3,7 @@ sig
   structure Symbol : SYMBOL
   structure Variable : SYMBOL
   structure Operator : OPERATOR
-  structure Metavariable : SYMBOL
+  structure Metavariable : PRESYMBOL
   structure Metacontext : METACONTEXT
     where type metavariable = Metavariable.t
     where type valence = Operator.Arity.Valence.t

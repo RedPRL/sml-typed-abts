@@ -14,7 +14,7 @@ end
 functor Abt
   (structure Symbol : SYMBOL
    structure Variable : SYMBOL
-   structure Metavariable : SYMBOL
+   structure Metavariable : PRESYMBOL
    structure Operator : OPERATOR
    structure Metacontext : METACONTEXT
      where type metavariable = Metavariable.t

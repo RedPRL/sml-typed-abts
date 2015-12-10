@@ -35,6 +35,8 @@ in
   signature ABT_UTIL
   signature AST
   signature AST_TO_ABT
+  signature PRE_SYMBOL
+  signature PRESYMBOL
   signature SYMBOL
   signature SORT
   signature SPINE
@@ -43,6 +45,7 @@ in
   signature METACONTEXT
 
   functor Symbol
+  structure StringPresymbol
   structure ListSpine
   functor Arity
   functor Metacontext

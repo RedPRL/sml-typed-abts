@@ -2,6 +2,7 @@ functor Symbol () :> SYMBOL =
 struct
   type t = int * string
   val counter = ref 0
+
   fun named a =
     let
       val i = !counter
@@ -9,6 +10,9 @@ struct
     in
       (i, a)
     end
+
+  fun new () =
+    named "@"
 
   fun compare ((i, _), (j, _)) =
     Int.compare (i, j)
@@ -36,3 +40,22 @@ struct
   end
 end
 
+structure StringPresymbol : PRESYMBOL =
+struct
+  type t = string
+  fun named x = x
+
+  structure Show =
+  struct
+    type t = t
+    fun toString x = x
+  end
+
+  structure Eq =
+  struct
+    type t = t
+    fun eq (x, y) = x = y
+  end
+
+  val compare = String.compare
+end
