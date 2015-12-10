@@ -25,15 +25,22 @@ struct
              val us' = Spine.pretty ShowSym.toString "," us
              val es' = Spine.pretty toString "," es
            in
-             ShowMetavar.toString mv ^ "{" ^ us' ^ "}[" ^ es' ^ "]"
+             "#" ^ ShowMetavar.toString mv
+                 ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
+                 ^ (if Spine.isEmpty es then "" else "[" ^ es' ^ "]")
            end
 
   and toStringB ((us, xs) \ M) =
     let
+      val symEmpty = Spine.isEmpty us
+      val varEmpty = Spine.isEmpty xs
       val us' = Spine.pretty ShowSym.toString "," us
       val xs' = Spine.pretty ShowVar.toString "," xs
     in
-      "{" ^ us' ^ "}[" ^ xs' ^ "]." ^ toString M
+      (if symEmpty then "" else "{" ^ us' ^ "}")
+        ^ (if varEmpty then "" else "[" ^ xs' ^ "]")
+        ^ (if symEmpty andalso varEmpty then "" else ".")
+        ^ toString M
     end
 
 

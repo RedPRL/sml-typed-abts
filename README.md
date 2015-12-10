@@ -47,4 +47,4 @@ At the `-` prompt, type:
 
 You should see a lot of compilation messages and then:
 
-    decl({}[].m{}[]; {u}[].get[u])
+    decl(#m; {u}.get[u])
