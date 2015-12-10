@@ -28,5 +28,22 @@ signature AST_TO_ABT =
 sig
   include AST_ABT
 
-  val convert : Abt.metacontext -> Ast.ast * Abt.sort -> Abt.abt
+  structure NameEnv :
+  sig
+    type 'a t
+    val fromList : (string * 'a) list -> 'a t
+  end
+
+  (* convert a closed ast to an abt *)
+  val convert
+    : Abt.metacontext
+    -> Ast.ast * Abt.sort
+    -> Abt.abt
+
+  (* convert an open ast to an abt *)
+  val convertOpen
+    : Abt.metacontext
+    -> Abt.symbol NameEnv.t * Abt.variable NameEnv.t
+    -> Ast.ast * Abt.sort
+    -> Abt.abt
 end

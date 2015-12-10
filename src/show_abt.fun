@@ -8,7 +8,6 @@ struct
   type t = abt
 
   structure Spine = Abt.Operator.Arity.Valence.Spine
-
   structure SShow = Abt.Symbol.Show
 
   fun toString M =
