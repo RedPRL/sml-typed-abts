@@ -36,12 +36,12 @@ sig
   val rename : symbol * symbol -> abt -> abt
 
   (* Patterns for abstract binding trees. *)
+  datatype 'a bview =
+     \ of (symbol spine * variable spine) * 'a
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
     | $# of metavariable * (symbol spine * 'a spine)
-  and 'a bview =
-     \ of (symbol spine * variable spine) * 'a
 
   structure Functor : FUNCTOR
     where type 'a t = 'a view

@@ -4,48 +4,35 @@ functor Metacontext
 struct
   type metavariable = Metavariable.t
   type valence = Valence.t
-  type t = (metavariable * valence) list
+
+  structure Ctx = SplayDict (structure Key = struct open Metavariable Metavariable.Eq end)
+  type t = valence Ctx.dict
 
   exception MetavariableNotFound
-  exception NameClash
+  exception MergeFailure
 
-  val empty = []
+  val empty = Ctx.empty
+  val isEmpty = Ctx.isEmpty
+  val toList = Ctx.toList
 
-  fun isEmpty [] = true
-    | isEmpty _ = false
+  fun merge (v, v') =
+    if Valence.eq (v, v') then
+      v'
+    else
+      raise MergeFailure
 
-  fun toList Theta = Theta
+  fun extend Th (m, v) =
+    Ctx.insertMerge Th m v
+      (fn v' => merge (v, v'))
 
-  fun fiber m (m', _) =
-    Metavariable.Eq.eq (m, m')
+  fun union (Th, Th') =
+    Ctx.union Th Th'
+      (fn (_, v, v') => merge (v, v'))
 
-  fun find Theta m =
-    Option.map #2 (List.find (fiber m) Theta)
+  fun lookup Th m =
+    Ctx.lookup Th m
+      handle _ => raise MetavariableNotFound
 
-  fun lookup Theta m =
-    case find Theta m of
-         SOME vl => vl
-       | NONE => raise MetavariableNotFound
+  val find = Ctx.find
 
-  fun extend Theta (m, vl) =
-    case find Theta m of
-         SOME _ => raise NameClash
-       | NONE => (m, vl) :: Theta
-
-  fun updateMonotonic Theta (m, vl) =
-    case find Theta m of
-         SOME vl' => if Valence.eq (vl, vl') then Theta else raise NameClash
-       | NONE => (m, vl) :: Theta
-
-  fun concat (Theta, Theta') =
-    List.foldl
-      (fn (h, Theta'') => extend Theta'' h)
-      Theta
-      Theta'
-
-  fun union (Theta, Theta') =
-    List.foldl
-      (fn (h, Theta'') => updateMonotonic Theta'' h)
-      Theta
-      Theta'
 end

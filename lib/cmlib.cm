@@ -1,0 +1,5 @@
+Library
+  functor SplayDict
+  structure StringOrdered
+is
+  cmlib/cmlib.cm
