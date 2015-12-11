@@ -1,7 +1,9 @@
 Library
   signature ABT
   signature ABT_UTIL
+  signature AST
   signature OPERATOR
+  signature PRESYMBOL
   signature SYMBOL
   signature VALENCE
   signature SORT
@@ -10,18 +12,23 @@ Library
   signature METACONTEXT
 
   functor Symbol
+  structure StringPresymbol
   structure ListSpine
   functor Arity
   functor Metacontext
   functor Abt
   functor AbtUtil
+  functor Ast
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
+
+  signature AST_TO_ABT
+  functor AstToAbt
 is
   $/basis.cm
-
   basis/basis.cm
+  lib/cmlib.cm
 
   src/symbol.sig
   src/symbol.fun
@@ -35,6 +42,7 @@ is
   src/spine.sml
   src/arity.sig
   src/operator.sig
+  src/ast.sig
   src/abt.sig
   src/abt_util.sig
   src/abt_util.fun
@@ -42,6 +50,7 @@ is
   src/valence.fun
   src/arity.fun
   src/abt.fun
+  src/ast.fun
 
   src/coord.sig
   src/coord.sml

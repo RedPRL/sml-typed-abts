@@ -4,27 +4,28 @@ sig
   type metavariable
   type valence
 
-  val empty : t
-
   val isEmpty : t -> bool
   val toList : t -> (metavariable * valence) list
 
-  exception NameClash
+  val empty : t
 
-  (* raises NameClash *)
+  (* raises MergeFailure if the variable is already present with an incompatible
+   * valence *)
   val extend : t -> metavariable * valence -> t
 
-  (* raises NameClash *)
-  val concat : t * t -> t
+  (* raises MergeFailure if the variable is already present *)
+  val extendUnique : t -> metavariable * valence -> t
 
-  (* raises NameClash if the name is already present with a different valence *)
-  val updateMonotonic : t -> metavariable * valence -> t
+  (* raises MergeFailure if variables are already present with incompatible
+   * valences *)
   val union : t * t -> t
 
-  exception MetavariableNotFound
+  (* raises MergeFailure if variables are already present *)
+  val concat: t * t -> t
 
-  (* raises MetavariableNotFound *)
   val lookup : t -> metavariable -> valence
-
   val find : t -> metavariable -> valence option
+
+  exception MetavariableNotFound
+  exception MergeFailure
 end

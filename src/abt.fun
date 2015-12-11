@@ -14,7 +14,7 @@ end
 functor Abt
   (structure Symbol : SYMBOL
    structure Variable : SYMBOL
-   structure Metavariable : SYMBOL
+   structure Metavariable : PRESYMBOL
    structure Operator : OPERATOR
    structure Metacontext : METACONTEXT
      where type metavariable = Metavariable.t
@@ -132,7 +132,7 @@ struct
           | go R (APP (theta, Es)) =
               Spine.Foldable.foldr MCtx.union R (Spine.Functor.map (go' MCtx.empty) Es)
           | go R (META_APP (mv, us, Ms)) =
-              Spine.Foldable.foldr MCtx.union (MCtx.updateMonotonic R mv) (Spine.Functor.map (go MCtx.empty) Ms)
+              Spine.Foldable.foldr MCtx.union (MCtx.extend R mv) (Spine.Functor.map (go MCtx.empty) Ms)
         and go' R (ABS (_, _, M)) = go R M
       in
         go MCtx.empty M

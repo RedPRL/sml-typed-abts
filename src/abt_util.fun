@@ -11,32 +11,32 @@ struct
   structure Valence = Arity.Valence
   structure Spine = Valence.Spine
 
-  fun checkStar Theta M tau =
-    case M of
-         STAR (`x) => check Theta (`x, tau)
-       | STAR (theta $ Es) =>
+  fun checkStar Th m tau =
+    case m of
+         STAR (`x) => check Th (`x, tau)
+       | STAR (theta $ es) =>
            let
-             val (valences, _) = Operator.arity theta
-             val Es' =
+             val (vls, _) = Operator.arity theta
+             val es' =
                Spine.Pair.mapEq
-                 (fn (E, valence as (_, sigma)) =>
-                     BFunctor.map (fn M => checkStar Theta M sigma) E)
-                 (Es, valences)
+                 (fn (e, vl as (_, sigma)) =>
+                     BFunctor.map (fn n => checkStar Th n sigma) e)
+                 (es, vls)
            in
-             check Theta (theta $ Es', tau)
+             check Th (theta $ es', tau)
            end
-       | STAR (mv $# (us, Ms)) =>
+       | STAR (mv $# (us, ms)) =>
            let
-             val ((_, vsorts), tau) = Abt.Metacontext.lookup Theta mv
-             val Ms' = Spine.Pair.mapEq (fn (M, sigma) => checkStar Theta M sigma) (Ms, vsorts)
+             val ((_, vsorts), tau) = Abt.Metacontext.lookup Th mv
+             val ms' = Spine.Pair.mapEq (fn (n, sigma) => checkStar Th n sigma) (ms, vsorts)
            in
-             check Theta (mv $# (us, Ms'), tau)
+             check Th (mv $# (us, ms'), tau)
            end
        | EMB M =>
            let
              val (M', _) = infer M
            in
-             check Theta (M', tau)
+             check Th (M', tau)
            end
 end
 

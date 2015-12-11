@@ -2,6 +2,7 @@ local
   $(SML_LIB)/basis/basis.mlb
 
   basis/basis.mlb
+  lib/cmlib.mlb
 
   src/coord.sig
   src/coord.sml
@@ -19,17 +20,23 @@ local
   src/arity.sig
   src/operator.sig
   src/abt.sig
+  src/ast.sig
   src/abt_util.sig
   src/abt_util.fun
   src/show_abt.fun
   src/valence.fun
   src/arity.fun
   src/abt.fun
+  src/ast.fun
 
 in
   signature OPERATOR
   signature ABT
   signature ABT_UTIL
+  signature AST
+  signature AST_TO_ABT
+  signature PRE_SYMBOL
+  signature PRESYMBOL
   signature SYMBOL
   signature SORT
   signature SPINE
@@ -38,6 +45,7 @@ in
   signature METACONTEXT
 
   functor Symbol
+  structure StringPresymbol
   structure ListSpine
   functor Arity
   functor Metacontext
@@ -46,4 +54,6 @@ in
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
+  functor Ast
+  functor AstToAbt
 end
