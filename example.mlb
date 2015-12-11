@@ -1,0 +1,10 @@
+local
+  $(SML_LIB)/basis/basis.mlb
+  abt.mlb
+  abt-parser.mlb
+  lib/sml-parcom-wrapper/parcom.mlb
+  basis/basis.mlb
+  example/example.sml
+in
+  structure Example
+end

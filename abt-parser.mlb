@@ -1,0 +1,12 @@
+local
+  abt.mlb
+  lib/cmlib.mlb
+  lib/sml-parcom-wrapper/parcom.mlb
+  src/parser/parse_operator.sig
+  src/parser/parse_ast.sig
+  src/parser/parse_ast.fun
+in
+  signature PARSE_OPERATOR
+  signature PARSE_AST
+  functor ParseAst
+end

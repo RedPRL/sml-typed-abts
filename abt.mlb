@@ -35,7 +35,6 @@ in
   signature ABT_UTIL
   signature AST
   signature AST_TO_ABT
-  signature PRE_SYMBOL
   signature PRESYMBOL
   signature SYMBOL
   signature SORT

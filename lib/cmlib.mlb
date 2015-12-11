@@ -6,4 +6,5 @@ in
   structure String
   structure StringHashable
   functor HashTable
+  structure Sum
 end
