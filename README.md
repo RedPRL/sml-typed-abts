@@ -43,7 +43,7 @@ Clone, then start the SML REPL:
 
 At the `-` prompt, type:
 
-    - CM.make "example/example.cm";
+    - CM.make "example.cm";
 
 You should see a lot of compilation messages and then, a prompt should appear,
 at which you can parse and sort-check/infer ABT expressions. Here's an example
