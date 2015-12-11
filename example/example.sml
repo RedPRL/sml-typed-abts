@@ -133,7 +133,7 @@ struct
   end
 
   structure Ast = Ast (structure Operator = O and Metavariable = M)
-  structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavariable = M)
+  structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavariable = M and CharSet = GreekCharSet)
 
   structure MC = Metacontext (structure Metavariable = M structure Valence = O.Arity.Valence.Eq)
 

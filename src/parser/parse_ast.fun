@@ -1,6 +1,7 @@
 functor ParseAst
   (structure Ast : AST
     where type 'a spine = 'a list
+   structure CharSet : CHARSET
    structure ParseOperator : PARSE_OPERATOR
    structure Metavariable : PRESYMBOL
    sharing type Ast.operator = ParseOperator.Operator.t
@@ -26,8 +27,9 @@ struct
     val nestedComments = true
 
     val identLetter =
-      CharParser.letter
-        || digit
+         CharParser.letter
+      || CharParser.digit
+      || CharSet.char
     val identStart = identLetter
     val opStart = fail "Operators not supported" : scanner
     val opLetter = opStart

@@ -2,6 +2,9 @@ Library
   signature PARSE_OPERATOR
   signature PARSE_AST
   functor ParseAst
+  signature CHARSET
+  structure EmptyCharSet
+  structure GreekCharSet
 is
   abt.cm
   lib/cmlib.cm
@@ -9,3 +12,5 @@ is
   src/parser/parse_operator.sig
   src/parser/parse_ast.sig
   src/parser/parse_ast.fun
+  src/parser/charset.sig
+  src/parser/charset.sml
