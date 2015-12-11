@@ -151,19 +151,19 @@ struct
       case input of
            NONE => ()
          | SOME str =>
-             (let
-               val parseResult = CharParser.parseString (AstParser.parse M.named) str
-               val ast as (Ast.$ (theta, es)) =
-                 case parseResult of
-                      Sum.INR ast => ast
-                    | Sum.INL err => raise Fail err
-               val (_, tau) = O.arity theta
-               val abt = AstToAbt.convert MC.empty (ast, tau)
-             in
-               print (ShowAbt.toString abt ^ "\n\n")
-             end
-             handle err => print ("Error: " ^ exnMessage err ^ "\n\n"));
-             loop ()
+             ((let
+                 val parseResult = CharParser.parseString (AstParser.parse M.named) str
+                 val ast as (Ast.$ (theta, es)) =
+                   case parseResult of
+                        Sum.INR ast => ast
+                      | Sum.INL err => raise Fail err
+                 val (_, tau) = O.arity theta
+                 val abt = AstToAbt.convert MC.empty (ast, tau)
+               in
+                 print (ShowAbt.toString abt ^ "\n\n")
+               end
+               handle err => print ("Error: " ^ exnMessage err ^ "\n\n"));
+              loop ())
     end
 
   val _ =
