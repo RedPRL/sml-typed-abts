@@ -43,14 +43,15 @@ struct
 
   type metavariable_table = string -> Ast.metavariable
 
-  fun parse mtable : Ast.ast CharParser.charParser =
+  fun extend mtable custom : Ast.ast CharParser.charParser =
     let
       val variable = identifier
       val parameter = identifier
       val metavariable = symbol "#" >> identifier wth mtable
 
       fun ast () =
-        ($ app
+        (custom
+         || $ app
          || $ metaApp
          || variable wth Ast.`) ?? "ast"
       and app () =
@@ -79,4 +80,6 @@ struct
     in
       $ ast
     end
+
+    fun parse mtable = extend mtable (parse mtable)
 end

@@ -143,6 +143,23 @@ struct
   structure ShowAbt = DebugShowAbt (Abt)
   open O O.Sort Abt
 
+  local
+    open ParserCombinators CharParser
+
+    infixr 4 << >>
+    infixr 3 &&
+    infix 2 -- ##
+    infix 2 wth suchthat return guard when
+    infixr 1 || <|> ??
+  in
+    (* example of adding custom notation to the generated parser *)
+
+    fun myparser mtable () =
+      AstParser.extend mtable ($ (notation mtable))
+    and notation mtable () =
+      string "%" >> ($ (myparser mtable)) wth (fn x => Ast.$ (NUM, [Ast.\ (([],[]), x)]))
+  end
+
   fun loop () =
     let
       val input = (print "> "; TextIO.inputLine TextIO.stdIn)
@@ -151,7 +168,7 @@ struct
            NONE => 0
          | SOME str =>
              ((let
-                 val parseResult = CharParser.parseString (AstParser.parse M.named) str
+                 val parseResult = CharParser.parseString (myparser M.named ()) str
                  val ast as (Ast.$ (theta, es)) =
                    case parseResult of
                         Sum.INR ast => ast
