@@ -4,5 +4,6 @@ Library
   structure String
   structure StringHashable
   functor HashTable
+  structure Sum
 is
   cmlib/cmlib.cm

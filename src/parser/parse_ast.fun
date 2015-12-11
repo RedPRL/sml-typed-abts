@@ -56,18 +56,25 @@ struct
         ParseOperator.parse
           && opt (parens (semiSep ($ abs)))
           wth (fn (theta, es) => Ast.$ (theta, getOpt (es, [])))
-          ?? "app"
+          ?? "operator application"
       and metaApp () =
         metavariable
           && opt (braces (commaSep parameter))
           && opt (squares (commaSep ($ ast)))
           wth (fn (x, (us, ms)) => Ast.$# (x, (getOpt (us, []), getOpt (ms, []))))
-      and abs () =
+          ?? "metavariable application"
+      and properAbs () =
         braces (commaSep parameter)
           && squares (commaSep variable)
           && dot
           >> $ ast
           wth (fn (us, (xs, m)) => Ast.\ ((us, xs), m))
+          ?? "abstractor"
+      and pseudoAbs () =
+        $ ast wth (fn m => Ast.\ (([], []), m))
+      and abs () =
+        $ properAbs
+          || $ pseudoAbs
     in
       $ ast
     end

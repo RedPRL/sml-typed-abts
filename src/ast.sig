@@ -12,6 +12,8 @@ sig
     | $ of symbol operator * btm spine
     | $# of metavariable * (symbol spine * ast spine)
   and btm = \ of (symbol spine * variable spine) * ast
+
+  structure Show : SHOW where type t = ast
 end
 
 signature AST_ABT =
