@@ -25,30 +25,32 @@ respects:
 ### Getting Started
 #### Prerequisites
 
-You need either SML/NJ or MLton. Either [download the binary installer](http://www.smlnj.org/)
-or, on OS X, use homebrew:
-
+You need either SML/NJ or MLton. Either [download the binary SML/NJ
+installer](http://www.smlnj.org/) or, on OS X, use homebrew:
 
     brew update && brew install smlnj
 
-#### Running the Example
+#### Downloading the repository
 
-Clone, then start the SML REPL:
+Recursively clone the repo:
 
-    git clone https://github.com/jonsterling/sml-typed-abts.git
-    cd sml-typed-abts
-    git submodule update --init --recursive 
-    rlwrap sml
-    Standard ML of New Jersey v110.78 [built: Sun Apr 26 01:06:11 2015]
-    -
+    git clone --recursive https://github.com/jonsterling/sml-typed-abts.git
 
-At the `-` prompt, type:
+Note: whenever you pull anew from this repository, be sure to refresh the
+submodules:
 
-    - CM.make "example.cm";
+    git submodule update --init --recursive
 
-You should see a lot of compilation messages and then, a prompt should appear,
-at which you can parse and sort-check/infer ABT expressions. Here's an example
-session:
+#### Running the example with MLton
+
+To run the example with MLton, use the included script, and then run the
+resulting executable:
+
+    ./scripts/mlton.sh
+    ./example.out
+
+Eventually, a prompt should appear at which you can parse and sort-check/infer
+ABT expressions. Here's an example session:
 
     Type an expression at the prompt
 
@@ -64,3 +66,23 @@ session:
 The printer is in "debug mode", which means that all variables and symbols are
 annotated with a unique index; this is useful for convincing oneself that
 variables and symbols are being bound properly.
+
+#### Running the example in SML/NJ
+
+Start the SML REPL:
+
+    cd sml-typed-abts
+    rlwrap sml
+    Standard ML of New Jersey v110.78 [built: Sun Apr 26 01:06:11 2015]
+    -
+
+At the `-` prompt, type:
+
+    - CM.make "example.cm";
+
+You should see a lot of compilation messages and then, the prompt should
+appear:
+
+    Type an expression at the prompt
+
+    >
