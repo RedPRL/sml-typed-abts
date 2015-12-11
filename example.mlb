@@ -5,7 +5,7 @@ local
   lib/sml-parcom-wrapper/parcom.mlb
   basis/basis.mlb
   example/example.sml
-  example/mlton.sml
+  example/main.sml
 in
-  structure MLton
+  structure Main
 end

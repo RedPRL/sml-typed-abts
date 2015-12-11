@@ -7,3 +7,4 @@ is
   lib/cmlib.cm
   basis/basis.cm
   example/example.sml
+  example/main.sml
