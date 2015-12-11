@@ -37,6 +37,7 @@ Clone, then start the SML REPL:
 
     git clone https://github.com/jonsterling/sml-typed-abts.git
     cd sml-typed-abts
+    git submodule update --init --recursive 
     rlwrap sml
     Standard ML of New Jersey v110.78 [built: Sun Apr 26 01:06:11 2015]
     -
