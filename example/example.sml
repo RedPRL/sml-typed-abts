@@ -148,7 +148,7 @@ struct
       val input = (print "> "; TextIO.inputLine TextIO.stdIn)
     in
       case input of
-           NONE => ()
+           NONE => 0
          | SOME str =>
              ((let
                  val parseResult = CharParser.parseString (AstParser.parse M.named) str
@@ -165,7 +165,7 @@ struct
               loop ())
     end
 
-  val _ =
+  fun main (name, args) =
     (print "\n\nType an expression at the prompt\n\n";
      loop ())
 end
