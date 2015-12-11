@@ -1,17 +1,59 @@
-functor Ast (O : OPERATOR) : AST =
+functor Ast
+  (structure Operator : OPERATOR
+   structure Metavariable : PRESYMBOL) : AST =
 struct
   type symbol = string
   type variable = string
-  type metavariable = string
+  type metavariable = Metavariable.t
 
-  type 'i operator = 'i O.t
-  type 'a spine = 'a O.Arity.Valence.Spine.t
+  structure Spine = Operator.Arity.Valence.Spine
+
+  type 'i operator = 'i Operator.t
+  type 'a spine = 'a Spine.t
 
   datatype ast =
       ` of variable
     | $ of symbol operator * btm spine
     | $# of metavariable * (symbol spine * ast spine)
   and btm = \ of (symbol spine * variable spine) * ast
+
+  infix $ $# \
+
+  structure Show =
+  struct
+    type t = ast
+
+    fun toString ast =
+      case ast of
+           `x => x
+         | theta $ es =>
+             if Spine.isEmpty es then
+               Operator.toString (fn x => x) theta
+             else
+               Operator.toString (fn x => x) theta
+                  ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
+         | mv $# (us, es) =>
+             let
+               val us' = Spine.pretty (fn x => x) "," us
+               val es' = Spine.pretty toString "," es
+             in
+               "#" ^ Metavariable.Show.toString mv
+                   ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
+                   ^ (if Spine.isEmpty es then "" else "[" ^ es' ^ "]")
+             end
+    and toStringB ((us, xs) \ M) =
+      let
+        val symEmpty = Spine.isEmpty us
+        val varEmpty = Spine.isEmpty xs
+        val us' = Spine.pretty (fn x => x) "," us
+        val xs' = Spine.pretty (fn x => x) "," xs
+      in
+        (if symEmpty then "" else "{" ^ us' ^ "}")
+          ^ (if varEmpty then "" else "[" ^ xs' ^ "]")
+          ^ (if symEmpty andalso varEmpty then "" else ".")
+          ^ toString M
+      end
+  end
 end
 
 functor AstToAbt (X : AST_ABT) : AST_TO_ABT =

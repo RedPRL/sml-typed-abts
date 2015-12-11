@@ -45,6 +45,21 @@ At the `-` prompt, type:
 
     - CM.make "example/example.cm";
 
-You should see a lot of compilation messages and then:
+You should see a lot of compilation messages and then, a prompt should appear,
+at which you can parse and sort-check/infer ABT expressions. Here's an example
+session:
 
-    decl(#m; {u}.get[u])
+    Type an expression at the prompt
+
+    > lam([x]. dcl(x; {a}. set[a](x)))
+    lam([x@3].dcl(x@3; {a@7}.set[a@7](x@3)))
+
+    > ap(lam([x].x); num(3))
+    Error: Fail: expected exp == val
+
+    > ap(lam([x].x); ret(num(3)))
+    ap(lam([x@8].x@8); ret(num(3)))
+
+The printer is in "debug mode", which means that all variables and symbols are
+annotated with a unique index; this is useful for convincing oneself that
+variables and symbols are being bound properly.

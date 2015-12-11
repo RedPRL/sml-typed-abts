@@ -1,8 +1,0 @@
-local
-  $(SML_LIB)/basis/basis.mlb
-  ../basis/basis.mlb
-  ../abt.mlb
-  example.sml
-in
-  structure Example
-end

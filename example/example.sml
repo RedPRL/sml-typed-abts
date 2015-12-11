@@ -25,28 +25,29 @@ struct
       end
     end
 
+
     structure Arity = Arity (structure Sort = Sort and Spine = ListSpine)
 
     datatype 'i t =
         LAM | AP | NUM | LIT of int | RET
-      | DECL | GET of 'i | SET of 'i
+      | DCL | GET of 'i | SET of 'i
 
     fun eq f (LAM, LAM) = true
       | eq f (AP, AP) = true
       | eq f (NUM, NUM) = true
       | eq f (LIT m, LIT n) = m = n
       | eq f (RET, RET) = true
-      | eq f (DECL, DECL) = true
+      | eq f (DCL, DCL) = true
       | eq f (GET i, GET j) = f (i, j)
       | eq f (SET i, SET j) = f (i, j)
       | eq _ _ = false
 
     fun toString f LAM = "lam"
       | toString f AP = "ap"
-      | toString f NUM = "#"
+      | toString f NUM = "num"
       | toString f (LIT n) = Int.toString n
       | toString f RET = "ret"
-      | toString f DECL = "decl"
+      | toString f DCL = "dcl"
       | toString f (GET i) = "get[" ^ f i ^ "]"
       | toString f (SET i) = "set[" ^ f i ^ "]"
 
@@ -60,7 +61,7 @@ struct
         | arity AP = ([mkValence [] [] EXP, mkValence [] [] EXP], EXP)
         | arity NUM = ([mkValence [] [] NAT], VAL)
         | arity (LIT _) = ([], NAT)
-        | arity DECL = ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP)
+        | arity DCL = ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP)
         | arity (GET i) = ([], EXP)
         | arity (SET i) = ([mkValence [] [] EXP], EXP)
 
@@ -77,38 +78,111 @@ struct
         | map f NUM = NUM
         | map f (LIT n) = LIT n
         | map f RET = RET
-        | map f DECL = DECL
+        | map f DCL = DCL
         | map f (GET i) = GET (f i)
         | map f (SET i) = SET (f i)
     end
   end
 
+  structure OParser : PARSE_OPERATOR =
+  struct
+    structure Operator = O
+    open O
+    open ParserCombinators CharParser
+
+    infixr 4 << >>
+    infixr 3 &&
+    infix 2 -- ##
+    infix 2 wth suchthat return guard when
+    infixr 1 || <|> ??
+
+    structure LangDef :> LANGUAGE_DEF =
+    struct
+      type scanner = char CharParser.charParser
+      val commentStart = NONE
+      val commentEnd = NONE
+      val commentLine = NONE
+      val nestedComments = true
+
+      val identLetter =
+        CharParser.letter
+          || digit
+      val identStart = identLetter
+      val opStart = fail "Operators not supported" : scanner
+      val opLetter = opStart
+      val reservedNames = []
+      val reservedOpNames = []
+      val caseSensitive = true
+    end
+
+    structure TP = TokenParser (LangDef)
+    open TP
+
+    val parseInt =
+      repeat1 digit wth valOf o Int.fromString o String.implode
+
+    val parse : string O.t CharParser.charParser =
+      string "lam" return LAM
+        || string "ap" return AP
+        || string "num" return NUM
+        || parseInt wth LIT
+        || string "ret" return RET
+        || string "dcl" return DCL
+        || string "get" >> squares identifier wth GET
+        || string "set" >> squares identifier wth SET
+  end
+
+  structure Ast = Ast (structure Operator = O and Metavariable = M)
+  structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavariable = M and CharSet = GreekCharSet)
+
   structure MC = Metacontext (structure Metavariable = M structure Valence = O.Arity.Valence.Eq)
 
   structure Abt = AbtUtil(Abt (structure Operator = O and Metavariable = M and Metacontext = MC and Variable = V and Symbol = I))
-  structure ShowAbt = PlainShowAbt (Abt)
+  structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
+
+  structure ShowAbt = DebugShowAbt (Abt)
   open O O.Sort Abt
 
-  infixr 4 \
-  infix 5 $
+  local
+    open ParserCombinators CharParser
 
-  val $$ = STAR o op$
-  val $$# = STAR o op$#
-  infix 5 $$ $$#
+    infixr 4 << >>
+    infixr 3 &&
+    infix 2 -- ##
+    infix 2 wth suchthat return guard when
+    infixr 1 || <|> ??
+  in
+    (* example of adding custom notation to the generated parser *)
 
-  val `` = STAR o `
-  val a = V.named "a"
-  val u = I.named "u"
-  val mv = M.named "m"
-  val mvap = mv $$# ([], [])
-  val Theta = MC.extend MC.empty (mv, (([], []), EXP))
+    fun myparser mtable () =
+      AstParser.extend mtable ($ (notation mtable))
+    and notation mtable () =
+      string "%" >> ($ (myparser mtable)) wth (fn x => Ast.$ (NUM, [Ast.\ (([],[]), x)]))
+  end
 
-  fun K x = ([], []) \ x
+  fun loop () =
+    let
+      val input = (print "> "; TextIO.inputLine TextIO.stdIn)
+    in
+      case input of
+           NONE => 0
+         | SOME str =>
+             ((let
+                 val parseResult = CharParser.parseString (myparser M.named ()) str
+                 val ast as (Ast.$ (theta, es)) =
+                   case parseResult of
+                        Sum.INR ast => ast
+                      | Sum.INL err => raise Fail err
+                 val (_, tau) = O.arity theta
+                 val abt = AstToAbt.convert MC.empty (ast, tau)
+               in
+                 print (ShowAbt.toString abt ^ "\n\n")
+               end
+               handle err => print ("Error: " ^ exnMessage err ^ "\n\n"));
+              loop ())
+    end
 
-  val expr1 =
-    checkStar
-      Theta
-      (DECL $$ [K mvap, ([u], []) \ GET u $$ []])
-      EXP
-  val _ = print ("\n\n" ^ ShowAbt.toString expr1 ^ "\n\n")
+  fun main (name, args) =
+    (print "\n\nType an expression at the prompt\n\n";
+     loop ())
 end
