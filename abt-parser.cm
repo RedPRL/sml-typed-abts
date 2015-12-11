@@ -1,0 +1,7 @@
+Library
+  signature PARSE_OPERATOR
+is
+  abt.cm
+  lib/sml-parcom-wrapper/parcom.cm (bind:(anchor:libs value:lib))
+  src/parser/parse_operator.sig
+
