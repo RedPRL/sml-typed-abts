@@ -17,14 +17,14 @@ struct
            else
              Operator.toString ShowSym.toString theta
                 ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
-       | mv $# (us, es) =>
+       | mv $# (us, ms) =>
            let
              val us' = Spine.pretty ShowSym.toString "," us
-             val es' = Spine.pretty toString "," es
+             val ms' = Spine.pretty toString "," ms
            in
              "#" ^ Abt.Metavariable.Show.toString mv
                  ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
-                 ^ (if Spine.isEmpty es then "" else "[" ^ es' ^ "]")
+                 ^ (if Spine.isEmpty ms then "" else "[" ^ ms' ^ "]")
            end
 
   and toStringB ((us, xs) \ M) =

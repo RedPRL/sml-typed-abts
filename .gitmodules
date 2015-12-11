@@ -4,3 +4,6 @@
 [submodule "lib/sml-parcom-wrapper"]
 	path = lib/sml-parcom-wrapper
 	url = https://github.com/jonsterling/sml-parcom-wrapper.git
+[submodule "lib/sml-unparse"]
+	path = lib/sml-unparse
+	url = https://github.com/jonsterling/sml-unparse.git
