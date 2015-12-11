@@ -1,9 +1,11 @@
 Library
   signature PARSE_OPERATOR
   signature PARSE_AST
+  functor ParseAst
 is
   abt.cm
+  lib/cmlib.cm
   lib/sml-parcom-wrapper/parcom.cm (bind:(anchor:libs value:lib))
   src/parser/parse_operator.sig
   src/parser/parse_ast.sig
-
+  src/parser/parse_ast.fun

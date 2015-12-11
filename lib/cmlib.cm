@@ -1,5 +1,8 @@
 Library
   functor SplayDict
   structure StringOrdered
+  structure String
+  structure StringHashable
+  functor HashTable
 is
   cmlib/cmlib.cm

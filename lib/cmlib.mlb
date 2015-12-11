@@ -3,4 +3,7 @@ local
 in
   functor SplayDict
   structure StringOrdered
+  structure String
+  structure StringHashable
+  functor HashTable
 end

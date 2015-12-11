@@ -1,9 +1,9 @@
 signature PARSE_AST =
 sig
-  structure ParseOperator : PARSE_OPERATOR
   structure Ast : AST
-
+  structure ParseOperator : PARSE_OPERATOR
   sharing type Ast.operator = ParseOperator.Operator.t
 
-  val parse : Ast.ast CharParser.charParser
+  type metavariable_table = string -> Ast.metavariable
+  val parse : metavariable_table -> Ast.ast CharParser.charParser
 end
