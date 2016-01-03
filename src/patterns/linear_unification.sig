@@ -6,13 +6,15 @@ sig
   structure Env : DICT where type key = Abt.metavariable
   type env = Abt.abt Abt.bview Env.dict
 
-  type renaming = (Abt.symbol * Abt.symbol) list
+  (* a simultaneous renaming of symbols *)
+  structure Ren : DICT where type key = Abt.symbol
+  type ren = Abt.symbol Ren.dict
 
   (* When [pat] is a pattern and [m] is a closed term without metavariables,
    * then [pat <*> m] is the judgment that [m] unifies with the pattern [pat] *)
   datatype match = <*> of Pattern.pattern * Abt.abt
 
   exception UnificationFailure
-  val unify : match -> renaming * env
+  val unify : match -> ren * env
 end
 

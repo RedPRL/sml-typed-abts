@@ -59,7 +59,7 @@ struct
       end
 
     fun applyRen rho m =
-      foldl (fn (r, m') => Abt.rename r m') m rho
+      Ren.foldl (fn (u, v, m') => Abt.rename (u, v) m') m rho
 
   in
     fun compile (RULE (pat ~> m)) n =
