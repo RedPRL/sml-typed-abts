@@ -13,9 +13,9 @@ struct
 
   datatype ast =
       ` of variable
-    | $ of symbol operator * btm spine
+    | $ of symbol operator * abs spine
     | $# of metavariable * (symbol spine * ast spine)
-  and btm = \ of (symbol spine * variable spine) * ast
+  and abs = \ of (symbol spine * variable spine) * ast
 
   infix $ $# \
 
@@ -96,7 +96,7 @@ struct
           let
             val (vls, _) = Abt.Operator.arity theta
             val theta' = Abt.Operator.Presheaf.map (symbol Ss) theta
-            val es' = Spine.Pair.mapEq (convertOpenBtm Th (Ss, Vs)) (es, vls)
+            val es' = Spine.Pair.mapEq (convertOpenAbs Th (Ss, Vs)) (es, vls)
           in
             Abt.check Th (Abt.$ (theta', es'), tau)
           end
@@ -108,7 +108,7 @@ struct
            in
              Abt.check Th (Abt.$# (mv, (us', ms')), tau)
            end
-  and convertOpenBtm Th (Ss, Vs) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
+  and convertOpenAbs Th (Ss, Vs) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
     let
       val ((ssorts, vsorts), tau) = vl
       val us' = Spine.map Abt.Symbol.named us

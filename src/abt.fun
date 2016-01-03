@@ -61,9 +61,9 @@ struct
 
   datatype abt =
       V of LN.variable * sort
-    | APP of LN.operator * btm spine
+    | APP of LN.operator * abs spine
     | META_APP of (metavariable * valence) * (LN.symbol * sort) spine * abt spine
-  and btm = ABS of (symbol * sort) spine * (variable * sort) spine * abt
+  and abs = ABS of (symbol * sort) spine * (variable * sort) spine * abt
 
   (* Patterns for abstract binding trees. *)
   datatype 'a view =
@@ -141,16 +141,20 @@ struct
 
   end
 
+  fun liftTraverseAbs f coord (ABS (us, xs, M)) =
+    ABS (us, xs, f (Coord.shiftRight coord) M)
+
+  fun mapAbs f (ABS (us, xs, M)) =
+    ABS (us, xs, f M)
+
   fun subst (N, x) M =
     case M of
          V (LN.FREE y, sigma) => if Variable.Eq.eq (x, y) then N else M
        | V _ => M
        | APP (theta, Es) =>
-           APP (theta, Spine.map (substBtm (N, x)) Es)
+           APP (theta, Spine.map (mapAbs (subst (N, x))) Es)
        | META_APP (m, us, Ms) =>
            META_APP (m, us, Spine.map (subst (N, x)) Ms)
-  and substBtm (N, x) (ABS (us, xs, M)) =
-    ABS (us, xs, subst (N, x) M)
 
   fun rename (v, u) =
     let
@@ -180,7 +184,8 @@ struct
           go M
     end
 
-  fun imprisonVariable (v, tau) (coord, M) =
+
+  fun imprisonVariable (v, tau) coord M =
     case M of
          V (LN.FREE v', sigma) =>
            if Variable.Eq.eq (v, v') then
@@ -190,13 +195,11 @@ struct
              M
        | V _ => M
        | APP (theta, Es) =>
-           APP (theta, Spine.map (fn N => imprisonVariableBtm (v, tau) (coord, N)) Es)
+           APP (theta, Spine.map (liftTraverseAbs (imprisonVariable (v, tau)) coord) Es)
        | META_APP (m, us, Ms) =>
-           META_APP (m, us, Spine.map (fn N => imprisonVariable (v, tau) (coord, N)) Ms)
-  and imprisonVariableBtm (v, tau) (coord, ABS (us, xs, M)) =
-    ABS (us, xs, imprisonVariable (v, tau) (Coord.shiftRight coord, M))
+           META_APP (m, us, Spine.map (imprisonVariable (v, tau) coord) Ms)
 
-  fun imprisonSymbol (v, tau) (coord, M) =
+  fun imprisonSymbol (v, tau) coord M =
     case M of
          V _ => M
        | APP (theta, Es) =>
@@ -207,7 +210,7 @@ struct
            val _ = List.app chk (Operator.support theta)
            val theta' = Operator.Presheaf.map (LN.bind rho) theta
          in
-           APP (theta', Spine.map (fn E => imprisonSymbolBtm (v, tau) (coord, E)) Es)
+           APP (theta', Spine.map (liftTraverseAbs (imprisonSymbol (v,tau)) coord) Es)
          end
        | META_APP (m, us, Ms) =>
          let
@@ -215,49 +218,42 @@ struct
            fun rho' (l, s) = (LN.bind rho l, s)
            val vs = Spine.map rho' us
          in
-           META_APP (m, vs, Spine.map (fn N => imprisonSymbol (v, tau) (coord, N)) Ms)
+           META_APP (m, vs, Spine.map (imprisonSymbol (v, tau) coord) Ms)
          end
-  and imprisonSymbolBtm (v, tau) (coord, ABS (us, xs, M)) =
-    ABS (us, xs, imprisonSymbol (v, tau) (Coord.shiftRight coord, M))
 
-
-  fun liberateVariable v (coord, e) =
+  fun liberateVariable v coord e =
     case e of
          V (LN.FREE _, _) => e
        | V (LN.BOUND coord', sigma) =>
            if Coord.Eq.eq (coord, coord') then V (LN.FREE v, sigma) else e
        | APP (theta, es) =>
-           APP (theta, Spine.map (fn e => liberateVariableBtm v (coord, e)) es)
+           APP (theta, Spine.map (liftTraverseAbs (liberateVariable v) coord) es)
        | META_APP (m, us, Ms) =>
-           META_APP (m, us, Spine.map (fn e => liberateVariable v (coord, e)) Ms)
-  and liberateVariableBtm v (coord, ABS (us, xs, M)) =
-    ABS (us, xs, liberateVariable v (Coord.shiftRight coord, M))
+           META_APP (m, us, Spine.map (liberateVariable v coord) Ms)
 
 
-  fun liberateSymbol v (coord, e) =
+  fun liberateSymbol u coord e =
     case e of
          V _ => e
        | APP (theta, es) =>
          let
            fun rho (LN.BOUND coord') =
-               if Coord.Eq.eq (coord, coord') then LN.FREE v else LN.BOUND coord'
-             | rho v' = v'
+               if Coord.Eq.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
+             | rho u' = u'
            val theta' = Operator.Presheaf.map rho theta
          in
-           APP (theta', Spine.map (fn e => liberateSymbolBtm v (coord, e)) es)
+           APP (theta', Spine.map (liftTraverseAbs (liberateSymbol u) coord) es)
          end
        | META_APP (m, us, Ms) =>
          let
            fun rho (LN.BOUND coord') =
-               if Coord.Eq.eq (coord, coord') then LN.FREE v else LN.BOUND coord'
-             | rho v' = v'
+               if Coord.Eq.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
+             | rho u' = u'
            fun rho' (l, s) = (rho l, s)
            val vs = Spine.map rho' us
          in
-           META_APP (m, vs, Spine.map (fn e => liberateSymbol v (coord, e)) Ms)
+           META_APP (m, vs, Spine.map (liberateSymbol u coord) Ms)
          end
-  and liberateSymbolBtm v (coord, ABS (us, xs, M)) =
-    ABS (us, xs, liberateSymbol v (Coord.shiftRight coord, M))
 
   local
     structure ShiftFunCat : CATEGORY =
@@ -271,33 +267,24 @@ struct
       CategoryFoldMap
         (structure C = ShiftFunCat
          structure F = Spine.Foldable)
+
+    fun foldStar f xs t =
+      ShiftFoldMap.foldMap
+        (fn v => fn (c, M) => f v c M)
+        xs
+        (Coord.origin, t)
   in
-    fun imprisonVariables (vs, sorts) t =
-      let
-        val Gamma = Spine.Pair.zipEq (vs, sorts)
-      in
-        ShiftFoldMap.foldMap imprisonVariable Gamma (Coord.origin, t)
-      end
-
-    fun imprisonSymbols (vs, sorts) t =
-      let
-        val Upsilon = Spine.Pair.zipEq (vs, sorts)
-      in
-        ShiftFoldMap.foldMap imprisonSymbol Upsilon (Coord.origin, t)
-      end
-
-    fun liberateVariables vs t =
-      ShiftFoldMap.foldMap liberateVariable vs (Coord.origin, t)
-
-    fun liberateSymbols vs t =
-      ShiftFoldMap.foldMap liberateSymbol vs (Coord.origin, t)
+    val imprisonVariables = foldStar imprisonVariable o Spine.Pair.zipEq
+    val imprisonSymbols = foldStar imprisonSymbol o Spine.Pair.zipEq
+    val liberateVariables = foldStar liberateVariable
+    val liberateSymbols = foldStar liberateSymbol
   end
 
   fun metasubst (E, mv) M =
     case M of
          V _ => M
        | APP (theta, Es) =>
-           APP (theta, Spine.map (metasubstBtm (E, mv)) Es)
+           APP (theta, Spine.map (mapAbs (metasubst (E, mv))) Es)
        | META_APP ((mv', valence), us, Ms) =>
            if Metavariable.Eq.eq (mv, mv') then
              let
@@ -311,8 +298,6 @@ struct
              end
            else
              META_APP ((mv', valence), us, Spine.map (metasubst (E, mv)) Ms)
-  and metasubstBtm (E, mv) (ABS (us, xs, M)) =
-    ABS (us, xs, metasubst (E, mv) M)
 
   fun checkb Theta ((us, xs) \ M, ((ssorts, vsorts), sigma)) =
     let
@@ -419,12 +404,12 @@ struct
 
     fun eq (V (v, _), V (v', _)) = LN.eq Variable.Eq.eq (v, v')
       | eq (APP (theta, es), APP (theta', es')) =
-          OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eq' (es, es')
+          OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eqAbs (es, es')
       | eq (META_APP ((mv, _), us, es), META_APP ((mv', _), us', es')) =
           Metavariable.Eq.eq (mv, mv')
             andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Symbol.Eq.eq (x,y)) (us, us')
             andalso Spine.Pair.allEq eq (es, es')
       | eq _ = false
-    and eq' (ABS (_, _, e), ABS (_, _, e')) = eq (e, e')
+    and eqAbs (ABS (_, _, e), ABS (_, _, e')) = eq (e, e')
   end
 end
