@@ -1,0 +1,13 @@
+Library
+  signature COORD
+  structure Coord
+
+  signature LOCALLY_NAMELESS
+  functor LocallyNameless
+is
+  $/basis.cm
+  basis/basis.cm
+  src/locally-nameless/coord.sig
+  src/locally-nameless/coord.sml
+  src/locally-nameless/locally_nameless.sig
+  src/locally-nameless/locally_nameless.fun

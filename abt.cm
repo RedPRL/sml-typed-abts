@@ -1,10 +1,4 @@
 Library
-  signature COORD
-  structure Coord
-
-  signature LOCALLY_NAMELESS
-  functor LocallyNameless
-
   signature ABT
   signature ABT_UTIL
   signature AST
@@ -33,14 +27,9 @@ Library
   functor AstToAbt
 is
   $/basis.cm
+  locally-nameless.cm
   basis/basis.cm
   lib/cmlib.cm
-
-  src/coord.sig
-  src/coord.sml
-
-  src/locally_nameless.sig
-  src/locally_nameless.fun
 
   src/symbol.sig
   src/symbol.fun
