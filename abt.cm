@@ -1,4 +1,10 @@
 Library
+  signature COORD
+  structure Coord
+
+  signature LOCALLY_NAMELESS
+  functor LocallyNameless
+
   signature ABT
   signature ABT_UTIL
   signature AST
@@ -30,6 +36,12 @@ is
   basis/basis.cm
   lib/cmlib.cm
 
+  src/coord.sig
+  src/coord.sml
+
+  src/locally_nameless.sig
+  src/locally_nameless.fun
+
   src/symbol.sig
   src/symbol.fun
 
@@ -52,5 +64,3 @@ is
   src/abt.fun
   src/ast.fun
 
-  src/coord.sig
-  src/coord.sml

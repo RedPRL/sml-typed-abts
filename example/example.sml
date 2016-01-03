@@ -32,24 +32,32 @@ struct
         LAM | AP | NUM | LIT of int | RET
       | DCL | GET of 'i | SET of 'i
 
-    fun eq f (LAM, LAM) = true
-      | eq f (AP, AP) = true
-      | eq f (NUM, NUM) = true
-      | eq f (LIT m, LIT n) = m = n
-      | eq f (RET, RET) = true
-      | eq f (DCL, DCL) = true
-      | eq f (GET i, GET j) = f (i, j)
-      | eq f (SET i, SET j) = f (i, j)
-      | eq _ _ = false
+    structure Eq =
+    struct
+      type 'i t = 'i t
+      fun eq f (LAM, LAM) = true
+        | eq f (AP, AP) = true
+        | eq f (NUM, NUM) = true
+        | eq f (LIT m, LIT n) = m = n
+        | eq f (RET, RET) = true
+        | eq f (DCL, DCL) = true
+        | eq f (GET i, GET j) = f (i, j)
+        | eq f (SET i, SET j) = f (i, j)
+        | eq _ _ = false
+    end
 
-    fun toString f LAM = "lam"
-      | toString f AP = "ap"
-      | toString f NUM = "num"
-      | toString f (LIT n) = Int.toString n
-      | toString f RET = "ret"
-      | toString f DCL = "dcl"
-      | toString f (GET i) = "get[" ^ f i ^ "]"
-      | toString f (SET i) = "set[" ^ f i ^ "]"
+    structure Show =
+    struct
+      type 'i t = 'i t
+      fun toString f LAM = "lam"
+        | toString f AP = "ap"
+        | toString f NUM = "num"
+        | toString f (LIT n) = Int.toString n
+        | toString f RET = "ret"
+        | toString f DCL = "dcl"
+        | toString f (GET i) = "get[" ^ f i ^ "]"
+        | toString f (SET i) = "set[" ^ f i ^ "]"
+    end
 
     local
       open Sort

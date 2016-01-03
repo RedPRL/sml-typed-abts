@@ -1,6 +1,9 @@
 functor Metacontext
   (structure Metavariable : PRESYMBOL
-   structure Valence : EQ) :> METACONTEXT where type metavariable = Metavariable.t and type valence = Valence.t =
+   structure Valence : EQ
+  ) :> METACONTEXT
+         where type metavariable = Metavariable.t
+           and type valence = Valence.t =
 struct
   type metavariable = Metavariable.t
   type valence = Valence.t

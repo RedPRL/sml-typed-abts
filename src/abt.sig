@@ -38,6 +38,7 @@ sig
   (* Patterns for abstract binding trees. *)
   datatype 'a bview =
      \ of (symbol spine * variable spine) * 'a
+
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine

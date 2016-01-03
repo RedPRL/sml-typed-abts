@@ -29,7 +29,10 @@ struct
     and Metacontext = Metacontext
 
   structure Sort = Arity.Sort and Valence = Arity.Valence
-  structure Spine = Valence.Spine
+  structure Spine =
+  struct
+    open Valence.Spine Valence.Spine.Functor Valence.Spine.Foldable
+  end
 
   type symbol = Symbol.t
   type variable = Variable.t
@@ -45,37 +48,15 @@ struct
 
   structure LN =
   struct
-    datatype 'a t =
-        FREE of 'a
-      | BOUND of coord
-
-    fun eq f (FREE v, FREE v') = f (v, v')
-      | eq f (BOUND i, BOUND j) = Coord.Eq.eq (i, j)
-      | eq _ _ = false
+    local
+      structure S = LocallyNameless (Coord)
+    in
+      open S S.Eq S.Functor S.Monad
+    end
 
     type symbol = symbol t
     type operator = symbol Operator.t
     type variable = variable t
-
-    exception UnexpectedBoundName of coord
-
-    fun getFree (FREE v) = v
-      | getFree (BOUND i) = raise UnexpectedBoundName i
-
-    structure Functor : FUNCTOR =
-    struct
-      type 'a t = 'a t
-      fun map f (FREE v) = FREE (f v)
-        | map f (BOUND i) = BOUND i
-    end
-
-    structure Monad : MONAD =
-    struct
-      type 'a t = 'a t
-      fun pure v = FREE v
-      fun bind f (FREE v) = f v
-        | bind f (BOUND i) = BOUND i
-    end
   end
 
   datatype abt =
@@ -117,9 +98,9 @@ struct
       let
         fun go R (V (LN.FREE v, sigma)) = VU.union ([(v, sigma)], R)
           | go R (APP (theta, Es)) =
-              Spine.Foldable.foldr VU.union R (Spine.Functor.map (go' []) Es)
+              Spine.foldr VU.union R (Spine.map (go' []) Es)
           | go R (META_APP (m, us, Ms)) =
-              Spine.Foldable.foldr VU.union R (Spine.Functor.map (go []) Ms)
+              Spine.foldr VU.union R (Spine.map (go []) Ms)
           | go R _ = R
         and go' R (ABS (_, _, M)) = go R M
       in
@@ -130,9 +111,9 @@ struct
       let
         fun go R (V _) = R
           | go R (APP (theta, Es)) =
-              Spine.Foldable.foldr MCtx.union R (Spine.Functor.map (go' MCtx.empty) Es)
+              Spine.foldr MCtx.union R (Spine.map (go' MCtx.empty) Es)
           | go R (META_APP (mv, us, Ms)) =
-              Spine.Foldable.foldr MCtx.union (MCtx.extend R mv) (Spine.Functor.map (go MCtx.empty) Ms)
+              Spine.foldr MCtx.union (MCtx.extend R mv) (Spine.map (go MCtx.empty) Ms)
         and go' R (ABS (_, _, M)) = go R M
       in
         go MCtx.empty M
@@ -147,11 +128,11 @@ struct
             List.foldl (fn ((u, sigma), R) => ((LN.getFree u, sigma) :: R) handle _ => R) [] Ypsilon
           end
         fun go R (APP (theta, Es)) =
-              VS.union (opFreeSymbols theta, Spine.Foldable.foldr VS.union R (Spine.Functor.map (go' []) Es))
+              VS.union (opFreeSymbols theta, Spine.foldr VS.union R (Spine.map (go' []) Es))
           | go R (META_APP (m, us, Ms)) =
               VS.union
-                (Spine.Foldable.foldr (fn ((u, sigma), X) => (LN.getFree u, sigma) :: X handle _ => X) [] us,
-                 Spine.Foldable.foldr VS.union R (Spine.Functor.map (go []) Ms))
+                (Spine.foldr (fn ((u, sigma), X) => (LN.getFree u, sigma) :: X handle _ => X) [] us,
+                 Spine.foldr VS.union R (Spine.map (go []) Ms))
           | go R _ = R
         and go' R (ABS (us, _, M)) = go R M
       in
@@ -165,9 +146,9 @@ struct
          V (LN.FREE y, sigma) => if Variable.Eq.eq (x, y) then N else M
        | V _ => M
        | APP (theta, Es) =>
-           APP (theta, Spine.Functor.map (substBtm (N, x)) Es)
+           APP (theta, Spine.map (substBtm (N, x)) Es)
        | META_APP (m, us, Ms) =>
-           META_APP (m, us, Spine.Functor.map (subst (N, x)) Ms)
+           META_APP (m, us, Spine.map (subst (N, x)) Ms)
   and substBtm (N, x) (ABS (us, xs, M)) =
     ABS (us, xs, subst (N, x) M)
 
@@ -179,16 +160,16 @@ struct
            | APP (theta, Es) =>
              let
                fun rho u' = if Symbol.Eq.eq (u, u') then v else u'
-               val theta' = Operator.Presheaf.map (LN.Functor.map rho) theta
+               val theta' = Operator.Presheaf.map (LN.map rho) theta
              in
-               APP (theta', Spine.Functor.map go' Es)
+               APP (theta', Spine.map go' Es)
              end
            | META_APP (m, us, Ms) =>
                let
                  fun rho u' = if Symbol.Eq.eq (u, u') then v else u'
-                 fun rho' (l, s) = (LN.Functor.map rho l, s)
+                 fun rho' (l, s) = (LN.map rho l, s)
                in
-                 META_APP (m, Spine.Functor.map rho' us, Spine.Functor.map go Ms)
+                 META_APP (m, Spine.map rho' us, Spine.map go Ms)
                end
       and go' (ABS (us, vs, M)) = ABS (us, vs, go M)
     in
@@ -209,9 +190,9 @@ struct
              M
        | V _ => M
        | APP (theta, Es) =>
-           APP (theta, Spine.Functor.map (fn N => imprisonVariableBtm (v, tau) (coord, N)) Es)
+           APP (theta, Spine.map (fn N => imprisonVariableBtm (v, tau) (coord, N)) Es)
        | META_APP (m, us, Ms) =>
-           META_APP (m, us, Spine.Functor.map (fn N => imprisonVariable (v, tau) (coord, N)) Ms)
+           META_APP (m, us, Spine.map (fn N => imprisonVariable (v, tau) (coord, N)) Ms)
   and imprisonVariableBtm (v, tau) (coord, ABS (us, xs, M)) =
     ABS (us, xs, imprisonVariable (v, tau) (Coord.shiftRight coord, M))
 
@@ -224,17 +205,17 @@ struct
            fun chk (LN.FREE v', tau') = if Symbol.Eq.eq (v, v') then assertSortEq (tau, tau') else ()
              | chk _ = ()
            val _ = List.app chk (Operator.support theta)
-           val theta' = Operator.Presheaf.map (LN.Monad.bind rho) theta
+           val theta' = Operator.Presheaf.map (LN.bind rho) theta
          in
-           APP (theta', Spine.Functor.map (fn E => imprisonSymbolBtm (v, tau) (coord, E)) Es)
+           APP (theta', Spine.map (fn E => imprisonSymbolBtm (v, tau) (coord, E)) Es)
          end
        | META_APP (m, us, Ms) =>
          let
            fun rho v' = if Symbol.Eq.eq (v, v') then LN.BOUND coord else LN.FREE v'
-           fun rho' (l, s) = (LN.Monad.bind rho l, s)
-           val vs = Spine.Functor.map rho' us
+           fun rho' (l, s) = (LN.bind rho l, s)
+           val vs = Spine.map rho' us
          in
-           META_APP (m, vs, Spine.Functor.map (fn N => imprisonSymbol (v, tau) (coord, N)) Ms)
+           META_APP (m, vs, Spine.map (fn N => imprisonSymbol (v, tau) (coord, N)) Ms)
          end
   and imprisonSymbolBtm (v, tau) (coord, ABS (us, xs, M)) =
     ABS (us, xs, imprisonSymbol (v, tau) (Coord.shiftRight coord, M))
@@ -246,9 +227,9 @@ struct
        | V (LN.BOUND coord', sigma) =>
            if Coord.Eq.eq (coord, coord') then V (LN.FREE v, sigma) else e
        | APP (theta, es) =>
-           APP (theta, Spine.Functor.map (fn e => liberateVariableBtm v (coord, e)) es)
+           APP (theta, Spine.map (fn e => liberateVariableBtm v (coord, e)) es)
        | META_APP (m, us, Ms) =>
-           META_APP (m, us, Spine.Functor.map (fn e => liberateVariable v (coord, e)) Ms)
+           META_APP (m, us, Spine.map (fn e => liberateVariable v (coord, e)) Ms)
   and liberateVariableBtm v (coord, ABS (us, xs, M)) =
     ABS (us, xs, liberateVariable v (Coord.shiftRight coord, M))
 
@@ -263,7 +244,7 @@ struct
              | rho v' = v'
            val theta' = Operator.Presheaf.map rho theta
          in
-           APP (theta', Spine.Functor.map (fn e => liberateSymbolBtm v (coord, e)) es)
+           APP (theta', Spine.map (fn e => liberateSymbolBtm v (coord, e)) es)
          end
        | META_APP (m, us, Ms) =>
          let
@@ -271,9 +252,9 @@ struct
                if Coord.Eq.eq (coord, coord') then LN.FREE v else LN.BOUND coord'
              | rho v' = v'
            fun rho' (l, s) = (rho l, s)
-           val vs = Spine.Functor.map rho' us
+           val vs = Spine.map rho' us
          in
-           META_APP (m, vs, Spine.Functor.map (fn e => liberateSymbol v (coord, e)) Ms)
+           META_APP (m, vs, Spine.map (fn e => liberateSymbol v (coord, e)) Ms)
          end
   and liberateSymbolBtm v (coord, ABS (us, xs, M)) =
     ABS (us, xs, liberateSymbol v (Coord.shiftRight coord, M))
@@ -316,20 +297,20 @@ struct
     case M of
          V _ => M
        | APP (theta, Es) =>
-           APP (theta, Spine.Functor.map (metasubstBtm (E, mv)) Es)
+           APP (theta, Spine.map (metasubstBtm (E, mv)) Es)
        | META_APP ((mv', valence), us, Ms) =>
            if Metavariable.Eq.eq (mv, mv') then
              let
                val ABS (Upsilon, Gamma, M) = E
-               val us = Spine.Functor.map #1 Upsilon
-               val xs = Spine.Functor.map #1 Gamma
+               val us = Spine.map #1 Upsilon
+               val xs = Spine.map #1 Gamma
                val M' = liberateVariables xs (liberateSymbols us M)
                val env = Spine.Pair.zipEq (Ms, xs)
              in
-               Spine.Foldable.foldr (fn (s, M) => subst s M) M' env
+               Spine.foldr (fn (s, M) => subst s M) M' env
              end
            else
-             META_APP ((mv', valence), us, Spine.Functor.map (metasubst (E, mv)) Ms)
+             META_APP ((mv', valence), us, Spine.map (metasubst (E, mv)) Ms)
   and metasubstBtm (E, mv) (ABS (us, xs, M)) =
     ABS (us, xs, metasubst (E, mv) M)
 
@@ -350,13 +331,13 @@ struct
          let
            val (_, tau) = Operator.arity theta
            val theta' = Operator.Presheaf.map LN.getFree theta
-           val Es' = Spine.Functor.map (#1 o inferb) Es
+           val Es' = Spine.map (#1 o inferb) Es
          in
            (theta' $ Es', tau)
          end
        | META_APP ((mv, (_, tau)), us, Ms) =>
          let
-           val us' = Spine.Functor.map (LN.getFree o #1) us
+           val us' = Spine.map (LN.getFree o #1) us
          in
            (mv $# (us', Ms), tau)
          end
@@ -377,7 +358,7 @@ struct
            let
              val valence as ((ssorts, vsorts), tau) = Metacontext.lookup Theta mv
              val () = assertSortEq (sigma, tau)
-             val us' = Spine.Pair.zipEq (Spine.Functor.map LN.FREE us, ssorts)
+             val us' = Spine.Pair.zipEq (Spine.map LN.FREE us, ssorts)
              fun chkInf (M, tau) =
                let
                  val (_, tau') = infer M
@@ -391,11 +372,11 @@ struct
 
   and inferb (ABS (Upsilon, Gamma, M)) =
     let
-      val us = Spine.Functor.map (Symbol.clone o #1) Upsilon
-      val xs = Spine.Functor.map (Variable.clone o #1) Gamma
+      val us = Spine.map (Symbol.clone o #1) Upsilon
+      val xs = Spine.map (Variable.clone o #1) Gamma
       val M' = liberateSymbols us (liberateVariables xs M)
       val (_, tau) = infer M'
-      val valence = ((Spine.Functor.map #2 Upsilon, Spine.Functor.map #2 Gamma), tau)
+      val valence = ((Spine.map #2 Upsilon, Spine.map #2 Gamma), tau)
     in
       ((us, xs) \ M',
        valence)
@@ -416,9 +397,9 @@ struct
       case M of
            `x => `x
          | theta $ Es =>
-             theta $ Spine.Functor.map (BFunctor.map f) Es
+             theta $ Spine.map (BFunctor.map f) Es
          | mv $# (us, Ms) =>
-              mv $# (us, Spine.Functor.map f Ms)
+              mv $# (us, Spine.map f Ms)
   end
 
 
@@ -428,12 +409,12 @@ struct
 
     structure OpLnEq =
     struct
-      val eq = Operator.eq (LN.eq Symbol.Eq.eq)
+      val eq = Operator.Eq.eq (LN.eq Symbol.Eq.eq)
     end
 
     structure OpEq =
     struct
-      val eq = Operator.eq Symbol.Eq.eq
+      val eq = Operator.Eq.eq Symbol.Eq.eq
     end
 
     fun eq (V (v, _), V (v', _)) = LN.eq Variable.Eq.eq (v, v')

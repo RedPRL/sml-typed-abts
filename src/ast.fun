@@ -28,9 +28,9 @@ struct
            `x => x
          | theta $ es =>
              if Spine.isEmpty es then
-               Operator.toString (fn x => x) theta
+               Operator.Show.toString (fn x => x) theta
              else
-               Operator.toString (fn x => x) theta
+               Operator.Show.toString (fn x => x) theta
                   ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
          | mv $# (us, es) =>
              let
@@ -60,7 +60,14 @@ functor AstToAbt (X : AST_ABT) : AST_TO_ABT =
 struct
   open X
 
-  structure Spine = Abt.Operator.Arity.Valence.Spine
+  structure Spine =
+  struct
+    local
+      structure S = Abt.Operator.Arity.Valence.Spine
+    in
+      open S S.Functor S.Foldable
+    end
+  end
 
   structure NameEnv =
   struct
@@ -96,7 +103,7 @@ struct
        | Ast.$# (mv, (us, ms)) =>
            let
              val ((_, vsorts), _) = Abt.Metacontext.lookup Th mv
-             val us' = Spine.Functor.map (symbol Ss) us
+             val us' = Spine.map (symbol Ss) us
              val ms' = Spine.Pair.mapEq (convertOpen Th (Ss, Vs)) (ms, vsorts)
            in
              Abt.check Th (Abt.$# (mv, (us', ms')), tau)
@@ -104,10 +111,10 @@ struct
   and convertOpenBtm Th (Ss, Vs) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
     let
       val ((ssorts, vsorts), tau) = vl
-      val us' = Spine.Functor.map Abt.Symbol.named us
-      val xs' = Spine.Functor.map Abt.Variable.named xs
-      val Ss' = Spine.Foldable.foldr (fn ((u, u'), Ss') => NameEnv.insert Ss' u u') Ss (Spine.Pair.zipEq (us, us'))
-      val Vs' = Spine.Foldable.foldr (fn ((x, x'), Vs') => NameEnv.insert Vs' x x') Vs (Spine.Pair.zipEq (xs, xs'))
+      val us' = Spine.map Abt.Symbol.named us
+      val xs' = Spine.map Abt.Variable.named xs
+      val Ss' = Spine.foldr (fn ((u, u'), Ss') => NameEnv.insert Ss' u u') Ss (Spine.Pair.zipEq (us, us'))
+      val Vs' = Spine.foldr (fn ((x, x'), Vs') => NameEnv.insert Vs' x x') Vs (Spine.Pair.zipEq (xs, xs'))
     in
       Abt.\ ((us', xs'), convertOpen Th (Ss', Vs') (m, tau))
     end

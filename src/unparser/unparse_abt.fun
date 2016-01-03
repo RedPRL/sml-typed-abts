@@ -33,7 +33,7 @@ struct
                  val es' = Spine.pretty (parens o done o goB) ";" es
                in
                  atom
-                   @@ O.toString S.Show.toString theta
+                   @@ O.Show.toString S.Show.toString theta
                     ^ (if Spine.isEmpty es then "" else "(" ^ es' ^ ")")
                end
            | v $# (us, ms) =>

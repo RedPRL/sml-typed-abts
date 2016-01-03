@@ -13,9 +13,9 @@ struct
          `x => ShowVar.toString x
        | theta $ es =>
            if Spine.isEmpty es then
-             Operator.toString ShowSym.toString theta
+             Operator.Show.toString ShowSym.toString theta
            else
-             Operator.toString ShowSym.toString theta
+             Operator.Show.toString ShowSym.toString theta
                 ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
        | mv $# (us, ms) =>
            let
