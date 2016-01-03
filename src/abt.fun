@@ -5,7 +5,7 @@ struct
     | union (x :: X, Y) = if elem (Y, x) then union (X, Y) else x :: (union (X,  Y))
 end
 
-functor AnnotatedEq (type t structure Eq : EQ) =
+functor EqProj1 (type t structure Eq : EQ) =
 struct
   type t = Eq.t * t
   fun eq ((a, _), (b, _)) = Eq.eq (a, b)
@@ -90,8 +90,8 @@ struct
       (Valence.Eq.eq (v1, v2))
 
   local
-    structure VS = Union (AnnotatedEq (type t = sort structure Eq = Symbol.Eq))
-    structure VU = Union (AnnotatedEq (type t = sort structure Eq = Variable.Eq))
+    structure VS = Union (EqProj1 (type t = sort structure Eq = Symbol.Eq))
+    structure VU = Union (EqProj1 (type t = sort structure Eq = Variable.Eq))
     structure MCtx = Metacontext
   in
     fun freeVariables M =
