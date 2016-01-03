@@ -3,12 +3,7 @@ local
 
   basis/basis.mlb
   lib/cmlib.mlb
-
-  src/coord.sig
-  src/coord.sml
-
-  src/locally_nameless.sig
-  src/locally_nameless.fun
+  locally-nameless.mlb
 
   src/symbol.sig
   src/symbol.fun
@@ -33,11 +28,6 @@ local
   src/ast.fun
 
 in
-  signature COORD
-  structure Coord
-  signature LOCALLY_NAMELESS
-  functor LocallyNameless
-
   signature OPERATOR
   signature ABT
   signature ABT_UTIL
