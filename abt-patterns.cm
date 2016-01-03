@@ -1,0 +1,18 @@
+Library
+  signature PATTERN
+  signature ABT_LINEAR_UNIFICATION
+  signature REWRITE_RULE
+
+  functor Pattern
+  functor AbtLinearUnification
+  functor RewriteRule
+is
+  $/basis.cm
+  lib/cmlib.cm
+  abt.cm
+  src/patterns/pattern.sig
+  src/patterns/pattern.fun
+  src/patterns/rewrite_rule.sig
+  src/patterns/rewrite_rule.fun
+  src/patterns/linear_unification.sig
+  src/patterns/linear_unification.fun
