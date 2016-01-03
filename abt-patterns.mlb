@@ -1,0 +1,19 @@
+local
+  $(SML_LIB)/basis/basis.mlb
+  lib/cmlib.mlb
+  abt.mlb
+  src/patterns/pattern.sig
+  src/patterns/pattern.fun
+  src/patterns/linear_unification.sig
+  src/patterns/linear_unification.fun
+  src/patterns/rewrite_rule.sig
+  src/patterns/rewrite_rule.fun
+in
+  signature PATTERN
+  signature ABT_LINEAR_UNIFICATION
+  signature REWRITE_RULE
+
+  functor Pattern
+  functor AbtLinearUnification
+  functor RewriteRule
+end

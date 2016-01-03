@@ -1,6 +1,7 @@
 local
   cmlib/cmlib.mlb
 in
+  signature DICT
   functor SplayDict
   structure StringOrdered
   structure String
