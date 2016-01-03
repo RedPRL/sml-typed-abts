@@ -1,6 +1,8 @@
 Library
   signature EQ
+  signature EQ1
   signature SHOW
+  signature SHOW1
 
   signature CATEGORY
   signature FUNCTOR

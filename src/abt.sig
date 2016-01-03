@@ -18,7 +18,7 @@ sig
   type 'a spine = 'a Operator.Arity.Valence.Spine.t
 
   type abt
-  type btm
+  type abs
 
   structure Eq : EQ where type t = abt
 
@@ -30,7 +30,7 @@ sig
   val subst : abt * variable -> abt -> abt
 
   (* metasubst (E, m) M === [E/m]M *)
-  val metasubst : btm * metavariable -> abt -> abt
+  val metasubst : abs * metavariable -> abt -> abt
 
   (* rename (v, u) M === {v/u}M *)
   val rename : symbol * symbol -> abt -> abt
@@ -38,6 +38,7 @@ sig
   (* Patterns for abstract binding trees. *)
   datatype 'a bview =
      \ of (symbol spine * variable spine) * 'a
+
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
@@ -54,10 +55,10 @@ sig
   (* pattern match on an abt and its sort *)
   val infer : abt -> abt view * sort
 
-  (* construct a bound term from a view by checking it against a valence *)
-  val checkb : metacontext -> abt bview * valence -> btm
+  (* construct an abstraction from a view by checking it against a valence *)
+  val checkb : metacontext -> abt bview * valence -> abs
 
-  (* pattern match on a bound term and its valence *)
-  val inferb : btm -> abt bview * valence
+  (* pattern match on an abstraction and its valence *)
+  val inferb : abs -> abt bview * valence
 
 end
