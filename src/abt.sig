@@ -12,8 +12,14 @@ sig
    *)
   structure Variable : SYMBOL
   structure Operator : OPERATOR
-
   structure Symbol : SYMBOL
+ (* To prevent some confusion:
+  * Symbols are slightly more exotic and often confused with variables.
+  * They are objects which
+  *   1. Parameterize *operators* instead of appearing raw
+  *   2. ARE NOT DETERMINED BY SUBSTITUTION
+  *   3. Vary by apartness preserving renamings
+  *)
 
   (* In addition to all of the above, it is very useful to consider ABTs
    * with chunks of the actual syntax being left out. This may come up for

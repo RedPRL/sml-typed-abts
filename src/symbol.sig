@@ -23,12 +23,6 @@ end
 (* A SYMBOL adds the ability to generate fresh symbols. Specifically,
  * [new] and [clone] should return symbols that are different (according
  * to the equality function) even though they may print identically
- *
- * Symbols are slightly more exotic and often confused with variables.
- * They are objects which
- *   1. Parameterize *operators* instead of appearing raw
- *   2. ARE NOT DETERMINED BY SUBSTITUTION
- *   3. Vary by apartness preserving renamings
  *)
 signature SYMBOL =
 sig
@@ -36,7 +30,7 @@ sig
   val new : unit -> t
   val clone : t -> t
 
-  (* DebugShow will pretty print more than a symbols name so
+  (* DebugShow will pretty print more than a symbol's name so
    * that one can distinguish between identically named symbols.
    *)
   structure DebugShow : SHOW where type t = t
