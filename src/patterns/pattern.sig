@@ -5,6 +5,19 @@ sig
   type metacontext
   type 'a spine
 
+  (* A pattern is a description of sorts of a set of ABTs. It descripes the
+   * overall shape but may leave some pieces out. Specifically, instead
+   * of an ABT which is
+   *  - An operator applied to other abstractions
+   *  - A variable
+   *  - A metavariable
+   * a pattern is
+   *  - An operator applied to patterns (no abstractions!)
+   *  - A metavariable
+   * The metavariables are slightly different though, they cannot be applied
+   * and they're used to stand for some "normal" abt, not a pattern. Patterns
+   * must be linear; each metavariable may occur only once.
+   *)
   type pattern
 
   datatype 'a argument =
@@ -34,6 +47,9 @@ end
 signature LIST_ABT =
   ABT where type 'a Operator.Arity.Valence.Spine.t = 'a list
 
+(* ABT_PATTERN is just the pairing of an implementation of
+ * normal abts with an implementation of patterns on them
+ *)
 signature ABT_PATTERN =
 sig
   structure Abt : LIST_ABT
