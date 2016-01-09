@@ -66,8 +66,8 @@ struct
   (* Note that we use LN.variable so V may work with both free and bound
    * variables and LN.operator/symbols to distinguish free and bound symbols.
    * Otherwise this is almost the same as a pattern except that
-   * we annotate things with sorts/valences so that this may be sort checked
-   * without a signature or something.
+   * we annotate things with sorts/valences so that we can always determine sorts
+   * without a context
    *)
   datatype abt =
       V of LN.variable * sort
