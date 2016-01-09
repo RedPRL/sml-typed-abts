@@ -5,7 +5,7 @@ sig
   type metacontext
   type 'a spine
 
-  (* A pattern is a description of sorts of a set of ABTs. It descripes the
+  (* A pattern is a description of a set of ABTs. It describes the
    * overall shape but may leave some pieces out. Specifically, instead
    * of an ABT which is
    *  - An operator applied to other abstractions
