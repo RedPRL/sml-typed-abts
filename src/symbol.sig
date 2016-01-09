@@ -23,6 +23,12 @@ end
 (* A SYMBOL adds the ability to generate fresh symbols. Specifically,
  * [new] and [clone] should return symbols that are different (according
  * to the equality function) even though they may print identically
+ *
+ * Symbols are slightly more exotic and often confused with variables.
+ * They are objects which
+ *   1. Parameterize *operators* instead of appearing raw
+ *   2. ARE NOT DETERMINED BY SUBSTITUTION
+ *   3. Vary by apartness preserving renamings
  *)
 signature SYMBOL =
 sig

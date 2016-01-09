@@ -4,27 +4,22 @@
 
 signature ABT =
 sig
-  (* Any particular ABT is built upon several smaller concepts. Any of these
-   * may be tweaked. For "standard" ABT usage, Variable and Operator are
-   * essential. The Variable structure controls what variables will look like
-   * in the view of the ABT and operators control what all the constructable
-   * ABTs are.
+  (* An ABT implementation is built upon several smaller concepts any of which
+   * may be tweaked. The [Variable] and [Symbol] structures controls what
+   * implementation of nominal atoms we use for variables/symbols respectively.
+   * [Operator] control what the primitive operators are as well as determines
+   * their arities.
    *)
   structure Variable : SYMBOL
   structure Operator : OPERATOR
 
-  (* Symbols are slightly more exotic and often confused with variables.
-   * They are objects which
-   *   1. Parameterize *operators* instead of appearing raw
-   *   2. ARE NOT DETERMINED BY SUBSTITUTION
-   *   3. Vary by apartness preserving renamings
-   *)
   structure Symbol : SYMBOL
 
   (* In addition to all of the above, it is very useful to consider ABTs
    * with chunks of the actual syntax being left out. This may come up for
    * example when to model terms which are unified. In order to do this properly,
-   * a new level of variable is introduced which ranges over other ABTs instead.
+   * a new level of variable is introduced which ranges over abstractions rather
+   * than terms.
    *)
   structure Metavariable : PRESYMBOL
   structure Metacontext : METACONTEXT
@@ -74,9 +69,13 @@ sig
   (* subst (N, x) M === [N/x]M *)
   val subst : abt * variable -> abt -> abt
 
-  (* metasubst (E, m) M === [E/m]M. Note that this does
-   * the appropriate normalization to specialize the given
-   * binder to the terms *)
+  (* metasubst (E, m) M === [E/m]M.
+   * Note that substitution of metavariables automatically
+   * instantiates the bound variables and symbols of the abstraction E
+   * with the operands of applications of the metavariable m. This
+   * operation is derived from Kevin Watkins' method of hereditary
+   * substitution as invented for the Concurrent Logical Framework.
+   *)
   val metasubst : abs * metavariable -> abt -> abt
 
   (* rename (v, u) M === {v/u}M *)
@@ -84,10 +83,10 @@ sig
 
   (* Patterns for abstract binding trees. *)
 
-  (* A bview is a view of a binder. This is NOT an abt,
-   * a binding is a spine (ordered sequence) of symbols
+  (* A bview is a view of a abstraction. This is NOT an abt;
+   * a binding is a spine of symbols
    * and variables as well as the underlying 'a (usually an abt)
-   * that uses them. Note that unlike previous ABT libs this avoids
+   * that uses them. Note that unlike previous ABT libraries, this avoids
    * the annoying issue of unpacking an operator and getting back
    * an "abt" that really makes no sense with the operator.
    *)
@@ -97,8 +96,8 @@ sig
   (* This is the main interface to be used for interacting with
    * an ABT. When inspected, an standard ABT is just a variable or
    * an operator (the binding case is always wrapped in an operators
-   * argument). You may also encounter a metavariable which is always
-   * applied to some collection of symbols and terms
+   * argument) or a metavariable applied to some collection of
+   * symbols and terms
    *)
   datatype 'a view =
       ` of variable
@@ -110,15 +109,12 @@ sig
   structure BFunctor : FUNCTOR
     where type 'a t = 'a bview
 
-  (* Note that if you're used to CMU's abt library or Jon's previous one,
+  (* Note that if you're used to CMU's abt library,
    *  - into ===> check
    *  - out  ===> infer
    *)
 
-  (* construct an abt from a view by checking it against a sort. Note
-   * that in the presence of sorts this operation CAN FAIL. This is
-   * different than you may expect if you've used other abt libraries.
-   *)
+  (* construct an abt from a view by checking it against a sort. *)
   val check : metacontext -> abt view * sort -> abt
 
   (* pattern match on an abt and its sort *)
