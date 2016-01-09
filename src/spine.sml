@@ -28,9 +28,9 @@ struct
   structure Foldable = Util
 end
 
-functor VectorSpine (V : VECTOR) :> SPINE where type 'a t = 'a V.vector =
+structure VectorSpine :> SPINE where type 'a t = 'a Vector.vector =
 struct
-  open V
+  open Vector
 
   type 'a t = 'a vector
   fun empty () = fromList []
@@ -51,7 +51,7 @@ struct
   structure Util =
   struct
     type 'a t = 'a t
-    open V
+    open Vector
   end
 
   structure Functor = Util
@@ -75,5 +75,3 @@ struct
       all p (zipEq (v1, v2))
   end
 end
-
-structure VectorSpine = VectorSpine (Vector)

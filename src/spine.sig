@@ -1,3 +1,10 @@
+(* A spine is an abstraction over the sequences of symbols and variables
+ * that occur in binders. So that [x.y.] portion of [natrec(a; b; x.y.c)]
+ *
+ * The extra level of generality given by making t polymorphic means that
+ * the same sort of spine can be used to store both symbols and variables for
+ * example.
+ *)
 signature SPINE =
 sig
   type 'a t
