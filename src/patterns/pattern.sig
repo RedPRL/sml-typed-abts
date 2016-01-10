@@ -14,8 +14,8 @@ sig
    * a pattern is
    *  - An operator applied to patterns (no abstractions!)
    *  - A metavariable
-   * The metavariables are slightly different though, they cannot be applied
-   * and they're used to stand for some "normal" abt, not a pattern. Patterns
+   * The metavariables are slightly different though; they're used
+   * to stand for some "normal" abstraction, not a pattern. Patterns
    * must be linear; each metavariable may occur only once.
    *)
   type pattern
