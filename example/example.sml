@@ -145,7 +145,7 @@ struct
 
   structure MC = Metacontext (structure Metavariable = M structure Valence = O.Arity.Valence.Eq)
 
-  structure Abt = AbtUtil(Abt (structure Operator = O and Metavariable = M and Metacontext = MC and Variable = V and Symbol = I))
+  structure Abt = Abt (structure Operator = O and Metavariable = M and Metacontext = MC and Variable = V and Symbol = I)
   structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
 
   structure ShowAbt = DebugShowAbt (Abt)
