@@ -1,6 +1,5 @@
 Library
   signature ABT
-  signature ABT_UTIL
   signature AST
   signature OPERATOR
   signature PRESYMBOL
@@ -17,7 +16,6 @@ Library
   functor Arity
   functor Metacontext
   functor Abt
-  functor AbtUtil
   functor Ast
   functor ShowAbt
   functor PlainShowAbt
@@ -45,11 +43,8 @@ is
   src/operator.sig
   src/ast.sig
   src/abt.sig
-  src/abt_util.sig
-  src/abt_util.fun
   src/show_abt.fun
   src/valence.fun
   src/arity.fun
   src/abt.fun
   src/ast.fun
-

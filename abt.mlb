@@ -19,8 +19,6 @@ local
   src/operator.sig
   src/abt.sig
   src/ast.sig
-  src/abt_util.sig
-  src/abt_util.fun
   src/show_abt.fun
   src/valence.fun
   src/arity.fun
@@ -30,7 +28,6 @@ local
 in
   signature OPERATOR
   signature ABT
-  signature ABT_UTIL
   signature AST
   signature AST_TO_ABT
   signature PRESYMBOL
@@ -47,7 +44,6 @@ in
   functor Arity
   functor Metacontext
   functor Abt
-  functor AbtUtil
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
