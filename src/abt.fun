@@ -1,3 +1,7 @@
+(* Even though it may seem odd to functorize these two structures, we have
+ * two distinct "equatable things" (symbols/variables) and we want
+ * this algorithm to work for both.
+ *)
 functor Union (Eq : EQ) =
 struct
   fun elem (X, x) = List.exists (fn y => Eq.eq (x, y)) X
@@ -59,6 +63,12 @@ struct
     type variable = variable t
   end
 
+  (* Note that we use LN.variable so V may work with both free and bound
+   * variables and LN.operator/symbols to distinguish free and bound symbols.
+   * Otherwise this is almost the same as a pattern except that
+   * we annotate things with sorts/valences so that we can always determine sorts
+   * without a context
+   *)
   datatype abt =
       V of LN.variable * sort
     | APP of LN.operator * abs spine
@@ -76,6 +86,10 @@ struct
   infixr 5 \
   infix 5 $ $#
 
+  (* A family of convenience functions for failing when things go wrong.
+   * These are internal checks and so they should raise Fail; people shouldn't
+   * be trying to catch these.
+   *)
   fun assert msg b =
     if b then () else raise Fail msg
 
@@ -89,6 +103,18 @@ struct
       ("expected " ^ Valence.Show.toString v1 ^ " == " ^ Valence.Show.toString v2)
       (Valence.Eq.eq (v1, v2))
 
+  (* All of the free* operations are implemented in much the same way. The
+   * term is traversed and each time we reach the object we're searching for
+   * (like (V (LN.FREE v, sigma))) we tack it on to the growing collection
+   * of previously found items. The actual algorithm for ensuring we don't
+   * duplicate everything is contained in [Union] or the implementation of
+   * Metacontext.
+   *
+   * Note that we already have all the type information already lying around
+   * in the term so producing it is free! Also note that variables/symbols are
+   * locally marked as free or not so we needn't carry around a table to understand
+   * binding.
+   *)
   local
     structure VS = Union (EqProj1 (type t = sort structure Eq = Symbol.Eq))
     structure VU = Union (EqProj1 (type t = sort structure Eq = Variable.Eq))
@@ -156,6 +182,11 @@ struct
        | META_APP (m, us, Ms) =>
            META_APP (m, us, Spine.map (subst (N, x)) Ms)
 
+  (* This is implemented similarly to how you might expect
+   * to implement substitution. Moreover, because bound symbols
+   * are distinguished from free ones we needn't be scared of
+   * shadowing
+   *)
   fun rename (v, u) =
     let
       fun go M =
@@ -184,7 +215,13 @@ struct
           go M
     end
 
-
+  (* This function takes a variable and its sort and switches it to a
+   * bound variable. In this process we also
+   *
+   *  - Check that the supplied sort is actually the correct sort of the variable
+   *  - Drag the coordinate given so that the bound variable is annotated with the
+   *    correct position in the term.
+   *)
   fun imprisonVariable (v, tau) coord M =
     case M of
          V (LN.FREE v', sigma) =>
@@ -221,6 +258,9 @@ struct
            META_APP (m, vs, Spine.map (imprisonSymbol (v, tau) coord) Ms)
          end
 
+  (* This is the reverse of the above, given a position we hunt around for
+   * a bound variable in the correct slot and switch out for a free one.
+   *)
   fun liberateVariable v coord e =
     case e of
          V (LN.FREE _, _) => e
@@ -255,6 +295,11 @@ struct
            META_APP (m, vs, Spine.map (liberateSymbol u coord) Ms)
          end
 
+  (* A pluralized version of all of the above functions. The foldStar
+   * machinery is used to propogate the coord correctly through
+   * all of these calls. The functions are set up so that each bound/freed
+   * variable comes from the same abstraction.
+   *)
   local
     structure ShiftFunCat : CATEGORY =
     struct
@@ -288,6 +333,12 @@ struct
        | META_APP ((mv', valence), us, Ms) =>
            if Metavariable.Eq.eq (mv, mv') then
              let
+               (* Once we find the metavariable, we unbind all the
+                * variables/symbols the supplied abstraction binds
+                * and then substitute in the arguments. There's
+                * no substitution of the symbols, instead when we
+                * liberate them they are renamed to the right things
+                *)
                val ABS (Upsilon, Gamma, M) = E
                val us = Spine.map #1 Upsilon
                val xs = Spine.map #1 Gamma
@@ -401,7 +452,9 @@ struct
     struct
       val eq = Operator.Eq.eq Symbol.Eq.eq
     end
-
+    (* While this looks simple by using locally nameless representations this
+     * implements alpha equivalence (and is very efficient!)
+     *)
     fun eq (V (v, _), V (v', _)) = LN.eq Variable.Eq.eq (v, v')
       | eq (APP (theta, es), APP (theta', es')) =
           OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eqAbs (es, es')
