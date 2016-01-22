@@ -23,7 +23,7 @@ struct
         val variables' = Spine.pretty Sort.Show.toString ", " variableSorts
         val sigma' = Sort.Show.toString sigma
       in
-        "{" ^ symbols' ^ "}(" ^ variables' ^ ")" ^ sigma'
+        "{" ^ symbols' ^ "}(" ^ variables' ^ ")." ^ sigma'
       end
   end
 end
