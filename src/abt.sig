@@ -125,6 +125,7 @@ sig
 
   (* pattern match on an abt and its sort *)
   val infer : abt -> abt view * sort
+  val out : abt -> abt view
 
   (* construct an abstraction from a view by checking it against a valence *)
   val checkb : metacontext -> abt bview * valence -> abs

@@ -23,36 +23,37 @@ struct
   struct
     type t = ast
 
-    fun toString ast =
-      case ast of
-           `x => x
-         | theta $ es =>
-             if Spine.isEmpty es then
-               Operator.Show.toString (fn x => x) theta
-             else
-               Operator.Show.toString (fn x => x) theta
-                  ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
-         | mv $# (us, es) =>
-             let
-               val us' = Spine.pretty (fn x => x) "," us
-               val es' = Spine.pretty toString "," es
-             in
-               "#" ^ Metavariable.Show.toString mv
-                   ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
-                   ^ (if Spine.isEmpty es then "" else "[" ^ es' ^ "]")
-             end
-    and toStringB ((us, xs) \ M) =
-      let
-        val symEmpty = Spine.isEmpty us
-        val varEmpty = Spine.isEmpty xs
-        val us' = Spine.pretty (fn x => x) "," us
-        val xs' = Spine.pretty (fn x => x) "," xs
-      in
-        (if symEmpty then "" else "{" ^ us' ^ "}")
-          ^ (if varEmpty then "" else "[" ^ xs' ^ "]")
-          ^ (if symEmpty andalso varEmpty then "" else ".")
-          ^ toString M
-      end
+    val rec toString =
+      fn `x => x
+       | theta $ es =>
+           if Spine.isEmpty es then
+             Operator.Show.toString (fn x => x) theta
+           else
+             Operator.Show.toString (fn x => x) theta
+                ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
+       | mv $# (us, es) =>
+           let
+             val us' = Spine.pretty (fn x => x) "," us
+             val es' = Spine.pretty toString "," es
+           in
+             "#" ^ Metavariable.Show.toString mv
+                 ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
+                 ^ (if Spine.isEmpty es then "" else "[" ^ es' ^ "]")
+           end
+
+    and toStringB =
+      fn ((us, xs) \ M) =>
+        let
+          val symEmpty = Spine.isEmpty us
+          val varEmpty = Spine.isEmpty xs
+          val us' = Spine.pretty (fn x => x) "," us
+          val xs' = Spine.pretty (fn x => x) "," xs
+        in
+          (if symEmpty then "" else "{" ^ us' ^ "}")
+            ^ (if varEmpty then "" else "[" ^ xs' ^ "]")
+            ^ (if symEmpty andalso varEmpty then "" else ".")
+            ^ toString M
+        end
   end
 end
 

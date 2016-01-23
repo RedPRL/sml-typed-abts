@@ -189,24 +189,25 @@ struct
    *)
   fun rename (v, u) =
     let
-      fun go M =
-        case M of
-             V _ => M
-           | APP (theta, Es) =>
+      val rec go =
+        fn V x => V x
+         | APP (theta, Es) =>
+           let
+             fun rho u' = if Symbol.Eq.eq (u, u') then v else u'
+             val theta' = Operator.Presheaf.map (LN.map rho) theta
+           in
+             APP (theta', Spine.map go' Es)
+           end
+         | META_APP (m, us, Ms) =>
              let
                fun rho u' = if Symbol.Eq.eq (u, u') then v else u'
-               val theta' = Operator.Presheaf.map (LN.map rho) theta
+               fun rho' (l, s) = (LN.map rho l, s)
              in
-               APP (theta', Spine.map go' Es)
+               META_APP (m, Spine.map rho' us, Spine.map go Ms)
              end
-           | META_APP (m, us, Ms) =>
-               let
-                 fun rho u' = if Symbol.Eq.eq (u, u') then v else u'
-                 fun rho' (l, s) = (LN.map rho l, s)
-               in
-                 META_APP (m, Spine.map rho' us, Spine.map go Ms)
-               end
-      and go' (ABS (us, vs, M)) = ABS (us, vs, go M)
+      and go' =
+        fn ABS (us, vs, M) =>
+          ABS (us, vs, go M)
     in
       fn M =>
         if List.exists (fn (v', _) => Symbol.Eq.eq (v', v)) (freeSymbols M) then
@@ -417,6 +418,8 @@ struct
       ((us, xs) \ M',
        valence)
     end
+
+  val out = #1 o infer
 
 
   structure BFunctor =

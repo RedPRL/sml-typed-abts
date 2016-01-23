@@ -26,7 +26,7 @@ struct
              SOME p => p
            | NONE => go m
       and go m =
-        case #1 (Abt.infer m) of
+        case Abt.out m of
              `x => atom @@ V.Show.toString x
            | theta $ es =>
                let
