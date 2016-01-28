@@ -13,16 +13,16 @@ struct
          `x => ShowVar.toString x
        | theta $ es =>
            if Spine.isEmpty es then
-             Operator.Show.toString ShowSym.toString theta
+             Operator.toString ShowSym.toString theta
            else
-             Operator.Show.toString ShowSym.toString theta
+             Operator.toString ShowSym.toString theta
                 ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
        | mv $# (us, ms) =>
            let
              val us' = Spine.pretty ShowSym.toString "," us
              val ms' = Spine.pretty toString "," ms
            in
-             "#" ^ Abt.Metavariable.Show.toString mv
+             "#" ^ Abt.Metavariable.toString mv
                  ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
                  ^ (if Spine.isEmpty ms then "" else "[" ^ ms' ^ "]")
            end
@@ -46,8 +46,8 @@ end
 functor PlainShowAbt (Abt : ABT) =
   ShowAbt
     (structure Abt = Abt
-     and ShowVar = Abt.Variable.Show
-     and ShowSym = Abt.Symbol.Show)
+     and ShowVar = Abt.Variable
+     and ShowSym = Abt.Symbol)
 
 functor DebugShowAbt (Abt : ABT) =
   ShowAbt

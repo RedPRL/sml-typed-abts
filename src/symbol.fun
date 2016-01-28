@@ -17,20 +17,12 @@ struct
   fun compare ((i, _), (j, _)) =
     Int.compare (i, j)
 
-  structure Eq =
-  struct
-    type t = t
-    fun eq ((i : int, _), (j, _)) = i = j
-  end
+  fun eq ((i : int, _), (j, _)) = i = j
 
   fun clone (_, a) =
     named a
 
-  structure Show =
-  struct
-    type t = t
-    fun toString (_, a) = a
-  end
+  fun toString (_, a) = a
 
   structure DebugShow =
   struct
@@ -45,17 +37,8 @@ struct
   type t = string
   fun named x = x
 
-  structure Show =
-  struct
-    type t = t
-    fun toString x = x
-  end
-
-  structure Eq =
-  struct
-    type t = t
-    fun eq (x, y) = x = y
-  end
+  fun toString x = x
+  fun eq (x, y) = x = y
 
   val compare = String.compare
 end

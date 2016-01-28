@@ -1,6 +1,9 @@
 functor Pattern (Abt : LIST_ABT) : PATTERN =
 struct
   open Abt
+  structure Arity = Operator.Arity
+  structure Valence = Arity.Valence
+  structure Sort = Valence.Sort
 
   datatype 'a argument =
       MVAR of metavariable
@@ -37,7 +40,9 @@ struct
             let
               val (theta' $@ args', Theta) = out p
               val (_, tau') = Operator.arity theta'
-              val _ = Operator.Arity.Sort.Eq.eq (tau, tau')
+              val _ =
+                if Sort.eq (tau, tau') then () else
+                  raise InvalidPattern Error.OTHER
             in
               concat (go args vls, Theta)
             end

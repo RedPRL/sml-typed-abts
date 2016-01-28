@@ -13,7 +13,7 @@ sig
     | $# of metavariable * (symbol spine * ast spine)
   and abs = \ of (symbol spine * variable spine) * ast
 
-  structure Show : SHOW where type t = ast
+  val toString : ast -> string
 end
 
 signature AST_ABT =
@@ -30,6 +30,7 @@ signature AST_TO_ABT =
 sig
   include AST_ABT
 
+  (* TODO: this is weird *)
   structure NameEnv :
   sig
     type 'a t

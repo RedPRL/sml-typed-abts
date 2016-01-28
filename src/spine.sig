@@ -16,11 +16,8 @@ sig
   val all : ('a -> bool) -> 'a t -> bool
   val exists : ('a -> bool) -> 'a t -> bool
 
-  structure Functor : FUNCTOR
-    where type 'a t = 'a t
-
-  structure Foldable : FOLDABLE
-    where type 'a t = 'a t
+  val map : ('a -> 'b) -> 'a t -> 'b t
+  val foldr : ('a * 'b -> 'b) -> 'b -> 'a t -> 'b
 
   structure Pair :
   sig
