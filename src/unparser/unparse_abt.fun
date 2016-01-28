@@ -27,22 +27,22 @@ struct
            | NONE => go m
       and go m =
         case Abt.out m of
-             `x => atom @@ V.Show.toString x
+             `x => atom @@ V.toString x
            | theta $ es =>
                let
                  val es' = Spine.pretty (parens o done o goB) ";" es
                in
                  atom
-                   @@ O.Show.toString S.Show.toString theta
+                   @@ O.toString S.toString theta
                     ^ (if Spine.isEmpty es then "" else "(" ^ es' ^ ")")
                end
            | v $# (us, ms) =>
                let
-                 val us' = Spine.pretty S.Show.toString "," us
+                 val us' = Spine.pretty S.toString "," us
                  val ms' = Spine.pretty (parens o done o outer) "," ms
                in
                  atom
-                   @@ "#" ^ M.Show.toString v
+                   @@ "#" ^ M.toString v
                     ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
                     ^ (if Spine.isEmpty ms then "" else "[" ^ ms' ^ "]")
                end
@@ -50,8 +50,8 @@ struct
         let
           val symEmpty = Spine.isEmpty us
           val varEmpty = Spine.isEmpty xs
-          val us' = Spine.pretty S.Show.toString "," us
-          val xs' = Spine.pretty V.Show.toString "," xs
+          val us' = Spine.pretty S.toString "," us
+          val xs' = Spine.pretty V.toString "," xs
         in
           atom
             @@ (if symEmpty then "" else "{" ^ us' ^ "}")

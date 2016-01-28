@@ -19,56 +19,44 @@ struct
 
   infix $ $# \
 
-  structure Show =
-  struct
-    type t = ast
+  val rec toString =
+    fn `x => x
+     | theta $ es =>
+         if Spine.isEmpty es then
+           Operator.toString (fn x => x) theta
+         else
+           Operator.toString (fn x => x) theta
+              ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
+     | mv $# (us, es) =>
+         let
+           val us' = Spine.pretty (fn x => x) "," us
+           val es' = Spine.pretty toString "," es
+         in
+           "#" ^ Metavariable.toString mv
+               ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
+               ^ (if Spine.isEmpty es then "" else "[" ^ es' ^ "]")
+         end
 
-    val rec toString =
-      fn `x => x
-       | theta $ es =>
-           if Spine.isEmpty es then
-             Operator.Show.toString (fn x => x) theta
-           else
-             Operator.Show.toString (fn x => x) theta
-                ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
-       | mv $# (us, es) =>
-           let
-             val us' = Spine.pretty (fn x => x) "," us
-             val es' = Spine.pretty toString "," es
-           in
-             "#" ^ Metavariable.Show.toString mv
-                 ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
-                 ^ (if Spine.isEmpty es then "" else "[" ^ es' ^ "]")
-           end
-
-    and toStringB =
-      fn ((us, xs) \ M) =>
-        let
-          val symEmpty = Spine.isEmpty us
-          val varEmpty = Spine.isEmpty xs
-          val us' = Spine.pretty (fn x => x) "," us
-          val xs' = Spine.pretty (fn x => x) "," xs
-        in
-          (if symEmpty then "" else "{" ^ us' ^ "}")
-            ^ (if varEmpty then "" else "[" ^ xs' ^ "]")
-            ^ (if symEmpty andalso varEmpty then "" else ".")
-            ^ toString M
-        end
-  end
+  and toStringB =
+    fn ((us, xs) \ M) =>
+      let
+        val symEmpty = Spine.isEmpty us
+        val varEmpty = Spine.isEmpty xs
+        val us' = Spine.pretty (fn x => x) "," us
+        val xs' = Spine.pretty (fn x => x) "," xs
+      in
+        (if symEmpty then "" else "{" ^ us' ^ "}")
+          ^ (if varEmpty then "" else "[" ^ xs' ^ "]")
+          ^ (if symEmpty andalso varEmpty then "" else ".")
+          ^ toString M
+      end
 end
 
 functor AstToAbt (X : AST_ABT) : AST_TO_ABT =
 struct
   open X
 
-  structure Spine =
-  struct
-    local
-      structure S = Abt.Operator.Arity.Valence.Spine
-    in
-      open S S.Functor S.Foldable
-    end
-  end
+  structure Spine = Abt.Operator.Arity.Valence.Spine
 
   structure NameEnv =
   struct
@@ -96,7 +84,7 @@ struct
        | Ast.$ (theta, es) =>
           let
             val (vls, _) = Abt.Operator.arity theta
-            val theta' = Abt.Operator.Presheaf.map (symbol Ss) theta
+            val theta' = Abt.Operator.map (symbol Ss) theta
             val es' = Spine.Pair.mapEq (convertOpenAbs Th (Ss, Vs)) (es, vls)
           in
             Abt.check Th (Abt.$ (theta', es'), tau)

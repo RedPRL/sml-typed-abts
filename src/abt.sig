@@ -34,8 +34,8 @@ sig
   type variable = Variable.t
   type metavariable = Metavariable.t
   type operator = symbol Operator.t
-  type sort = Operator.Arity.Sort.t
-  type valence = Operator.Arity.Valence.t
+  type sort = Operator.Arity.Valence.sort
+  type valence = Operator.Arity.valence
   type metacontext = Metacontext.t
   type 'a spine = 'a Operator.Arity.Valence.Spine.t
 
@@ -57,7 +57,7 @@ sig
    *  1. Alpha-varying bound variables
    *  2. Apartness preserving renamings of bound symbols
    *)
-  structure Eq : EQ where type t = abt
+  val eq : abt * abt -> bool
 
   val freeVariables : abt -> (variable * sort) list
   val freeSymbols : abt -> (symbol * sort) list
@@ -107,8 +107,8 @@ sig
     | $ of operator * 'a bview spine
     | $# of metavariable * (symbol spine * 'a spine)
 
-  structure Functor : FUNCTOR
-    where type 'a t = 'a view
+  val map : ('a -> 'b) -> 'a view -> 'b view
+
   structure BFunctor : FUNCTOR
     where type 'a t = 'a bview
 

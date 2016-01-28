@@ -1,30 +1,21 @@
-functor Arity (structure Sort : SORT and Spine : SPINE) : ARITY =
+functor Arity (V : VALENCE) : ARITY =
 struct
-  structure Sort = Sort
-  structure Valence = Valence (structure Sort = Sort and Spine = Spine)
+  structure Valence = V and Sort = V.Sort
 
   type valence = Valence.t
-  type t = valence Spine.t * Sort.t
+  type sort = Valence.sort
+  type 'a spine = 'a V.spine
+  type t = valence spine * sort
 
-  structure Eq =
-  struct
-    type t = t
-    fun eq ((valences, sigma), (valences', sigma')) =
-      Spine.Pair.allEq Valence.Eq.eq (valences, valences')
-        andalso Sort.Eq.eq (sigma, sigma')
-  end
+  fun eq ((valences, sigma), (valences', sigma')) =
+    V.Spine.Pair.allEq V.eq (valences, valences')
+      andalso Sort.eq (sigma, sigma')
 
-  structure Show =
-  struct
-    type t = t
-    fun toString (valences, sigma) =
-        let
-          val valences' = Spine.pretty Valence.Show.toString ", " valences
-          val sigma' = Sort.Show.toString sigma
-        in
-          "(" ^ valences' ^ ")" ^ sigma'
-        end
-  end
+  fun toString (valences, sigma) =
+      let
+        val valences' = V.Spine.pretty V.toString ", " valences
+        val sigma' = Sort.toString sigma
+      in
+        "(" ^ valences' ^ ")" ^ sigma'
+      end
 end
-
-

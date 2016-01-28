@@ -34,8 +34,9 @@ struct
   local
     open Abt
     infix $ $# \
-    structure Spine = Operator.Arity.Valence.Spine
-    structure Sort = Operator.Arity.Sort
+    structure Valence = Operator.Arity.Valence
+    structure Spine = Valence.Spine
+    structure Sort = Valence.Sort
 
     (* we recursively wring out all the metavariables by looking them up in the
      * environment. Another option would be to replace the environment by a

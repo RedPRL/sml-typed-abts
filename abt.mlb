@@ -41,6 +41,7 @@ in
   functor Symbol
   structure StringPresymbol
   structure ListSpine
+  functor Valence
   functor Arity
   functor Metacontext
   functor Abt

@@ -9,11 +9,12 @@
  *)
 signature ARITY =
 sig
-  structure Sort : SORT
   structure Valence : VALENCE
-  sharing type Valence.sort = Sort.t
+  type valence = Valence.t
+  type sort = Valence.sort
+  type 'a spine = 'a Valence.spine
 
-  type t = Valence.t Valence.Spine.t * Sort.t
-  structure Show : SHOW where type t = t
-  structure Eq : EQ where type t = t
+  type t = valence spine * sort
+  val toString : t -> string
+  val eq : t * t -> bool
 end

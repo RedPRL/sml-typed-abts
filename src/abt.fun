@@ -32,11 +32,8 @@ struct
     and Arity = Operator.Arity
     and Metacontext = Metacontext
 
-  structure Sort = Arity.Sort and Valence = Arity.Valence
-  structure Spine =
-  struct
-    open Valence.Spine Valence.Spine.Functor Valence.Spine.Foldable
-  end
+  structure Sort = Arity.Valence.Sort and Valence = Arity.Valence
+  structure Spine = Valence.Spine
 
   type symbol = Symbol.t
   type variable = Variable.t
@@ -55,7 +52,7 @@ struct
     local
       structure S = LocallyNameless (Coord)
     in
-      open S S.Eq S.Functor S.Monad
+      open S
     end
 
     type symbol = symbol t
@@ -95,13 +92,13 @@ struct
 
   fun assertSortEq (sigma, tau) =
     assert
-      ("expected " ^ Sort.Show.toString sigma ^ " == " ^ Sort.Show.toString tau)
-      (Sort.Eq.eq (sigma, tau))
+      ("expected " ^ Sort.toString sigma ^ " == " ^ Sort.toString tau)
+      (Sort.eq (sigma, tau))
 
   fun assertValenceEq (v1, v2) =
     assert
-      ("expected " ^ Valence.Show.toString v1 ^ " == " ^ Valence.Show.toString v2)
-      (Valence.Eq.eq (v1, v2))
+      ("expected " ^ Valence.toString v1 ^ " == " ^ Valence.toString v2)
+      (Valence.eq (v1, v2))
 
   (* All of the free* operations are implemented in much the same way. The
    * term is traversed and each time we reach the object we're searching for
@@ -116,8 +113,8 @@ struct
    * binding.
    *)
   local
-    structure VS = Union (EqProj1 (type t = sort structure Eq = Symbol.Eq))
-    structure VU = Union (EqProj1 (type t = sort structure Eq = Variable.Eq))
+    structure VS = Union (EqProj1 (type t = sort structure Eq = Symbol))
+    structure VU = Union (EqProj1 (type t = sort structure Eq = Variable))
     structure MCtx = Metacontext
   in
     fun freeVariables M =
@@ -175,7 +172,7 @@ struct
 
   fun subst (N, x) M =
     case M of
-         V (LN.FREE y, sigma) => if Variable.Eq.eq (x, y) then N else M
+         V (LN.FREE y, sigma) => if Variable.eq (x, y) then N else M
        | V _ => M
        | APP (theta, Es) =>
            APP (theta, Spine.map (mapAbs (subst (N, x))) Es)
@@ -193,14 +190,14 @@ struct
         fn V x => V x
          | APP (theta, Es) =>
            let
-             fun rho u' = if Symbol.Eq.eq (u, u') then v else u'
-             val theta' = Operator.Presheaf.map (LN.map rho) theta
+             fun rho u' = if Symbol.eq (u, u') then v else u'
+             val theta' = Operator.map (LN.map rho) theta
            in
              APP (theta', Spine.map go' Es)
            end
          | META_APP (m, us, Ms) =>
              let
-               fun rho u' = if Symbol.Eq.eq (u, u') then v else u'
+               fun rho u' = if Symbol.eq (u, u') then v else u'
                fun rho' (l, s) = (LN.map rho l, s)
              in
                META_APP (m, Spine.map rho' us, Spine.map go Ms)
@@ -210,7 +207,7 @@ struct
           ABS (us, vs, go M)
     in
       fn M =>
-        if List.exists (fn (v', _) => Symbol.Eq.eq (v', v)) (freeSymbols M) then
+        if List.exists (fn (v', _) => Symbol.eq (v', v)) (freeSymbols M) then
           raise Fail "Renaming fails to preserve apartness"
         else
           go M
@@ -226,7 +223,7 @@ struct
   fun imprisonVariable (v, tau) coord M =
     case M of
          V (LN.FREE v', sigma) =>
-           if Variable.Eq.eq (v, v') then
+           if Variable.eq (v, v') then
              (assertSortEq (sigma, tau);
               V (LN.BOUND coord, sigma))
            else
@@ -242,17 +239,17 @@ struct
          V _ => M
        | APP (theta, Es) =>
          let
-           fun rho v' = if Symbol.Eq.eq (v, v') then LN.BOUND coord else LN.FREE v'
-           fun chk (LN.FREE v', tau') = if Symbol.Eq.eq (v, v') then assertSortEq (tau, tau') else ()
+           fun rho v' = if Symbol.eq (v, v') then LN.BOUND coord else LN.FREE v'
+           fun chk (LN.FREE v', tau') = if Symbol.eq (v, v') then assertSortEq (tau, tau') else ()
              | chk _ = ()
            val _ = List.app chk (Operator.support theta)
-           val theta' = Operator.Presheaf.map (LN.bind rho) theta
+           val theta' = Operator.map (LN.bind rho) theta
          in
            APP (theta', Spine.map (liftTraverseAbs (imprisonSymbol (v,tau)) coord) Es)
          end
        | META_APP (m, us, Ms) =>
          let
-           fun rho v' = if Symbol.Eq.eq (v, v') then LN.BOUND coord else LN.FREE v'
+           fun rho v' = if Symbol.eq (v, v') then LN.BOUND coord else LN.FREE v'
            fun rho' (l, s) = (LN.bind rho l, s)
            val vs = Spine.map rho' us
          in
@@ -266,7 +263,7 @@ struct
     case e of
          V (LN.FREE _, _) => e
        | V (LN.BOUND coord', sigma) =>
-           if Coord.Eq.eq (coord, coord') then V (LN.FREE v, sigma) else e
+           if Coord.eq (coord, coord') then V (LN.FREE v, sigma) else e
        | APP (theta, es) =>
            APP (theta, Spine.map (liftTraverseAbs (liberateVariable v) coord) es)
        | META_APP (m, us, Ms) =>
@@ -279,16 +276,16 @@ struct
        | APP (theta, es) =>
          let
            fun rho (LN.BOUND coord') =
-               if Coord.Eq.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
+               if Coord.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
              | rho u' = u'
-           val theta' = Operator.Presheaf.map rho theta
+           val theta' = Operator.map rho theta
          in
            APP (theta', Spine.map (liftTraverseAbs (liberateSymbol u) coord) es)
          end
        | META_APP (m, us, Ms) =>
          let
            fun rho (LN.BOUND coord') =
-               if Coord.Eq.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
+               if Coord.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
              | rho u' = u'
            fun rho' (l, s) = (rho l, s)
            val vs = Spine.map rho' us
@@ -312,7 +309,7 @@ struct
     structure ShiftFoldMap =
       CategoryFoldMap
         (structure C = ShiftFunCat
-         structure F = Spine.Foldable)
+         structure F = Spine)
 
     fun foldStar f xs t =
       ShiftFoldMap.foldMap
@@ -332,7 +329,7 @@ struct
        | APP (theta, Es) =>
            APP (theta, Spine.map (mapAbs (metasubst (E, mv))) Es)
        | META_APP ((mv', valence), us, Ms) =>
-           if Metavariable.Eq.eq (mv, mv') then
+           if Metavariable.eq (mv, mv') then
              let
                (* Once we find the metavariable, we unbind all the
                 * variables/symbols the supplied abstraction binds
@@ -367,7 +364,7 @@ struct
        | APP (theta, Es) =>
          let
            val (_, tau) = Operator.arity theta
-           val theta' = Operator.Presheaf.map LN.getFree theta
+           val theta' = Operator.map LN.getFree theta
            val Es' = Spine.map (#1 o inferb) Es
          in
            (theta' $ Es', tau)
@@ -386,7 +383,7 @@ struct
            let
              val (valences, tau)  = Operator.arity theta
              val () = assertSortEq (sigma, tau)
-             val theta' = Operator.Presheaf.map LN.FREE theta
+             val theta' = Operator.map LN.FREE theta
              val Es' = Spine.Pair.mapEq (checkb Theta) (Es, valences)
            in
              APP (theta', Es')
@@ -429,41 +426,34 @@ struct
       (us, xs) \ f M
   end
 
-  structure Functor =
-  struct
-    type 'a t = 'a view
-    fun map f M =
-      case M of
-           `x => `x
-         | theta $ Es =>
-             theta $ Spine.map (BFunctor.map f) Es
-         | mv $# (us, Ms) =>
-              mv $# (us, Spine.map f Ms)
-  end
+  fun map f M =
+    case M of
+         `x => `x
+       | theta $ Es =>
+           theta $ Spine.map (BFunctor.map f) Es
+       | mv $# (us, Ms) =>
+            mv $# (us, Spine.map f Ms)
 
-
-  structure Eq : EQ =
-  struct
-    type t = abt
-
+  local
     structure OpLnEq =
     struct
-      val eq = Operator.Eq.eq (LN.eq Symbol.Eq.eq)
+      val eq = Operator.eq (LN.eq Symbol.eq)
     end
 
     structure OpEq =
     struct
-      val eq = Operator.Eq.eq Symbol.Eq.eq
+      val eq = Operator.eq Symbol.eq
     end
+  in
     (* While this looks simple by using locally nameless representations this
      * implements alpha equivalence (and is very efficient!)
      *)
-    fun eq (V (v, _), V (v', _)) = LN.eq Variable.Eq.eq (v, v')
+    fun eq (V (v, _), V (v', _)) = LN.eq Variable.eq (v, v')
       | eq (APP (theta, es), APP (theta', es')) =
           OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eqAbs (es, es')
       | eq (META_APP ((mv, _), us, es), META_APP ((mv', _), us', es')) =
-          Metavariable.Eq.eq (mv, mv')
-            andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Symbol.Eq.eq (x,y)) (us, us')
+          Metavariable.eq (mv, mv')
+            andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Symbol.eq (x,y)) (us, us')
             andalso Spine.Pair.allEq eq (es, es')
       | eq _ = false
     and eqAbs (ABS (_, _, e), ABS (_, _, e')) = eq (e, e')

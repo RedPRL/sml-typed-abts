@@ -12,5 +12,5 @@ sig
   val shiftRight : t -> t
   val shiftDown : t -> t
 
-  structure Eq : EQ where type t = t
+  val eq : t * t -> bool
 end

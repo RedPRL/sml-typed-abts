@@ -14,8 +14,8 @@ sig
    *)
   val named : string -> t
 
-  structure Show : SHOW where type t = t
-  structure Eq : EQ where type t = t
+  val toString : t -> string
+  val eq : t * t -> bool
 
   val compare : t * t -> order
 end

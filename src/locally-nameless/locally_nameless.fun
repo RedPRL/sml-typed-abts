@@ -6,28 +6,16 @@ struct
       FREE of 'a
     | BOUND of Coord.t
 
-  structure Eq : EQ1 =
-  struct
-    type 'a t = 'a t
-    fun eq f (FREE v, FREE v') = f (v, v')
-      | eq f (BOUND i, BOUND j) = Coord.Eq.eq (i, j)
-      | eq _ _ = false
-  end
+  fun eq f (FREE v, FREE v') = f (v, v')
+    | eq f (BOUND i, BOUND j) = Coord.eq (i, j)
+    | eq _ _ = false
 
-  structure Functor : FUNCTOR =
-  struct
-    type 'a t = 'a t
-    fun map f (FREE v) = FREE (f v)
-      | map f (BOUND i) = BOUND i
-  end
+  fun map f (FREE v) = FREE (f v)
+    | map f (BOUND i) = BOUND i
 
-  structure Monad : MONAD =
-  struct
-    type 'a t = 'a t
-    fun pure v = FREE v
-    fun bind f (FREE v) = f v
-      | bind f (BOUND i) = BOUND i
-  end
+  fun pure v = FREE v
+  fun bind f (FREE v) = f v
+    | bind f (BOUND i) = BOUND i
 
   exception UnexpectedBoundName of Coord.t
 

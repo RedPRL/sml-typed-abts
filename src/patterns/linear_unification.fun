@@ -3,19 +3,8 @@ struct
   open P
   open Abt Pattern
 
-  structure Env =
-    SplayDict
-      (structure Key =
-       struct
-         open Abt.Metavariable Abt.Metavariable.Eq
-       end)
-
-  structure Ren =
-    SplayDict
-      (structure Key =
-       struct
-         open Abt.Symbol Abt.Symbol.Eq
-       end)
+  structure Env = SplayDict (structure Key = Abt.Metavariable)
+  structure Ren = SplayDict (structure Key = Abt.Symbol)
 
   type env = abt bview Env.dict
   type ren = Abt.symbol Ren.dict
@@ -25,12 +14,13 @@ struct
   datatype match = <*> of pattern * abt
 
   infix $ $# $@ \ <*>
-  structure Spine = Operator.Arity.Valence.Spine
-  structure Sort = Operator.Arity.Sort
+  structure Valence = Operator.Arity.Valence
+  structure Spine = Valence.Spine
+  structure Sort = Valence.Sort
 
   fun matchOperator (ptheta, theta) =
     (* compare if they are the "same" operator modulo parameters *)
-    if Operator.Eq.eq (fn _ => true) (ptheta, theta) then
+    if Operator.eq (fn _ => true) (ptheta, theta) then
       let
         (* therefore, the operators should have compatible supports *)
         val us = Operator.support ptheta
@@ -42,7 +32,7 @@ struct
       raise UnificationFailure
 
   fun matchSort (sigma, tau) =
-    if Sort.Eq.eq (sigma, tau) then
+    if Sort.eq (sigma, tau) then
       ()
     else
       raise UnificationFailure
@@ -52,7 +42,7 @@ struct
   fun concatEnv (rho, rho') =
     Env.union rho rho' (fn _ => raise UnificationFailure)
   fun concatRen (rho, rho') =
-    Ren.union rho rho' (fn (u, v, v') => if Symbol.Eq.eq (v, v') then v else raise UnificationFailure)
+    Ren.union rho rho' (fn (u, v, v') => if Symbol.eq (v, v') then v else raise UnificationFailure)
 
   fun unify (pat <*> m) : ren * env =
     let

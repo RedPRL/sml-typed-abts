@@ -1,31 +1,24 @@
 functor Valence (structure Sort : SORT and Spine : SPINE) : VALENCE =
 struct
+  structure Sort = Sort and Spine = Spine
   type sort = Sort.t
-  structure Spine = Spine
-  type bindings = sort Spine.t * sort Spine.t
+  type 'a spine = 'a Spine.t
+  type bindings = sort spine * sort spine
   type t = bindings * sort
 
-  structure Eq =
-  struct
-    type t = t
-    fun eq (((symbolSorts, variableSorts), sigma), ((symbolSorts', variableSorts'), sigma')) =
-      Spine.Pair.allEq Sort.Eq.eq (symbolSorts, symbolSorts')
-        andalso Spine.Pair.allEq Sort.Eq.eq (variableSorts, variableSorts')
-        andalso Sort.Eq.eq (sigma, sigma')
-  end
+  fun eq (((symbolSorts, variableSorts), sigma), ((symbolSorts', variableSorts'), sigma')) =
+    Spine.Pair.allEq Sort.eq (symbolSorts, symbolSorts')
+      andalso Spine.Pair.allEq Sort.eq (variableSorts, variableSorts')
+      andalso Sort.eq (sigma, sigma')
 
-  structure Show =
-  struct
-    type t = t
-    fun toString ((symbolSorts,variableSorts), sigma) =
-      let
-        val symbols' = Spine.pretty Sort.Show.toString ", " symbolSorts
-        val variables' = Spine.pretty Sort.Show.toString ", " variableSorts
-        val sigma' = Sort.Show.toString sigma
-      in
-        "{" ^ symbols' ^ "}(" ^ variables' ^ ")." ^ sigma'
-      end
-  end
+  fun toString ((symbolSorts,variableSorts), sigma) =
+    let
+      val symbols' = Spine.pretty Sort.toString ", " symbolSorts
+      val variables' = Spine.pretty Sort.toString ", " variableSorts
+      val sigma' = Sort.toString sigma
+    in
+      "{" ^ symbols' ^ "}(" ^ variables' ^ ")." ^ sigma'
+    end
 end
 
 

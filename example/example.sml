@@ -9,55 +9,38 @@ struct
     structure Sort =
     struct
       datatype t = EXP | VAL | NAT
-
-      structure Eq =
-      struct
-        type t = t
-        val eq : t * t -> bool = op=
-      end
-
-      structure Show =
-      struct
-        type t = t
-        fun toString EXP = "exp"
-          | toString VAL = "val"
-          | toString NAT = "nat"
-      end
+      val eq : t * t -> bool = op=
+      fun toString EXP = "exp"
+        | toString VAL = "val"
+        | toString NAT = "nat"
     end
 
 
-    structure Arity = Arity (structure Sort = Sort and Spine = ListSpine)
+    structure Valence = Valence (structure Sort = Sort and Spine = ListSpine)
+    structure Arity = Arity (Valence)
 
     datatype 'i t =
         LAM | AP | NUM | LIT of int | RET
       | DCL | GET of 'i | SET of 'i
 
-    structure Eq =
-    struct
-      type 'i t = 'i t
-      fun eq f (LAM, LAM) = true
-        | eq f (AP, AP) = true
-        | eq f (NUM, NUM) = true
-        | eq f (LIT m, LIT n) = m = n
-        | eq f (RET, RET) = true
-        | eq f (DCL, DCL) = true
-        | eq f (GET i, GET j) = f (i, j)
-        | eq f (SET i, SET j) = f (i, j)
-        | eq _ _ = false
-    end
+    fun eq f (LAM, LAM) = true
+      | eq f (AP, AP) = true
+      | eq f (NUM, NUM) = true
+      | eq f (LIT m, LIT n) = m = n
+      | eq f (RET, RET) = true
+      | eq f (DCL, DCL) = true
+      | eq f (GET i, GET j) = f (i, j)
+      | eq f (SET i, SET j) = f (i, j)
+      | eq _ _ = false
 
-    structure Show =
-    struct
-      type 'i t = 'i t
-      fun toString f LAM = "lam"
-        | toString f AP = "ap"
-        | toString f NUM = "num"
-        | toString f (LIT n) = Int.toString n
-        | toString f RET = "ret"
-        | toString f DCL = "dcl"
-        | toString f (GET i) = "get[" ^ f i ^ "]"
-        | toString f (SET i) = "set[" ^ f i ^ "]"
-    end
+    fun toString f LAM = "lam"
+      | toString f AP = "ap"
+      | toString f NUM = "num"
+      | toString f (LIT n) = Int.toString n
+      | toString f RET = "ret"
+      | toString f DCL = "dcl"
+      | toString f (GET i) = "get[" ^ f i ^ "]"
+      | toString f (SET i) = "set[" ^ f i ^ "]"
 
     local
       open Sort
@@ -78,18 +61,14 @@ struct
         | support _ = []
     end
 
-    structure Presheaf =
-    struct
-      type 'i t = 'i t
-      fun map f LAM = LAM
-        | map f AP = AP
-        | map f NUM = NUM
-        | map f (LIT n) = LIT n
-        | map f RET = RET
-        | map f DCL = DCL
-        | map f (GET i) = GET (f i)
-        | map f (SET i) = SET (f i)
-    end
+    fun map f LAM = LAM
+      | map f AP = AP
+      | map f NUM = NUM
+      | map f (LIT n) = LIT n
+      | map f RET = RET
+      | map f DCL = DCL
+      | map f (GET i) = GET (f i)
+      | map f (SET i) = SET (f i)
   end
 
   structure OParser : PARSE_OPERATOR =
@@ -143,7 +122,7 @@ struct
   structure Ast = Ast (structure Operator = O and Metavariable = M)
   structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavariable = M and CharSet = GreekCharSet)
 
-  structure MC = Metacontext (structure Metavariable = M structure Valence = O.Arity.Valence.Eq)
+  structure MC = Metacontext (structure Metavariable = M structure Valence = O.Arity.Valence)
 
   structure Abt = Abt (structure Operator = O and Metavariable = M and Metacontext = MC and Variable = V and Symbol = I)
   structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)

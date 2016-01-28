@@ -8,13 +8,16 @@
  *)
 signature VALENCE =
 sig
-  type sort
+  structure Sort : SORT
   structure Spine : SPINE
 
+  type sort = Sort.t
+  type 'a spine = 'a Spine.t
+
   (* bindings are spines of symbol sorts and variable sorts respectively *)
-  type bindings = sort Spine.t * sort Spine.t
+  type bindings = sort spine * sort spine
   type t = bindings * sort
 
-  structure Show : SHOW where type t = t
-  structure Eq : EQ where type t = t
+  val toString : t -> string
+  val eq : t * t -> bool
 end

@@ -8,7 +8,7 @@ struct
   type metavariable = Metavariable.t
   type valence = Valence.t
 
-  structure Ctx = SplayDict (structure Key = struct open Metavariable Metavariable.Eq end)
+  structure Ctx = SplayDict (structure Key = Metavariable)
   type t = valence Ctx.dict
 
   exception MetavariableNotFound

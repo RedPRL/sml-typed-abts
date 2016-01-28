@@ -5,10 +5,6 @@ struct
   fun shiftRight (i, j) = (i, j + 1)
   fun shiftDown (i, j) = (i + 1, j)
 
-  structure Eq =
-  struct
-    type t = t
-    fun eq (x : t, y : t) = x = y
-  end
+  fun eq (x : t, y : t) = x = y
 end
 
