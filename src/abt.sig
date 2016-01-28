@@ -5,28 +5,25 @@
 signature ABT =
 sig
   (* An ABT implementation is built upon several smaller concepts any of which
-   * may be tweaked. The [Variable] and [Symbol] structures controls what
-   * implementation of nominal atoms we use for variables/symbols respectively.
-   * [Operator] control what the primitive operators are as well as determines
-   * their arities.
+   * may be tweaked.
    *)
-  structure Variable : SYMBOL
-  structure Operator : OPERATOR
-  structure Symbol : SYMBOL
- (* To prevent some confusion:
-  * Symbols are slightly more exotic and often confused with variables.
-  * They are objects which
-  *   1. Parameterize *operators* instead of appearing raw
-  *   2. ARE NOT DETERMINED BY SUBSTITUTION
-  *   3. Vary by apartness preserving renamings
-  *)
 
-  (* In addition to all of the above, it is very useful to consider ABTs
-   * with chunks of the actual syntax being left out. This may come up for
-   * example when to model terms which are unified. In order to do this properly,
-   * a new level of variable is introduced which ranges over abstractions rather
-   * than terms.
-   *)
+  structure Variable : SYMBOL
+
+  (* Symbols are not variables; they parameterize operators and do not appear as
+   * terms in the syntax of abstract binding trees. Therefore, they are subject
+   * to apartness-preserving (injective) renamings, and not substitution. *)
+  structure Symbol : SYMBOL
+
+  (* Operators are the primitive building blocks of a language; the [Operator]
+   * allows the ABT framework to be deployed at an arbitrary signature of
+   * operators. In older texts on universal algebra, sometimes operators are
+   * often referred to as "function symbols". *)
+  structure Operator : OPERATOR
+
+  (* Just as variables can be used to stand in for an abt, metavariables can be
+   * used to stand in for an abstraction/binder of any valence. Metavariables
+   * are also sometimes called "second-order variables". *)
   structure Metavariable : PRESYMBOL
   structure Metacontext : METACONTEXT
     where type metavariable = Metavariable.t
@@ -115,9 +112,8 @@ sig
   structure BFunctor : FUNCTOR
     where type 'a t = 'a bview
 
-  (* Note that if you're used to CMU's abt library,
-   *  - into ===> check
-   *  - out  ===> infer
+  (* The [check] operation corresponds to the [into] operation found in the
+   * Carnegie Mellon ABT libraries.
    *)
 
   (* construct an abt from a view by checking it against a sort. *)
