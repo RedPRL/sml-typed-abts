@@ -1,13 +1,8 @@
-signature UNORDERED_CONTEXT =
+signature CONTEXT_UTIL =
 sig
   type t
   type key
   type elem
-
-  val isEmpty : t -> bool
-  val toList : t -> (key * elem) list
-
-  val empty : t
 
   (* raises MergeFailure if the variable is already present with an incompatible
    * valence *)
@@ -23,9 +18,5 @@ sig
   (* raises MergeFailure if variables are already present *)
   val concat: t * t -> t
 
-  val lookup : t -> key -> elem
-  val find : t -> key -> elem option
-
-  exception KeyNotFound
   exception MergeFailure
 end

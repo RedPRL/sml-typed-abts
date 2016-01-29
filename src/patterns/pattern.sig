@@ -24,8 +24,8 @@ sig
       MVAR of metavariable
     | PAT of 'a
 
-  (* When [pat] is a pattern with metactx [Θ] and [m] is a closed term in
-   * metactx [Θ], then [p ~> m] is a rewrite rule. *)
+  (* When [pat] is a pattern with metactx [psi] and [m] is a closed term in
+   * metactx [psi], then [pat ~> m] is a rewrite rule. *)
   datatype 'a view = $@ of operator * 'a argument spine
 
   structure Error :

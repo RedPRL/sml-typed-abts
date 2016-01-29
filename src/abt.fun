@@ -14,31 +14,23 @@ struct
   structure Sort = Arity.Valence.Sort and Valence = Arity.Valence
   structure Spine = Valence.Spine
 
-  structure Metactx =
-    UnorderedContext
-      (structure Key = Metavariable and Elem = Valence)
+  structure MetaCtx = SplayDict (structure Key = Metavariable)
+  structure VarCtx = SplayDict (structure Key = Variable)
+  structure SymCtx = SplayDict (structure Key = Symbol)
 
-  structure Symctx =
-    UnorderedContext
-      (structure Key = Symbol and Elem = Sort)
-
-  structure Varctx =
-    UnorderedContext
-      (structure Key = Variable and Elem = Sort)
-
-  type symbol = Symbol.t
-  type variable = Variable.t
-  type metavariable = Metavariable.t
-  type metactx = Metactx.t
-  type varctx = Varctx.t
-  type symctx = Symctx.t
-
-  type operator = symbol Operator.t
   type sort = Sort.t
   type valence = Valence.t
   type coord = Coord.t
-
+  type symbol = Symbol.t
+  type variable = Variable.t
+  type metavariable = Metavariable.t
+  type operator = symbol Operator.t
   type 'a spine = 'a Spine.t
+
+  type metactx = valence MetaCtx.dict
+  type varctx = sort VarCtx.dict
+  type symctx = sort SymCtx.dict
+
 
   structure LN =
   struct
@@ -96,68 +88,82 @@ struct
    * (like (V (LN.FREE v, sigma))) we tack it on to the growing collection
    * of previously found items. The actual algorithm for ensuring we don't
    * duplicate everything is contained in [Union] or the implementation of
-   * Metactx.
+   * MetaCtx.
    *
    * Note that we already have all the type information already lying around
    * in the term so producing it is free! Also note that variables/symbols are
    * locally marked as free or not so we needn't carry around a table to understand
    * binding.
    *)
-  fun metactx M =
-    let
-      fun go R =
-        fn V _ => R
-         | APP (theta, Es) =>
-             Spine.foldr Metactx.union R (Spine.map (go' Metactx.empty) Es)
-         | META_APP (mv, us, Ms) =>
-             Spine.foldr Metactx.union (Metactx.extend R mv) (Spine.map (go Metactx.empty) Ms)
-      and go' R (ABS (_, _, M)) = go R M
-    in
-      go Metactx.empty M
-    end
 
-  fun varctx M =
-    let
-      fun go R =
-        fn V (LN.FREE v, sigma) =>
-             Varctx.extend R (v, sigma)
-         | APP (theta, Es) =>
-             Spine.foldr Varctx.union R (Spine.map (go' Varctx.empty) Es)
-         | META_APP (m, us, Ms) =>
-             Spine.foldr Varctx.union R (Spine.map (go Varctx.empty) Ms)
-         | _ => R
-      and go' R (ABS (_, _, M)) = go R M
-    in
-      go Varctx.empty M
-    end
 
-  fun symctx M =
-    let
-      fun tryExtendFree R (u, sigma) =
-        Symctx.extend R (LN.getFree u, sigma)
-          handle _ => R
+  local
+    structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
+  in
+    fun metactx M =
+      let
+        fun go R =
+          fn V _ => R
+           | APP (theta, Es) =>
+               Spine.foldr MetaCtxUtil.union R (Spine.map (go' MetaCtx.empty) Es)
+           | META_APP (mv, us, Ms) =>
+               Spine.foldr MetaCtxUtil.union (MetaCtxUtil.extend R mv) (Spine.map (go MetaCtx.empty) Ms)
+        and go' R (ABS (_, _, M)) = go R M
+      in
+        go MetaCtx.empty M
+      end
+  end
 
-      fun opSupport theta =
-        List.foldl
-          (fn ((u, sigma), R) => tryExtendFree R (u, sigma))
-          Symctx.empty
-          (Operator.support theta)
+  local
+    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = Sort)
+  in
+    fun varctx M =
+      let
+        fun go R =
+          fn V (LN.FREE v, sigma) =>
+               VarCtxUtil.extend R (v, sigma)
+           | APP (theta, Es) =>
+               Spine.foldr VarCtxUtil.union R (Spine.map (go' VarCtx.empty) Es)
+           | META_APP (m, us, Ms) =>
+               Spine.foldr VarCtxUtil.union R (Spine.map (go VarCtx.empty) Ms)
+           | _ => R
+        and go' R (ABS (_, _, M)) = go R M
+      in
+        go VarCtx.empty M
+      end
+  end
 
-      fun go R =
-        fn APP (theta, Es) =>
-             Spine.foldr
-               Symctx.union
-               (Symctx.union (R, opSupport theta))
-               (Spine.map (go' Symctx.empty) Es)
-         | META_APP (m, us, Ms) =>
-             Symctx.union
-               (Spine.foldr (fn ((u, sigma), X) => tryExtendFree X (u, sigma)) Symctx.empty us,
-                Spine.foldr Symctx.union R (Spine.map (go Symctx.empty) Ms))
-         | _ => R
-      and go' R (ABS (_, _, M)) = go R M
-    in
-      go Symctx.empty M
-    end
+  local
+    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sort)
+  in
+    fun symctx M =
+      let
+        fun tryExtendFree R (u, sigma) =
+          SymCtxUtil.extend R (LN.getFree u, sigma)
+            handle _ => R
+
+        fun opSupport theta =
+          List.foldl
+            (fn ((u, sigma), R) => tryExtendFree R (u, sigma))
+            SymCtx.empty
+            (Operator.support theta)
+
+        fun go R =
+          fn APP (theta, Es) =>
+               Spine.foldr
+                 SymCtxUtil.union
+                 (SymCtxUtil.union (R, opSupport theta))
+                 (Spine.map (go' SymCtx.empty) Es)
+           | META_APP (m, us, Ms) =>
+               SymCtxUtil.union
+                 (Spine.foldr (fn ((u, sigma), X) => tryExtendFree X (u, sigma)) SymCtx.empty us,
+                  Spine.foldr SymCtxUtil.union R (Spine.map (go SymCtx.empty) Ms))
+           | _ => R
+        and go' R (ABS (_, _, M)) = go R M
+      in
+        go SymCtx.empty M
+      end
+  end
 
   fun liftTraverseAbs f coord (ABS (us, xs, M)) =
     ABS (us, xs, f (Coord.shiftRight coord) M)
@@ -198,7 +204,7 @@ struct
              end
     in
       fn m =>
-        case Symctx.find (symctx m) v of
+        case SymCtx.find (symctx m) v of
             SOME _ => raise Fail "Renaming fails to preserve apartness"
           | NONE => go m
     end
@@ -392,7 +398,7 @@ struct
            end
        | mv $# (us, ms) =>
            let
-             val valence as ((ssorts, vsorts), tau) = Metactx.lookup psi mv
+             val valence as ((ssorts, vsorts), tau) = MetaCtx.lookup psi mv
              val () = assertSortEq (sigma, tau)
              val us' = Spine.Pair.zipEq (Spine.map LN.FREE us, ssorts)
              fun chkInf (m, tau) =
@@ -403,8 +409,8 @@ struct
            end
 
 
-  val check' = check Metactx.empty
-  val checkb' = checkb Metactx.empty
+  val check' = check MetaCtx.empty
+  val checkb' = checkb MetaCtx.empty
 
   structure BFunctor =
   struct

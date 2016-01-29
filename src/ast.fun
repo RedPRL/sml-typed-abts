@@ -91,7 +91,7 @@ struct
           end
        | Ast.$# (mv, (us, ms)) =>
            let
-             val ((_, vsorts), _) = Abt.Metactx.lookup psi mv
+             val ((_, vsorts), _) = Abt.MetaCtx.lookup psi mv
              val us' = Spine.map (symbol snames) us
              val ms' = Spine.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
            in

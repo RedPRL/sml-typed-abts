@@ -8,7 +8,7 @@ Library
   signature SORT
   signature SPINE
   signature ARITY
-  signature UNORDERED_CONTEXT
+  signature CONTEXT_UTIL
 
   functor Symbol
   structure StringPresymbol
@@ -16,7 +16,7 @@ Library
   functor Valence
   functor Arity
   functor ListArity
-  functor UnorderedContext
+  functor ContextUtil
   functor Abt
   functor Ast
   functor ShowAbt

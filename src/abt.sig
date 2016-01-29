@@ -31,21 +31,13 @@ sig
   type valence = Operator.Arity.valence
   type 'a spine = 'a Operator.Arity.Valence.Spine.t
 
-  structure Metactx : UNORDERED_CONTEXT
-    where type key = metavariable
-    where type elem = valence
+  structure MetaCtx : DICT where type key = metavariable
+  structure VarCtx : DICT where type key = variable
+  structure SymCtx : DICT where type key = symbol
 
-  structure Varctx : UNORDERED_CONTEXT
-    where type key = variable
-    where type elem = sort
-
-  structure Symctx : UNORDERED_CONTEXT
-    where type key = symbol
-    where type elem = sort
-
-  type metactx = Metactx.t
-  type varctx = Varctx.t
-  type symctx = Symctx.t
+  type metactx = valence MetaCtx.dict
+  type varctx = sort VarCtx.dict
+  type symctx = sort SymCtx.dict
 
   (* The core type of the signature. This is the type of the ABTs that
    * can be built from the given [operator]s, [variable]s, [symbol]s and

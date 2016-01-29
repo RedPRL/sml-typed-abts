@@ -22,7 +22,7 @@ struct
       val (_, Theta) = Pattern.out p
       val Gamma = Abt.varctx m
     in
-      if Abt.Varctx.isEmpty Gamma then
+      if Abt.VarCtx.isEmpty Gamma then
         RULE (p ~> Abt.check Theta (Abt.infer m))
       else
         raise InvalidRule
@@ -47,10 +47,10 @@ struct
       let
         val Theta = Abt.metactx m
       in
-        if Metactx.isEmpty Theta then
+        if MetaCtx.isEmpty Theta then
           m
         else
-          foldl (substMetavar Theta env) m (Metactx.toList Theta)
+          foldl (substMetavar Theta env) m (MetaCtx.toList Theta)
       end
     and substMetavar Theta env ((mv, vl), m) =
       let
