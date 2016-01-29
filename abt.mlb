@@ -8,8 +8,8 @@ local
   src/symbol.sig
   src/symbol.fun
 
-  src/context.sig
-  src/context.fun
+  src/context_util.sig
+  src/context_util.fun
 
   src/sort.sig
   src/spine.sig
