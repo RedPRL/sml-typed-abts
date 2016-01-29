@@ -35,10 +35,6 @@ sig
   structure VarCtx : DICT where type key = variable
   structure SymCtx : DICT where type key = symbol
 
-  type metactx = valence MetaCtx.dict
-  type varctx = sort VarCtx.dict
-  type symctx = sort SymCtx.dict
-
   (* The core type of the signature. This is the type of the ABTs that
    * can be built from the given [operator]s, [variable]s, [symbol]s and
    * [metavariable]s
@@ -52,6 +48,15 @@ sig
    *)
   type abs
 
+  type metactx = valence MetaCtx.dict
+  type varctx = sort VarCtx.dict
+  type symctx = sort SymCtx.dict
+
+  type metaenv = abs MetaCtx.dict
+  type varenv = abt VarCtx.dict
+  type symenv = symbol SymCtx.dict
+
+  (* Modify the term inside an abstraction*)
   val mapAbs : (abt -> abt) -> abs -> abs
 
   (* Decide alpha equivalence of two terms *)
@@ -62,19 +67,13 @@ sig
   val varctx : abt -> varctx
   val symctx : abt -> symctx
 
-  (* subst (N, x) M === [N/x]M *)
-  val subst : abt * variable -> abt -> abt
-
-  (* metasubst (E, m) M === [E/m]M.
-   * Note that substitution of metavariables automatically
-   * instantiates the bound variables and symbols of the abstraction E
-   * with the operands of applications of the metavariable m. This
-   * operation is derived from Kevin Watkins' method of hereditary
-   * substitution as invented for the Concurrent Logical Framework.
+  (* Substitution of metavariables instantiates the bound variables and
+   * symbols of the abstraction E with the operands of applications of
+   * the metavariable. This operation is related to Kevin Watkins' method
+   * of hereditary substitution as invented for the Concurrent Logical Framework.
    *)
   val metasubst : abs * metavariable -> abt -> abt
-
-  (* rename (v, u) M === {v/u}M *)
+  val subst : abt * variable -> abt -> abt
   val rename : symbol * symbol -> abt -> abt
 
   (* Patterns for abstract binding trees. *)

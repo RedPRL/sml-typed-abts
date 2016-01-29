@@ -27,11 +27,6 @@ struct
   type operator = symbol Operator.t
   type 'a spine = 'a Spine.t
 
-  type metactx = valence MetaCtx.dict
-  type varctx = sort VarCtx.dict
-  type symctx = sort SymCtx.dict
-
-
   structure LN =
   struct
     local structure S = LocallyNameless (Coord) in open S end
@@ -51,6 +46,14 @@ struct
     | APP of LN.operator * abs spine
     | META_APP of (metavariable * valence) * (LN.symbol * sort) spine * abt spine
   and abs = ABS of (symbol * sort) spine * (variable * sort) spine * abt
+
+  type metactx = valence MetaCtx.dict
+  type varctx = sort VarCtx.dict
+  type symctx = sort SymCtx.dict
+
+  type metaenv = abs MetaCtx.dict
+  type varenv = abt VarCtx.dict
+  type symenv = symbol SymCtx.dict
 
   fun mapAbs f (ABS (us, xs, M)) =
     ABS (us, xs, f M)
