@@ -122,9 +122,7 @@ struct
   structure Ast = Ast (structure Operator = O and Metavariable = M)
   structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavariable = M and CharSet = GreekCharSet)
 
-  structure MC = Metacontext (structure Metavariable = M structure Valence = O.Arity.Valence)
-
-  structure Abt = Abt (structure Operator = O and Metavariable = M and Metacontext = MC and Variable = V and Symbol = I)
+  structure Abt = Abt (structure Operator = O and Metavariable = M and Variable = V and Symbol = I)
   structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
 
   structure ShowAbt = DebugShowAbt (Abt)
@@ -161,7 +159,7 @@ struct
                         Sum.INR ast => ast
                       | Sum.INL err => raise Fail err
                  val (_, tau) = O.arity theta
-                 val abt = AstToAbt.convert MC.empty (ast, tau)
+                 val abt = AstToAbt.convert MetaCtx.empty (ast, tau)
                in
                  print (ShowAbt.toString abt ^ "\n\n")
                end
