@@ -58,56 +58,49 @@ struct
 
   structure Spine = Abt.Operator.Arity.Valence.Spine
 
-  structure NameEnv =
-  struct
-    structure Dict = SplayDict (structure Key = StringOrdered)
-    open Dict
+  structure NameEnv = SplayDict (structure Key = StringOrdered)
 
-    type 'a t = 'a dict
-    fun fromList xs =
-      List.foldl (fn ((n, x), rho) => insert rho n x) empty xs
-  end
-
-  fun variable Vs x =
-    NameEnv.lookup Vs x
+  fun variable vnames x =
+    NameEnv.lookup vnames x
     handle _ =>
       Abt.Variable.named x
 
-  fun symbol Ss u =
-    NameEnv.lookup Ss u
+  fun symbol snames u =
+    NameEnv.lookup snames u
     handle _ =>
       Abt.Symbol.named u
 
-  fun convertOpen Th (Ss, Vs) (m, tau) =
+  fun convertOpen psi (snames, vnames) (m, tau) =
     case m of
-         Ast.` x => Abt.check Th (Abt.` (variable Vs x), tau)
+         Ast.` x => Abt.check psi (Abt.` (variable vnames x), tau)
        | Ast.$ (theta, es) =>
           let
             val (vls, _) = Abt.Operator.arity theta
-            val theta' = Abt.Operator.map (symbol Ss) theta
-            val es' = Spine.Pair.mapEq (convertOpenAbs Th (Ss, Vs)) (es, vls)
+            val theta' = Abt.Operator.map (symbol snames) theta
+            val es' = Spine.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
           in
-            Abt.check Th (Abt.$ (theta', es'), tau)
+            Abt.check psi (Abt.$ (theta', es'), tau)
           end
        | Ast.$# (mv, (us, ms)) =>
            let
-             val ((_, vsorts), _) = Abt.Metacontext.lookup Th mv
-             val us' = Spine.map (symbol Ss) us
-             val ms' = Spine.Pair.mapEq (convertOpen Th (Ss, Vs)) (ms, vsorts)
+             val ((_, vsorts), _) = Abt.MetaCtx.lookup psi mv
+             val us' = Spine.map (symbol snames) us
+             val ms' = Spine.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
            in
-             Abt.check Th (Abt.$# (mv, (us', ms')), tau)
+             Abt.check psi (Abt.$# (mv, (us', ms')), tau)
            end
-  and convertOpenAbs Th (Ss, Vs) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
+
+  and convertOpenAbs psi (snames, vnames) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
     let
       val ((ssorts, vsorts), tau) = vl
       val us' = Spine.map Abt.Symbol.named us
       val xs' = Spine.map Abt.Variable.named xs
-      val Ss' = Spine.foldr (fn ((u, u'), Ss') => NameEnv.insert Ss' u u') Ss (Spine.Pair.zipEq (us, us'))
-      val Vs' = Spine.foldr (fn ((x, x'), Vs') => NameEnv.insert Vs' x x') Vs (Spine.Pair.zipEq (xs, xs'))
+      val snames' = Spine.foldr (fn ((u, u'), snames') => NameEnv.insert snames' u u') snames (Spine.Pair.zipEq (us, us'))
+      val vnames' = Spine.foldr (fn ((x, x'), vnames') => NameEnv.insert vnames' x x') vnames (Spine.Pair.zipEq (xs, xs'))
     in
-      Abt.\ ((us', xs'), convertOpen Th (Ss', Vs') (m, tau))
+      Abt.\ ((us', xs'), convertOpen psi (snames', vnames') (m, tau))
     end
 
-  fun convert Th m =
-    convertOpen Th (NameEnv.empty, NameEnv.empty) m
+  fun convert psi m =
+    convertOpen psi (NameEnv.empty, NameEnv.empty) m
 end

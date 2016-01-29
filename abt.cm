@@ -8,19 +8,21 @@ Library
   signature SORT
   signature SPINE
   signature ARITY
-  signature METACONTEXT
+  signature CONTEXT_UTIL
 
   functor Symbol
   structure StringPresymbol
   structure ListSpine
   functor Valence
   functor Arity
-  functor Metacontext
+  functor ListArity
+  functor ContextUtil
   functor Abt
   functor Ast
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
+  functor SimpleOperator
 
   signature AST_TO_ABT
   functor AstToAbt
@@ -33,8 +35,8 @@ is
   src/symbol.sig
   src/symbol.fun
 
-  src/context.sig
-  src/context.fun
+  src/context_util.sig
+  src/context_util.fun
 
   src/sort.sig
   src/valence.sig
@@ -42,6 +44,7 @@ is
   src/spine.sml
   src/arity.sig
   src/operator.sig
+  src/operator.fun
   src/ast.sig
   src/abt.sig
   src/show_abt.fun

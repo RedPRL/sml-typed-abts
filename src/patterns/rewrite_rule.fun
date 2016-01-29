@@ -19,12 +19,13 @@ struct
    * metavariable context induced by the definiendum *)
   fun into (p ~> m) =
     let
-      val (_, Theta) = Pattern.out p
-      val fvs = Abt.freeVariables m
+      val (_, psi) = Pattern.out p
+      val gamma = Abt.varctx m
     in
-      case fvs of
-           [] => RULE (p ~> Abt.check Theta (Abt.infer m))
-         | _ => raise InvalidRule
+      if Abt.VarCtx.isEmpty gamma then
+        RULE (p ~> Abt.check psi (Abt.infer m))
+      else
+        raise InvalidRule
     end
 
   fun out (RULE r) = r
@@ -44,17 +45,17 @@ struct
      * in order. *)
     fun applyEnv env m =
       let
-        val Theta = Abt.metacontext m
+        val psi = Abt.metactx m
       in
-        if Metacontext.isEmpty Theta then
+        if MetaCtx.isEmpty psi then
           m
         else
-          foldl (substMetavar Theta env) m (Metacontext.toList Theta)
+          foldl (substMetavar psi env) m (MetaCtx.toList psi)
       end
-    and substMetavar Theta env ((mv, vl), m) =
+    and substMetavar psi env ((mv, vl), m) =
       let
         val (xs, us) \ m' = Env.lookup env mv
-        val e = Abt.checkb Theta ((xs, us) \ applyEnv env m', vl)
+        val e = Abt.checkb psi ((xs, us) \ applyEnv env m', vl)
       in
         Abt.metasubst (e, mv) m
       end

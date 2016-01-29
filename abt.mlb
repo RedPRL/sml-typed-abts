@@ -8,8 +8,8 @@ local
   src/symbol.sig
   src/symbol.fun
 
-  src/context.sig
-  src/context.fun
+  src/context_util.sig
+  src/context_util.fun
 
   src/sort.sig
   src/spine.sig
@@ -17,6 +17,7 @@ local
   src/spine.sml
   src/arity.sig
   src/operator.sig
+  src/operator.fun
   src/abt.sig
   src/ast.sig
   src/show_abt.fun
@@ -36,18 +37,20 @@ in
   signature SPINE
   signature VALENCE
   signature ARITY
-  signature METACONTEXT
+  signature CONTEXT_UTIL
 
   functor Symbol
   structure StringPresymbol
   structure ListSpine
   functor Valence
   functor Arity
-  functor Metacontext
+  functor ListArity
+  functor ContextUtil
   functor Abt
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
+  functor SimpleOperator
   functor Ast
   functor AstToAbt
 end

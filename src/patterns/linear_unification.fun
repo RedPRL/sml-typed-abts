@@ -46,7 +46,7 @@ struct
 
   fun unify (pat <*> m) : ren * env =
     let
-      val (ptheta $@ pargs, Theta) = Pattern.out pat
+      val (ptheta $@ pargs, psi) = Pattern.out pat
       val (theta $ es, tau) = Abt.infer m
       fun go [] [] (rho, env) = (rho, env)
         | go (MVAR mv :: pargs) (e :: es) (rho, env) = go pargs es (rho, extendEnv env (mv, e))
