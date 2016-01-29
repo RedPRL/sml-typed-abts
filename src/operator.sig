@@ -12,3 +12,13 @@ sig
   val map : ('i -> 'j) -> 'i t -> 'j t
 end
 
+signature SIMPLE_OPERATOR =
+sig
+  structure Arity : ARITY
+
+  type t
+  val arity : t -> Arity.t
+  val eq : t * t -> bool
+  val toString : t -> string
+end
+

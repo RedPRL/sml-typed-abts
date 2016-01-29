@@ -1,20 +1,20 @@
-signature METACONTEXT =
+signature UNORDERED_CONTEXT =
 sig
   type t
-  type metavariable
-  type valence
+  type key
+  type elem
 
   val isEmpty : t -> bool
-  val toList : t -> (metavariable * valence) list
+  val toList : t -> (key * elem) list
 
   val empty : t
 
   (* raises MergeFailure if the variable is already present with an incompatible
    * valence *)
-  val extend : t -> metavariable * valence -> t
+  val extend : t -> key * elem -> t
 
   (* raises MergeFailure if the variable is already present *)
-  val extendUnique : t -> metavariable * valence -> t
+  val extendUnique : t -> key * elem -> t
 
   (* raises MergeFailure if variables are already present with incompatible
    * valences *)
@@ -23,9 +23,9 @@ sig
   (* raises MergeFailure if variables are already present *)
   val concat: t * t -> t
 
-  val lookup : t -> metavariable -> valence
-  val find : t -> metavariable -> valence option
+  val lookup : t -> key -> elem
+  val find : t -> key -> elem option
 
-  exception MetavariableNotFound
+  exception KeyNotFound
   exception MergeFailure
 end

@@ -20,11 +20,12 @@ struct
   fun into (p ~> m) =
     let
       val (_, Theta) = Pattern.out p
-      val fvs = Abt.freeVariables m
+      val Gamma = Abt.varctx m
     in
-      case fvs of
-           [] => RULE (p ~> Abt.check Theta (Abt.infer m))
-         | _ => raise InvalidRule
+      if Abt.Varctx.isEmpty Gamma then
+        RULE (p ~> Abt.check Theta (Abt.infer m))
+      else
+        raise InvalidRule
     end
 
   fun out (RULE r) = r
@@ -44,12 +45,12 @@ struct
      * in order. *)
     fun applyEnv env m =
       let
-        val Theta = Abt.metacontext m
+        val Theta = Abt.metactx m
       in
-        if Metacontext.isEmpty Theta then
+        if Metactx.isEmpty Theta then
           m
         else
-          foldl (substMetavar Theta env) m (Metacontext.toList Theta)
+          foldl (substMetavar Theta env) m (Metactx.toList Theta)
       end
     and substMetavar Theta env ((mv, vl), m) =
       let

@@ -17,6 +17,7 @@ local
   src/spine.sml
   src/arity.sig
   src/operator.sig
+  src/operator.fun
   src/abt.sig
   src/ast.sig
   src/show_abt.fun
@@ -36,18 +37,20 @@ in
   signature SPINE
   signature VALENCE
   signature ARITY
-  signature METACONTEXT
+  signature UNORDERED_CONTEXT
 
   functor Symbol
   structure StringPresymbol
   structure ListSpine
   functor Valence
   functor Arity
-  functor Metacontext
+  functor ListArity
+  functor UnorderedContext
   functor Abt
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
+  functor SimpleOperator
   functor Ast
   functor AstToAbt
 end

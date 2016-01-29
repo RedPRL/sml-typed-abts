@@ -10,7 +10,7 @@ struct
     | PAT of 'a
   and 'a view = $@ of operator * 'a argument spine
 
-  datatype pattern = IN of pattern view * metacontext
+  datatype pattern = IN of pattern view * metactx
 
   infix $@
 
@@ -24,17 +24,17 @@ struct
   exception InvalidPattern of Error.t
 
   fun extend Theta (mv, vl) =
-    Metacontext.extend Theta (mv, vl)
-    handle Metacontext.MergeFailure => raise InvalidPattern Error.NON_LINEAR
+    Metactx.extend Theta (mv, vl)
+    handle Metactx.MergeFailure => raise InvalidPattern Error.NON_LINEAR
 
   fun concat (Theta, Theta') =
-    Metacontext.concat (Theta, Theta')
-    handle Metacontext.MergeFailure => raise InvalidPattern Error.NON_LINEAR
+    Metactx.concat (Theta, Theta')
+    handle Metactx.MergeFailure => raise InvalidPattern Error.NON_LINEAR
 
   fun into (theta $@ args) =
     let
       val (vls, tau) = Operator.arity theta
-      fun go [] [] = Metacontext.empty
+      fun go [] [] = Metactx.empty
         | go (MVAR mv :: args) (vl :: vls) = extend (go args vls) (mv, vl)
         | go (PAT p :: args) ((([], []), tau) :: vls) =
             let

@@ -19,3 +19,9 @@ struct
         "(" ^ valences' ^ ")" ^ sigma'
       end
 end
+
+functor ListArity (S : SORT) : ARITY =
+  Arity
+    (Valence
+      (structure Sort = S
+       structure Spine = ListSpine))

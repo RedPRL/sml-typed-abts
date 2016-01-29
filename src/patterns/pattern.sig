@@ -2,7 +2,7 @@ signature PATTERN =
 sig
   type operator
   type metavariable
-  type metacontext
+  type metactx
   type 'a spine
 
   (* A pattern is a description of a set of ABTs. It describes the
@@ -24,8 +24,8 @@ sig
       MVAR of metavariable
     | PAT of 'a
 
-  (* When [pat] is a pattern with metacontext [Θ] and [m] is a closed term in
-   * metacontext [Θ], then [p ~> m] is a rewrite rule. *)
+  (* When [pat] is a pattern with metactx [Θ] and [m] is a closed term in
+   * metactx [Θ], then [p ~> m] is a rewrite rule. *)
   datatype 'a view = $@ of operator * 'a argument spine
 
   structure Error :
@@ -41,7 +41,7 @@ sig
   val into : pattern view -> pattern
 
   (* Inspect a linear abt pattern and its metavariable context *)
-  val out : pattern -> pattern view * metacontext
+  val out : pattern -> pattern view * metactx
 end
 
 signature LIST_ABT =
@@ -56,6 +56,6 @@ sig
   structure Pattern : PATTERN
     where type operator = Abt.operator
     where type metavariable = Abt.metavariable
-    where type metacontext = Abt.metacontext
+    where type metactx = Abt.metactx
     where type 'a spine = 'a Abt.spine
 end

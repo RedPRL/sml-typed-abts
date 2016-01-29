@@ -39,13 +39,13 @@ sig
 
   (* convert a closed ast to an abt *)
   val convert
-    : Abt.metacontext
+    : Abt.metactx
     -> Ast.ast * Abt.sort
     -> Abt.abt
 
   (* convert an open ast to an abt *)
   val convertOpen
-    : Abt.metacontext
+    : Abt.metactx
     -> Abt.symbol NameEnv.t * Abt.variable NameEnv.t
     -> Ast.ast * Abt.sort
     -> Abt.abt

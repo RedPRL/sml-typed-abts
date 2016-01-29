@@ -1,17 +1,17 @@
-functor Metacontext
-  (structure Metavariable : PRESYMBOL
-   structure Valence : EQ
-  ) :> METACONTEXT
-         where type metavariable = Metavariable.t
-           and type valence = Valence.t =
+functor UnorderedContext
+  (structure Key : PRESYMBOL
+   structure Elem : EQ
+  ) :> UNORDERED_CONTEXT
+         where type key = Key.t
+           and type elem = Elem.t =
 struct
-  type metavariable = Metavariable.t
-  type valence = Valence.t
+  type key = Key.t
+  type elem = Elem.t
 
-  structure Ctx = SplayDict (structure Key = Metavariable)
-  type t = valence Ctx.dict
+  structure Ctx = SplayDict (structure Key = Key)
+  type t = elem Ctx.dict
 
-  exception MetavariableNotFound
+  exception KeyNotFound
   exception MergeFailure
 
   val empty = Ctx.empty
@@ -19,7 +19,7 @@ struct
   val toList = Ctx.toList
 
   fun merge (v, v') =
-    if Valence.eq (v, v') then
+    if Elem.eq (v, v') then
       v'
     else
       raise MergeFailure
@@ -42,7 +42,7 @@ struct
 
   fun lookup Th m =
     Ctx.lookup Th m
-      handle _ => raise MetavariableNotFound
+      handle _ => raise KeyNotFound
 
   val find = Ctx.find
 
