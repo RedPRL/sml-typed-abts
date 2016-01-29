@@ -58,15 +58,7 @@ struct
 
   structure Spine = Abt.Operator.Arity.Valence.Spine
 
-  structure NameEnv =
-  struct
-    structure Dict = SplayDict (structure Key = StringOrdered)
-    open Dict
-
-    type 'a t = 'a dict
-    fun fromList xs =
-      List.foldl (fn ((n, x), rho) => insert rho n x) empty xs
-  end
+  structure NameEnv = SplayDict (structure Key = StringOrdered)
 
   fun variable vnames x =
     NameEnv.lookup vnames x
