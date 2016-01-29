@@ -59,6 +59,9 @@ sig
   (* Modify the term inside an abstraction*)
   val mapAbs : (abt -> abt) -> abs -> abs
 
+  (* Surround a term with a nullary abstraction *)
+  val abtToAbs : abt -> abs
+
   (* Decide alpha equivalence of two terms *)
   val eq : abt * abt -> bool
 

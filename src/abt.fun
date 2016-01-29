@@ -55,8 +55,11 @@ struct
   type varenv = abt VarCtx.dict
   type symenv = symbol SymCtx.dict
 
-  fun mapAbs f (ABS (us, xs, M)) =
-    ABS (us, xs, f M)
+  fun mapAbs f (ABS (us, xs, m)) =
+    ABS (us, xs, f m)
+
+  fun abtToAbs m =
+    ABS (Spine.empty (), Spine.empty (), m)
 
   (* Patterns for abstract binding trees. *)
   datatype 'a view =
