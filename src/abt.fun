@@ -174,44 +174,6 @@ struct
   fun mapAbs f (ABS (us, xs, M)) =
     ABS (us, xs, f M)
 
-  fun subst (n, x) =
-    fn m as V (LN.FREE y, sigma) => if Variable.eq (x, y) then n else m
-     | m as V _ => m
-     | APP (theta, es) =>
-         APP (theta, Spine.map (mapAbs (subst (n, x))) es)
-     | META_APP (m, us, ms) =>
-         META_APP (m, us, Spine.map (subst (n, x)) ms)
-
-  (* This is implemented similarly to how you might expect
-   * to implement substitution. Moreover, because bound symbols
-   * are distinguished from free ones we needn't be scared of
-   * shadowing
-   *)
-  fun rename (v, u) =
-    let
-      val rec go =
-        fn V x => V x
-         | APP (theta, es) =>
-           let
-             fun rho u' = if Symbol.eq (u, u') then v else u'
-             val theta' = Operator.map (LN.map rho) theta
-           in
-             APP (theta', Spine.map (mapAbs go) es)
-           end
-         | META_APP (x, us, ms) =>
-             let
-               fun rho u' = if Symbol.eq (u, u') then v else u'
-               fun rho' (l, s) = (LN.map rho l, s)
-             in
-               META_APP (x, Spine.map rho' us, Spine.map go ms)
-             end
-    in
-      fn m =>
-        case SymCtx.find (symctx m) v of
-            SOME _ => raise Fail "Renaming fails to preserve apartness"
-          | NONE => go m
-    end
-
   (* This function takes a variable and its sort and switches it to a
    * bound variable. In this process we also
    *
@@ -317,29 +279,57 @@ struct
     val liberateSymbols = foldStar liberateSymbol
   end
 
-  fun metasubst (e, mv) =
+  fun metasubstEnv rho =
     fn m as V _ => m
      | APP (theta, es) =>
-         APP (theta, Spine.map (mapAbs (metasubst (e, mv))) es)
-     | META_APP ((mv', valence), us, ms) =>
-         if Metavariable.eq (mv, mv') then
-           let
-             (* Once we find the metavariable, we unbind all the
-              * variables/symbols the supplied abstraction binds
-              * and then substitute in the arguments. There's
-              * no substitution of the symbols, instead when we
-              * liberate them they are renamed to the right things
-              *)
-             val ABS (upsilon, gamma, m) = e
-             val us = Spine.map #1 upsilon
-             val xs = Spine.map #1 gamma
-             val m' = liberateVariables xs (liberateSymbols us m)
-             val env = Spine.Pair.zipEq (ms, xs)
-           in
-             Spine.foldr (fn (s, M) => subst s m) m' env
-           end
-         else
-           META_APP ((mv', valence), us, Spine.map (metasubst (e, mv)) ms)
+         APP (theta, Spine.map (mapAbs (metasubstEnv rho)) es)
+    | META_APP ((mv, valence), us, ms) =>
+        let
+          val ms' = Spine.map (metasubstEnv rho) ms
+        in
+          case MetaCtx.find rho mv of
+              SOME (ABS (upsilon, gamma, m)) =>
+                let
+                  val us = Spine.map #1 upsilon
+                  val xs = Spine.map #1 gamma
+                  val m' = liberateVariables xs (liberateSymbols us m)
+                  val rho' =
+                    Spine.foldr
+                      (fn ((x,m), rho) => VarCtx.insert rho x m)
+                      VarCtx.empty
+                      (Spine.Pair.zipEq (xs, ms'))
+                in
+                  substEnv rho' m'
+                end
+            | NONE => META_APP ((mv, valence), us, ms')
+        end
+
+  and substEnv rho =
+    fn m as V (LN.FREE x, sigma) => getOpt (VarCtx.find rho x, m)
+     | m as V _ => m
+     | APP (theta, es) => APP (theta, Spine.map (mapAbs (substEnv rho)) es)
+     | META_APP (m, us, ms) => META_APP (m, us, Spine.map (substEnv rho) ms)
+
+  fun renameEnv rho =
+    fn m as V _ => m
+     | APP (theta, es) =>
+         let
+           fun ren u = getOpt (SymCtx.find rho u, u)
+           val theta' = Operator.map (LN.map ren) theta
+         in
+           APP (theta', Spine.map (mapAbs (renameEnv rho)) es)
+         end
+     | META_APP (x, us, ms) =>
+         let
+           fun ren u = getOpt (SymCtx.find rho u, u)
+           fun ren' (l,s) = (LN.map ren l, s)
+         in
+           META_APP (x, Spine.map ren' us, Spine.map (renameEnv rho) ms)
+         end
+
+  fun subst (n, x) = substEnv (VarCtx.insert VarCtx.empty x n)
+  fun metasubst (e, mv) = metasubstEnv (MetaCtx.insert MetaCtx.empty mv e)
+  fun rename (v, u) = renameEnv (SymCtx.insert SymCtx.empty u v)
 
   fun checkb psi ((us, xs) \ m, ((ssorts, vsorts), sigma)) =
     let

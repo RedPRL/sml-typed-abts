@@ -68,10 +68,14 @@ sig
   val symctx : abt -> symctx
 
   (* Substitution of metavariables instantiates the bound variables and
-   * symbols of the abstraction E with the operands of applications of
+   * symbols of the abstraction with the operands of applications of
    * the metavariable. This operation is related to Kevin Watkins' method
    * of hereditary substitution as invented for the Concurrent Logical Framework.
    *)
+  val metasubstEnv : metaenv -> abt -> abt
+  val substEnv : varenv -> abt -> abt
+
+  (* Below we provide unary versions of the simultaneous substitution operations *)
   val metasubst : abs * metavariable -> abt -> abt
   val subst : abt * variable -> abt -> abt
   val rename : symbol * symbol -> abt -> abt
