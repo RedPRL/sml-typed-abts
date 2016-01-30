@@ -18,6 +18,7 @@ Library
   functor ListArity
   functor ContextUtil
   functor Abt
+  functor SimpleAbt
   functor Ast
   functor ShowAbt
   functor PlainShowAbt

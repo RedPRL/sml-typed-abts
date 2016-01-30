@@ -27,9 +27,9 @@ sig
   type variable = Variable.t
   type metavariable = Metavariable.t
   type operator = symbol Operator.t
-  type sort = Operator.Arity.Valence.sort
+  type sort = Operator.Arity.sort
   type valence = Operator.Arity.valence
-  type 'a spine = 'a Operator.Arity.Valence.Spine.t
+  type 'a spine = 'a Operator.Arity.spine
 
   structure MetaCtx : DICT where type key = metavariable
   structure VarCtx : DICT where type key = variable
@@ -77,6 +77,7 @@ sig
    *)
   val metasubstEnv : metaenv -> abt -> abt
   val substEnv : varenv -> abt -> abt
+  val renameEnv : symenv -> abt -> abt
 
   (* Below we provide unary versions of the simultaneous substitution operations *)
   val metasubst : abs * metavariable -> abt -> abt
@@ -85,7 +86,7 @@ sig
 
   (* Patterns for abstract binding trees. *)
 
-  (* A bview is a view of a abstraction. This is NOT an abt;
+  (* A [bview] is a view of a abstraction. This is NOT an abt;
    * a binding is a spine of symbols and variables as well as the
    * underlying 'a (usually an abt) that uses them.
    *)
@@ -106,11 +107,8 @@ sig
   val map : ('a -> 'b) -> 'a view -> 'b view
   val mapb : ('a -> 'b) -> 'a bview -> 'b bview
 
-  structure BFunctor : FUNCTOR
-    where type 'a t = 'a bview
-
-  (* The [check] operation corresponds to the [into] operation found in the
-   * Carnegie Mellon ABT libraries.
+  (* Note: The [check] operation corresponds to the [into] operation found in
+   * the Carnegie Mellon ABT libraries.
    *)
 
   (* construct an abt from a view by checking it against a sort. *)

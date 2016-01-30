@@ -47,6 +47,7 @@ in
   functor ListArity
   functor ContextUtil
   functor Abt
+  functor SimpleAbt
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt

@@ -4,7 +4,6 @@ functor Abt
    structure Metavariable : PRESYMBOL
    structure Operator : OPERATOR) : ABT =
 struct
-
   structure Symbol = Symbol
     and Variable = Variable
     and Metavariable = Metavariable
@@ -231,26 +230,26 @@ struct
          META_APP (x, us, Spine.map (liberateVariable v coord) ms)
 
   fun liberateSymbol u coord =
-    fn e as V _ => e
-     | APP (theta, es) =>
-         let
-           fun rho (LN.BOUND coord') =
-               if Coord.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
-             | rho u' = u'
-           val theta' = Operator.map rho theta
-         in
-           APP (theta', Spine.map (liftTraverseAbs (liberateSymbol u) coord) es)
-         end
-     | META_APP (x, us, ms) =>
-         let
-           fun rho (LN.BOUND coord') =
-               if Coord.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
-             | rho u' = u'
-           fun rho' (l, s) = (rho l, s)
-           val vs = Spine.map rho' us
-         in
-           META_APP (x, vs, Spine.map (liberateSymbol u coord) ms)
-         end
+    let
+      fun rho (LN.BOUND coord') = if Coord.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
+        | rho u' = u'
+    in
+      fn e as V _ => e
+       | APP (theta, es) =>
+           let
+             val theta' = Operator.map rho theta
+             val fs = Spine.map (liftTraverseAbs (liberateSymbol u) coord) es
+           in
+             APP (theta', fs)
+           end
+       | META_APP (x, us, ms) =>
+           let
+             val vs = Spine.map (fn (l,s) => (rho l, s)) us
+             val ns = Spine.map (liberateSymbol u coord) ms
+           in
+            META_APP (x, vs, ns)
+           end
+    end
 
   (* A pluralized version of all of the above functions. The foldStar
    * machinery is used to propogate the coord correctly through
@@ -408,19 +407,14 @@ struct
   val check' = check MetaCtx.empty
   val checkb' = checkb MetaCtx.empty
 
-  structure BFunctor =
-  struct
-    type 'a t = 'a bview
-    fun map f ((us, xs) \ M) =
-      (us, xs) \ f M
-  end
 
-  val mapb = BFunctor.map
+  fun mapb f ((us, xs) \ M) =
+    (us, xs) \ f M
 
   fun map f =
     fn `x => `x
      | theta $ es =>
-         theta $ Spine.map (BFunctor.map f) es
+         theta $ Spine.map (mapb f) es
      | mv $# (us, ms) =>
          mv $# (us, Spine.map f ms)
 
@@ -441,3 +435,9 @@ struct
     and eqAbs (ABS (_, _, e), ABS (_, _, e')) = eq (e, e')
   end
 end
+
+functor SimpleAbt (Operator : OPERATOR) =
+  Abt (structure Symbol = Symbol ()
+       structure Variable = Symbol ()
+       structure Metavariable = Symbol ()
+       structure Operator = Operator)
