@@ -432,7 +432,7 @@ struct
             andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Symbol.eq (x,y)) (us, us')
             andalso Spine.Pair.allEq eq (es, es')
       | eq _ = false
-    and eqAbs (ABS (_, _, e), ABS (_, _, e')) = eq (e, e')
+    and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
   end
 end
 

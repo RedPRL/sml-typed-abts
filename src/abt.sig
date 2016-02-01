@@ -64,6 +64,7 @@ sig
 
   (* Decide alpha equivalence of two terms *)
   val eq : abt * abt -> bool
+  val eqAbs : abs * abs -> bool
 
   (* Calculating free metavariables, free variables and free symbols *)
   val metactx : abt -> metactx
