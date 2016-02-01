@@ -10,6 +10,5 @@ sig
   val into : view -> rule
   val out : rule -> view
 
-  exception RuleInapplicable
   val compile : rule -> term -> term
 end

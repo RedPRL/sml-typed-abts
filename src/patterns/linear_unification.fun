@@ -3,12 +3,6 @@ struct
   open P
   open Abt Pattern
 
-  structure Env = SplayDict (structure Key = Abt.Metavariable)
-  structure Ren = SplayDict (structure Key = Abt.Symbol)
-
-  type env = abt bview Env.dict
-  type ren = Abt.symbol Ren.dict
-
   exception UnificationFailure
 
   datatype match = <*> of pattern * abt
@@ -26,7 +20,7 @@ struct
         val us = Operator.support ptheta
         val vs = Operator.support theta
       in
-        ListPair.foldlEq (fn ((u, _), (v, _), rho) => Ren.insert rho u v) Ren.empty (us, vs)
+        ListPair.foldlEq (fn ((u, _), (v, _), rho) => SymCtx.insert rho u v) SymCtx.empty (us, vs)
       end
     else
       raise UnificationFailure
@@ -37,27 +31,38 @@ struct
     else
       raise UnificationFailure
 
-  fun extendEnv rho (mv, e) =
-    Env.insertMerge rho mv e (fn _ => raise UnificationFailure)
-  fun concatEnv (rho, rho') =
-    Env.union rho rho' (fn _ => raise UnificationFailure)
-  fun concatRen (rho, rho') =
-    Ren.union rho rho' (fn (u, v, v') => if Symbol.eq (v, v') then v else raise UnificationFailure)
+  structure SymEnvUtil = ContextUtil (structure Ctx = SymCtx and Elem = Symbol)
 
-  fun unify (pat <*> m) : ren * env =
+  fun extendEnv rho (mv, e) =
+    MetaCtx.insertMerge rho mv e (fn _ => raise UnificationFailure)
+  fun concatEnv (rho, rho') =
+    MetaCtx.union rho rho' (fn _ => raise UnificationFailure)
+
+  fun concatRen (rho, rho') =
+    SymEnvUtil.union (rho, rho')
+      handle _ => raise UnificationFailure
+
+  fun unify (pat <*> m) : symenv * metaenv =
     let
       val (ptheta $@ pargs, psi) = Pattern.out pat
       val (theta $ es, tau) = Abt.infer m
-      fun go [] [] (rho, env) = (rho, env)
-        | go (MVAR mv :: pargs) (e :: es) (rho, env) = go pargs es (rho, extendEnv env (mv, e))
-        | go (PAT pat :: pargs) ((([], []) \ m) :: es) (rho, env) =
+      val (vls, _) = Abt.Operator.arity theta
+      fun go [] ([], []) (rho, env) = (rho, env)
+        | go (MVAR mv :: pargs) (e :: es, vl :: vls) (rho, env) =
+            let
+              val _ \ m = e
+              val psi = metactx m
+            in
+              go pargs (es, vls) (rho, extendEnv env (mv, checkb psi (e,vl)))
+            end
+        | go (PAT pat :: pargs) ((([], []) \ m) :: es, vl :: vls) (rho, env) =
             let
               val (rho', env') = unify (pat <*> m)
             in
-              go pargs es (concatRen (rho, rho'), concatEnv (env, env'))
+              go pargs (es, vls) (concatRen (rho, rho'), concatEnv (env, env'))
             end
         | go _ _ _ = raise UnificationFailure
-      val (rho, env) = go pargs es (Ren.empty, Env.empty)
+      val (rho, env) = go pargs (es, vls) (SymCtx.empty, MetaCtx.empty)
     in
       (concatRen (matchOperator (ptheta, theta), rho), env)
     end

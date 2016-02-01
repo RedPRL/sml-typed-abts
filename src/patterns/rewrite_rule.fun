@@ -30,45 +30,10 @@ struct
 
   fun out (RULE r) = r
 
-  exception RuleInapplicable
-
-  local
-    open Abt
-    infix $ $# \
-    structure Valence = Operator.Arity.Valence
-    structure Spine = Valence.Spine
-    structure Sort = Valence.Sort
-
-    (* we recursively wring out all the metavariables by looking them up in the
-     * environment. Another option would be to replace the environment by a
-     * tree of metavariable substitutions, and apply them from the leaves down
-     * in order. *)
-    fun applyEnv env m =
-      let
-        val psi = Abt.metactx m
-      in
-        if MetaCtx.isEmpty psi then
-          m
-        else
-          foldl (substMetavar psi env) m (MetaCtx.toList psi)
-      end
-    and substMetavar psi env ((mv, vl), m) =
-      let
-        val (xs, us) \ m' = Env.lookup env mv
-        val e = Abt.checkb psi ((xs, us) \ applyEnv env m', vl)
-      in
-        Abt.metasubst (e, mv) m
-      end
-
-    fun applyRen rho m =
-      Ren.foldl (fn (u, v, m') => Abt.rename (u, v) m') m rho
-
-  in
-    fun compile (RULE (pat ~> m)) n =
-      let
-        val (rho, env) = unify (pat <*> n)
-      in
-        applyRen rho (applyEnv env m)
-      end
-  end
+  fun compile (RULE (pat ~> m)) n =
+    let
+      val (rho, env) = unify (pat <*> n)
+    in
+      Abt.renameEnv rho (Abt.metasubstEnv env m)
+    end
 end
