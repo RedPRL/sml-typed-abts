@@ -427,13 +427,21 @@ struct
     fun eq (V (v, _), V (v', _)) = LN.eq Variable.eq (v, v')
       | eq (APP (theta, es), APP (theta', es')) =
           OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eqAbs (es, es')
-      | eq (META_APP ((mv, _), us, es), META_APP ((mv', _), us', es')) =
+      | eq (META_APP ((mv, _), us, ms), META_APP ((mv', _), us', ms')) =
           Metavariable.eq (mv, mv')
             andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Symbol.eq (x,y)) (us, us')
-            andalso Spine.Pair.allEq eq (es, es')
+            andalso Spine.Pair.allEq eq (ms, ms')
       | eq _ = false
     and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
   end
+
+  fun mapSubterms f =
+    fn V x => V x
+     | APP (theta, es) => APP (theta, Spine.map (mapAbs f) es)
+     | META_APP ((mv, vl), us, ms) => META_APP ((mv, vl), us, Spine.map f ms)
+
+  fun deepMapSubterms f m =
+    mapSubterms (deepMapSubterms f) m
 end
 
 functor SimpleAbt (Operator : OPERATOR) =

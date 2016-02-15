@@ -62,6 +62,11 @@ sig
   (* Surround a term with a nullary abstraction *)
   val abtToAbs : abt -> abs
 
+  (* apply a transformation to each immediate subterm *)
+  val mapSubterms : (abt -> abt) -> abt -> abt
+  (* apply a transformation to all subterms recursively *)
+  val deepMapSubterms : (abt -> abt) -> abt -> abt
+
   (* Decide alpha equivalence of two terms *)
   val eq : abt * abt -> bool
   val eqAbs : abs * abs -> bool
