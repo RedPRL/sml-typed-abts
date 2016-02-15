@@ -68,7 +68,7 @@ struct
   type varenv = abt VarCtx.dict
   type symenv = symbol SymCtx.dict
 
-  fun mapAbs f (ABS (us, xs, m)) =
+  fun mapAbs_ f (ABS (us, xs, m)) =
     ABS (us, xs, f m)
 
   fun abtToAbs m =
@@ -184,11 +184,12 @@ struct
       end
   end
 
-  fun liftTraverseAbs f coord (ABS (us, xs, M)) =
-    ABS (us, xs, f (Coord.shiftRight coord) M)
-
-  fun mapAbs f (ABS (us, xs, M)) =
+  fun mapAbs_ f (ABS (us, xs, M)) =
     ABS (us, xs, f M)
+
+  fun liftTraverseAbs f coord =
+    mapAbs_ (f (Coord.shiftRight coord))
+
 
   (* This function takes a variable and its sort and switches it to a
    * bound variable. In this process we also
@@ -295,57 +296,6 @@ struct
     val liberateSymbols = foldStar liberateSymbol
   end
 
-  fun metasubstEnv rho =
-    fn m as V _ => m
-     | APP (theta, es) =>
-         APP (theta, Spine.map (mapAbs (metasubstEnv rho)) es)
-    | META_APP ((mv, valence), us, ms) =>
-        let
-          val ms' = Spine.map (metasubstEnv rho) ms
-        in
-          case MetaCtx.find rho mv of
-              SOME (ABS (upsilon, gamma, m)) =>
-                let
-                  val us = Spine.map #1 upsilon
-                  val xs = Spine.map #1 gamma
-                  val m' = liberateVariables xs (liberateSymbols us m)
-                  val rho' =
-                    Spine.foldr
-                      (fn ((x,m), rho) => VarCtx.insert rho x m)
-                      VarCtx.empty
-                      (Spine.Pair.zipEq (xs, ms'))
-                in
-                  substEnv rho' m'
-                end
-            | NONE => META_APP ((mv, valence), us, ms')
-        end
-
-  and substEnv rho =
-    fn m as V (LN.FREE x, sigma) => getOpt (VarCtx.find rho x, m)
-     | m as V _ => m
-     | APP (theta, es) => APP (theta, Spine.map (mapAbs (substEnv rho)) es)
-     | META_APP (m, us, ms) => META_APP (m, us, Spine.map (substEnv rho) ms)
-
-  fun renameEnv rho =
-    fn m as V _ => m
-     | APP (theta, es) =>
-         let
-           fun ren u = getOpt (SymCtx.find rho u, u)
-           val theta' = Operator.map (LN.map ren) theta
-         in
-           APP (theta', Spine.map (mapAbs (renameEnv rho)) es)
-         end
-     | META_APP (x, us, ms) =>
-         let
-           fun ren u = getOpt (SymCtx.find rho u, u)
-           fun ren' (l,s) = (LN.map ren l, s)
-         in
-           META_APP (x, Spine.map ren' us, Spine.map (renameEnv rho) ms)
-         end
-
-  fun subst (n, x) = substEnv (VarCtx.insert VarCtx.empty x n)
-  fun metasubst (e, mv) = metasubstEnv (MetaCtx.insert MetaCtx.empty mv e)
-  fun rename (v, u) = renameEnv (SymCtx.insert SymCtx.empty u v)
 
   fun checkb psi ((us, xs) \ m, ((ssorts, vsorts), sigma)) =
     let
@@ -422,8 +372,16 @@ struct
   val checkb' = checkb MetaCtx.empty
 
 
-  fun mapb f ((us, xs) \ M) =
-    (us, xs) \ f M
+  fun mapb f ((us, xs) \ m) =
+    (us, xs) \ f m
+
+  fun mapAbs f abs =
+    let
+      val ((us, xs) \ m, vl) = inferb abs
+      val psi = metactx m
+    in
+      checkb psi ((us, xs) \ f m, vl)
+    end
 
   fun map f =
     fn `x => `x
@@ -449,19 +407,79 @@ struct
     and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
   end
 
-  fun mapSubterms f m =
+  fun metasubstEnv rho m =
     let
       val psi = metactx m
       val (view, tau) = infer m
     in
       case view of
-          `x => m
-         | theta $ es => check psi (theta $ Spine.map (mapb f) es, tau)
-         | mv $# (us, ms) => check psi (mv $# (us, Spine.map f ms), tau)
+           `x => m
+         | theta $ es =>
+             check psi (theta $ Spine.map (mapb (metasubstEnv rho)) es, tau)
+         | mv $# (us, ms) =>
+             let
+               val ms' = Spine.map (metasubstEnv rho) ms
+             in
+               case MetaCtx.find rho mv of
+                    NONE =>
+                      check psi (mv $# (us, ms'), tau)
+                  | SOME abs =>
+                      let
+                        val (vs, xs) \ m = outb abs
+                        val srho =
+                          Spine.foldr
+                            (fn ((u, v), r) => SymCtx.insert r u v)
+                            SymCtx.empty
+                            (Spine.Pair.zipEq (us, vs))
+                        val rho' =
+                          Spine.foldr
+                            (fn ((x,m), rho) => VarCtx.insert rho x m)
+                            VarCtx.empty
+                            (Spine.Pair.zipEq (xs, ms'))
+                      in
+                        substEnv rho' (renameEnv srho m)
+                      end
+             end
+    end
+
+  and substEnv rho =
+    fn m as V (LN.FREE x, sigma) => getOpt (VarCtx.find rho x, m)
+     | m as V _ => m
+     | APP (theta, es) => APP (theta, Spine.map (mapAbs_ (substEnv rho)) es)
+     | META_APP (m, us, ms) => META_APP (m, us, Spine.map (substEnv rho) ms)
+
+  and renameEnv rho =
+    fn m as V _ => m
+     | APP (theta, es) =>
+         let
+           fun ren u = getOpt (SymCtx.find rho u, u)
+           val theta' = Operator.map (LN.map ren) theta
+         in
+           APP (theta', Spine.map (mapAbs_ (renameEnv rho)) es)
+         end
+     | META_APP (x, us, ms) =>
+         let
+           fun ren u = getOpt (SymCtx.find rho u, u)
+           fun ren' (l,s) = (LN.map ren l, s)
+         in
+           META_APP (x, Spine.map ren' us, Spine.map (renameEnv rho) ms)
+         end
+
+  fun subst (n, x) = substEnv (VarCtx.insert VarCtx.empty x n)
+  fun metasubst (e, mv) = metasubstEnv (MetaCtx.insert MetaCtx.empty mv e)
+  fun rename (v, u) = renameEnv (SymCtx.insert SymCtx.empty u v)
+
+  fun mapSubterms f m =
+    let
+      val psi = metactx m
+      val (view, tau) = infer m
+    in
+      check psi (map f view, tau)
     end
 
   fun deepMapSubterms f m =
     mapSubterms (f o deepMapSubterms f) m
+
 end
 
 functor SimpleAbt (Operator : OPERATOR) =
