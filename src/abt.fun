@@ -46,6 +46,20 @@ struct
     | META_APP of (metavariable * valence) * (LN.symbol * sort) spine * abt spine
   and abs = ABS of (symbol * sort) spine * (variable * sort) spine * abt
 
+  val rec primToString =
+    fn V (v, _) => LN.toString Variable.toString v
+     | APP (theta, es) =>
+         Operator.toString (LN.toString Symbol.toString) theta
+           ^ "("
+           ^ Spine.pretty primToStringAbs ";" es
+           ^ ")"
+     | META_APP _ => "meta"
+  and primToStringAbs =
+    fn ABS (upsilon, gamma, m) =>
+      (if Spine.isEmpty upsilon then "" else "{" ^ Spine.pretty (Sort.toString o #2) "," upsilon ^ "}")
+      ^ (if Spine.isEmpty upsilon then "" else "[" ^ Spine.pretty (Sort.toString o #2) "," gamma ^ "]")
+      ^ "." ^ primToString m
+
   type metactx = valence MetaCtx.dict
   type varctx = sort VarCtx.dict
   type symctx = sort SymCtx.dict
