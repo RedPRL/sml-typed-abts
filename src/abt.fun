@@ -435,10 +435,16 @@ struct
     and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
   end
 
-  fun mapSubterms f =
-    fn V x => V x
-     | APP (theta, es) => APP (theta, Spine.map (mapAbs f) es)
-     | META_APP ((mv, vl), us, ms) => META_APP ((mv, vl), us, Spine.map f ms)
+  fun mapSubterms f m =
+    let
+      val psi = metactx m
+      val (view, tau) = infer m
+    in
+      case view of
+          `x => m
+         | theta $ es => check psi (theta $ Spine.map (mapb f) es, tau)
+         | mv $# (us, ms) => check psi (mv $# (us, Spine.map f ms), tau)
+    end
 
   fun deepMapSubterms f m =
     mapSubterms (f o deepMapSubterms f) m
