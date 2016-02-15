@@ -441,7 +441,7 @@ struct
      | META_APP ((mv, vl), us, ms) => META_APP ((mv, vl), us, Spine.map f ms)
 
   fun deepMapSubterms f m =
-    mapSubterms (deepMapSubterms f) m
+    mapSubterms (f o deepMapSubterms f) m
 end
 
 functor SimpleAbt (Operator : OPERATOR) =

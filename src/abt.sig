@@ -64,6 +64,7 @@ sig
 
   (* apply a transformation to each immediate subterm *)
   val mapSubterms : (abt -> abt) -> abt -> abt
+
   (* apply a transformation to all subterms recursively *)
   val deepMapSubterms : (abt -> abt) -> abt -> abt
 
