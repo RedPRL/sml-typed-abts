@@ -18,6 +18,8 @@ sig
   val eq : ('a * 'a -> bool) -> 'a t * 'a t -> bool
   val map : ('a -> 'b) -> 'a t -> 'b t
 
+  val toString : ('a -> string) -> 'a t -> string
+
   val pure : 'a -> 'a t
   val bind : ('a -> 'b t) -> 'a t -> 'b t
 

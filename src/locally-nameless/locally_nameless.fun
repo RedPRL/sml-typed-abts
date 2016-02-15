@@ -13,6 +13,9 @@ struct
   fun map f (FREE v) = FREE (f v)
     | map f (BOUND i) = BOUND i
 
+  fun toString f (FREE v) = f v
+    | toString f (BOUND i) = Coord.toString i
+
   fun pure v = FREE v
   fun bind f (FREE v) = f v
     | bind f (BOUND i) = BOUND i

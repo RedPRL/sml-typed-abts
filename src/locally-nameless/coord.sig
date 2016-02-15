@@ -13,4 +13,5 @@ sig
   val shiftDown : t -> t
 
   val eq : t * t -> bool
+  val toString : t -> string
 end
