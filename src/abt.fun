@@ -326,15 +326,15 @@ struct
            (mv $# (us', Ms), tau)
          end
 
-  and inferb (ABS (upsilon, gamma, M)) =
+  and inferb (ABS (upsilon, gamma, m)) =
     let
       val us = Spine.map (Symbol.clone o #1) upsilon
       val xs = Spine.map (Variable.clone o #1) gamma
-      val M' = liberateSymbols us (liberateVariables xs M)
-      val (_, tau) = infer M'
+      val m' = liberateSymbols us (liberateVariables xs m)
+      val (_, tau) = infer m'
       val valence = ((Spine.map #2 upsilon, Spine.map #2 gamma), tau)
     in
-      ((us, xs) \ M',
+      ((us, xs) \ m',
        valence)
     end
 
@@ -464,6 +464,27 @@ struct
          in
            META_APP (x, Spine.map ren' us, Spine.map (renameEnv rho) ms)
          end
+
+  fun unbind abs us ms =
+    let
+      val (vs, xs) \ m = outb abs
+      val srho =
+        Spine.foldr
+          (fn ((v,u), rho) => SymCtx.insert rho v u)
+          SymCtx.empty
+          (Spine.Pair.zipEq (vs, us))
+      val vrho =
+        Spine.foldr
+          (fn ((x,m), rho) => VarCtx.insert rho x m)
+          VarCtx.empty
+          (Spine.Pair.zipEq (xs, ms))
+    in
+      substEnv vrho (renameEnv srho m)
+    end
+
+  fun // (abs, (us, ms)) =
+    unbind abs us ms
+
 
   fun subst (n, x) = substEnv (VarCtx.insert VarCtx.empty x n)
   fun metasubst (e, mv) = metasubstEnv (MetaCtx.insert MetaCtx.empty mv e)

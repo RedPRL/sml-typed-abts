@@ -77,6 +77,9 @@ sig
   val varctx : abt -> varctx
   val symctx : abt -> symctx
 
+  val unbind : abs -> symbol spine -> abt spine -> abt
+  val // : abs * (symbol spine * abt spine) -> abt
+
   (* Substitution of metavariables instantiates the bound variables and
    * symbols of the abstraction with the operands of applications of
    * the metavariable. This operation is related to Kevin Watkins' method
