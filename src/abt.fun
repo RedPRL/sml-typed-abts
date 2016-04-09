@@ -1,7 +1,23 @@
-functor DictUtil
+functor DictUnifyUtil
   (structure D : DICT
-   structure E : EQ
-   exception Duplicate) =
+   structure K : ORDERED where type t = D.key
+   structure E : ORDERED
+   exception Duplicate) :
+sig
+  (* raises [Duplicate] when the item is already present *)
+  val insert
+    : E.t D.dict
+    -> D.key * E.t
+    -> E.t D.dict
+
+  val isInjective
+    : E.t D.dict
+    -> bool
+
+  val isVacuous
+    : D.key D.dict
+    -> bool
+end =
 struct
   fun insert rho (x, y) =
     D.insertMerge rho x y (fn z =>
@@ -9,6 +25,24 @@ struct
         z
       else
         raise Duplicate)
+
+  local
+    structure Set = SplaySet (structure Elem = E)
+    fun range rho =
+      D.foldl
+        (fn (_, e, rng) => Set.insert rng e)
+        Set.empty
+        rho
+  in
+    fun isInjective rho =
+      Set.size (range rho) = D.size rho
+  end
+
+  fun isVacuous rho =
+    D.foldl
+      (fn (k, v, b) => K.eq (k, v) andalso b)
+      true
+      rho
 end
 
 functor Abt
@@ -519,18 +553,18 @@ struct
     exception UnificationFailed
 
     structure MetaCtxUtil =
-      DictUtil
-        (structure D = MetaCtx and E = Metavariable
+      DictUnifyUtil
+        (structure D = MetaCtx and K = Metavariable and E = Metavariable
          exception Duplicate = UnificationFailed)
 
     structure VarCtxUtil =
-      DictUtil
-        (structure D = VarCtx and E = Variable
+      DictUnifyUtil
+        (structure D = VarCtx and K = Variable and E = Variable
          exception Duplicate = UnificationFailed)
 
     structure SymCtxUtil =
-      DictUtil
-        (structure D = SymCtx and E = Symbol
+      DictUnifyUtil
+        (structure D = SymCtx and K = Symbol and E = Symbol
          exception Duplicate = UnificationFailed)
 
     fun unifySymbols ((u, sigma), (v, tau), rho) =
