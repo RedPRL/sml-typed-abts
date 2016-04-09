@@ -1,50 +1,3 @@
-functor DictUnifyUtil
-  (structure D : DICT
-   structure K : ORDERED where type t = D.key
-   structure E : ORDERED
-   exception Duplicate) :
-sig
-  (* raises [Duplicate] when the item is already present *)
-  val insert
-    : E.t D.dict
-    -> D.key * E.t
-    -> E.t D.dict
-
-  val isInjective
-    : E.t D.dict
-    -> bool
-
-  val isVacuous
-    : D.key D.dict
-    -> bool
-end =
-struct
-  fun insert rho (x, y) =
-    D.insertMerge rho x y (fn z =>
-      if E.eq (y, z) then
-        z
-      else
-        raise Duplicate)
-
-  local
-    structure Set = SplaySet (structure Elem = E)
-    fun range rho =
-      D.foldl
-        (fn (_, e, rng) => Set.insert rng e)
-        Set.empty
-        rho
-  in
-    fun isInjective rho =
-      Set.size (range rho) = D.size rho
-  end
-
-  fun isVacuous rho =
-    D.foldl
-      (fn (k, v, b) => K.eq (k, v) andalso b)
-      true
-      rho
-end
-
 functor Abt
   (structure Symbol : SYMBOL
    structure Variable : SYMBOL
@@ -552,26 +505,15 @@ struct
   struct
     exception UnificationFailed
 
-    structure MetaCtxUtil =
-      DictUnifyUtil
-        (structure D = MetaCtx and K = Metavariable and E = Metavariable
-         exception Duplicate = UnificationFailed)
-
-    structure VarCtxUtil =
-      DictUnifyUtil
-        (structure D = VarCtx and K = Variable and E = Variable
-         exception Duplicate = UnificationFailed)
-
-    structure SymCtxUtil =
-      DictUnifyUtil
-        (structure D = SymCtx and K = Symbol and E = Symbol
-         exception Duplicate = UnificationFailed)
+    structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Metavariable)
+    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = Symbol)
+    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = Variable)
 
     fun unifySymbols ((u, sigma), (v, tau), rho) =
       if Sort.eq (sigma, tau) then
         case (u, v) of
             (LN.FREE u', LN.FREE v') =>
-              SymCtxUtil.insert rho (u', v')
+              SymCtxUtil.extend rho (u', v')
           | (LN.BOUND i, LN.BOUND j) =>
               if Coord.eq (i, j) then
                 rho
@@ -596,7 +538,7 @@ struct
       fun go (mrho, srho, vrho) =
         fn (V (LN.FREE x, sigma), V (LN.FREE y, tau)) =>
              if Sort.eq (sigma, tau) then
-               (mrho, srho, VarCtxUtil.insert vrho (x, y))
+               (mrho, srho, VarCtxUtil.extend vrho (x, y))
              else
                raise UnificationFailed
          | (V (LN.BOUND i, _), V (LN.BOUND j, _)) =>
@@ -616,7 +558,8 @@ struct
          | (META_APP ((x1, vl1), us1, ms1), META_APP ((x2, vl2), us2, ms2)) =>
              let
                val _ = if Valence.eq (vl1, vl2) then () else raise UnificationFailed
-               val mrho' = MetaCtxUtil.insert mrho (x1, x2)
+               val mrho' =
+                 MetaCtxUtil.extend mrho (x1, x2)
                val srho' =
                  Spine.foldr
                    (fn ((u, v), rho) => unifySymbols (u, v, rho))
@@ -630,7 +573,12 @@ struct
              end
          | _ => raise UnificationFailed
     in
-      fun unify (m,n) = go (MetaCtx.empty, SymCtx.empty, VarCtx.empty) (m,n)
+      fun unify (m,n) =
+        go (MetaCtx.empty, SymCtx.empty, VarCtx.empty) (m,n)
+        handle MetaCtxUtil.MergeFailure => raise UnificationFailed
+             | SymCtxUtil.MergeFailure => raise UnificationFailed
+             | VarCtxUtil.MergeFailure => raise UnificationFailed
+             | e => raise e
     end
   end
 
