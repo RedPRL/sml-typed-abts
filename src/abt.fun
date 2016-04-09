@@ -503,6 +503,8 @@ struct
 
   structure Unify =
   struct
+    type renaming = metavariable MetaCtx.dict * symbol SymCtx.dict * variable VarCtx.dict
+
     exception UnificationFailed
 
     structure MetaRenUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Metavariable)
@@ -580,6 +582,10 @@ struct
              | VarRenUtil.MergeFailure => raise UnificationFailed
              | e => raise e
     end
+
+    fun unifyOpt (m, n) =
+      SOME (unify (m, n))
+      handle UnificationFailed => NONE
   end
 
 end

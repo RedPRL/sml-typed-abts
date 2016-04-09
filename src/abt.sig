@@ -141,9 +141,14 @@ sig
 
   structure Unify :
   sig
-    (* unify by synthesizing a renaming of metavariables and variables *)
-    val unify : abt * abt -> metavariable MetaCtx.dict * symbol SymCtx.dict * variable VarCtx.dict
+    type renaming = metavariable MetaCtx.dict * symbol SymCtx.dict * variable VarCtx.dict
+
+    (* unify by synthesizing a renaming of metavariables and variables; raises
+    * [UnificationFailed] when no renaming can be synthesized. *)
+    val unify : abt * abt -> renaming
     exception UnificationFailed
+
+    val unifyOpt :  abt * abt -> renaming option
   end
 
 end
