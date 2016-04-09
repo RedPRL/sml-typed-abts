@@ -505,15 +505,15 @@ struct
   struct
     exception UnificationFailed
 
-    structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Metavariable)
-    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = Symbol)
-    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = Variable)
+    structure MetaRenUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Metavariable)
+    structure SymRenUtil = ContextUtil (structure Ctx = SymCtx and Elem = Symbol)
+    structure VarRenUtil = ContextUtil (structure Ctx = VarCtx and Elem = Variable)
 
     fun unifySymbols ((u, sigma), (v, tau), rho) =
       if Sort.eq (sigma, tau) then
         case (u, v) of
             (LN.FREE u', LN.FREE v') =>
-              SymCtxUtil.extend rho (u', v')
+              SymRenUtil.extend rho (u', v')
           | (LN.BOUND i, LN.BOUND j) =>
               if Coord.eq (i, j) then
                 rho
@@ -538,7 +538,7 @@ struct
       fun go (mrho, srho, vrho) =
         fn (V (LN.FREE x, sigma), V (LN.FREE y, tau)) =>
              if Sort.eq (sigma, tau) then
-               (mrho, srho, VarCtxUtil.extend vrho (x, y))
+               (mrho, srho, VarRenUtil.extend vrho (x, y))
              else
                raise UnificationFailed
          | (V (LN.BOUND i, _), V (LN.BOUND j, _)) =>
@@ -559,7 +559,7 @@ struct
              let
                val _ = if Valence.eq (vl1, vl2) then () else raise UnificationFailed
                val mrho' =
-                 MetaCtxUtil.extend mrho (x1, x2)
+                 MetaRenUtil.extend mrho (x1, x2)
                val srho' =
                  Spine.foldr
                    (fn ((u, v), rho) => unifySymbols (u, v, rho))
@@ -575,9 +575,9 @@ struct
     in
       fun unify (m,n) =
         go (MetaCtx.empty, SymCtx.empty, VarCtx.empty) (m,n)
-        handle MetaCtxUtil.MergeFailure => raise UnificationFailed
-             | SymCtxUtil.MergeFailure => raise UnificationFailed
-             | VarCtxUtil.MergeFailure => raise UnificationFailed
+        handle MetaRenUtil.MergeFailure => raise UnificationFailed
+             | SymRenUtil.MergeFailure => raise UnificationFailed
+             | VarRenUtil.MergeFailure => raise UnificationFailed
              | e => raise e
     end
   end
