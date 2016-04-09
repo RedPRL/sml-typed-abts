@@ -1,3 +1,16 @@
+functor DictUtil
+  (structure D : DICT
+   structure E : EQ
+   exception Duplicate) =
+struct
+  fun insert rho (x, y) =
+    D.insertMerge rho x y (fn z =>
+      if E.eq (y, z) then
+        z
+      else
+        raise Duplicate)
+end
+
 functor Abt
   (structure Symbol : SYMBOL
    structure Variable : SYMBOL
@@ -505,34 +518,26 @@ struct
   struct
     exception UnificationFailed
 
-    fun insertMetavar mrho (x, y) =
-      MetaCtx.insertMerge mrho x y (fn z =>
-        if Metavariable.eq (y,z) then
-          z
-        else
-          raise UnificationFailed)
+    structure MetaCtxUtil =
+      DictUtil
+        (structure D = MetaCtx and E = Metavariable
+         exception Duplicate = UnificationFailed)
 
-    fun insertVar vrho (x, y) =
-      VarCtx.insertMerge vrho x y (fn z =>
-        if Variable.eq (y,z) then
-          z
-        else
-          raise UnificationFailed)
+    structure VarCtxUtil =
+      DictUtil
+        (structure D = VarCtx and E = Variable
+         exception Duplicate = UnificationFailed)
 
-
-    (* TODO: ensure that renaming is injective *)
-    fun insertSym srho (x, y) =
-      SymCtx.insertMerge srho x y (fn z =>
-        if Symbol.eq (y,z) then
-          z
-        else
-          raise UnificationFailed)
+    structure SymCtxUtil =
+      DictUtil
+        (structure D = SymCtx and E = Symbol
+         exception Duplicate = UnificationFailed)
 
     fun unifySymbols ((u, sigma), (v, tau), rho) =
       if Sort.eq (sigma, tau) then
         case (u, v) of
             (LN.FREE u', LN.FREE v') =>
-              insertSym rho (u', v')
+              SymCtxUtil.insert rho (u', v')
           | (LN.BOUND i, LN.BOUND j) =>
               if Coord.eq (i, j) then
                 rho
@@ -557,7 +562,7 @@ struct
       fun go (mrho, srho, vrho) =
         fn (V (LN.FREE x, sigma), V (LN.FREE y, tau)) =>
              if Sort.eq (sigma, tau) then
-               (mrho, srho, insertVar vrho (x, y))
+               (mrho, srho, VarCtxUtil.insert vrho (x, y))
              else
                raise UnificationFailed
          | (V (LN.BOUND i, _), V (LN.BOUND j, _)) =>
@@ -577,7 +582,7 @@ struct
          | (META_APP ((x1, vl1), us1, ms1), META_APP ((x2, vl2), us2, ms2)) =>
              let
                val _ = if Valence.eq (vl1, vl2) then () else raise UnificationFailed
-               val mrho' = insertMetavar mrho (x1, x2)
+               val mrho' = MetaCtxUtil.insert mrho (x1, x2)
                val srho' =
                  Spine.foldr
                    (fn ((u, v), rho) => unifySymbols (u, v, rho))
