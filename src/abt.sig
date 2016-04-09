@@ -139,4 +139,11 @@ sig
   val outb : abs -> abt bview
   val valence : abs -> valence
 
+  structure Unify :
+  sig
+    (* unify by synthesizing a renaming of metavariables and variables *)
+    val unify : abt * abt -> metavariable MetaCtx.dict * symbol SymCtx.dict * variable VarCtx.dict
+    exception UnificationFailed
+  end
+
 end

@@ -501,6 +501,100 @@ struct
   fun deepMapSubterms f m =
     mapSubterms (f o deepMapSubterms f) m
 
+  structure Unify =
+  struct
+    exception UnificationFailed
+
+    fun insertMetavar mrho (x, y) =
+      MetaCtx.insertMerge mrho x y (fn z =>
+        if Metavariable.eq (y,z) then
+          z
+        else
+          raise UnificationFailed)
+
+    fun insertVar vrho (x, y) =
+      VarCtx.insertMerge vrho x y (fn z =>
+        if Variable.eq (y,z) then
+          z
+        else
+          raise UnificationFailed)
+
+
+    (* TODO: ensure that renaming is injective *)
+    fun insertSym srho (x, y) =
+      SymCtx.insertMerge srho x y (fn z =>
+        if Symbol.eq (y,z) then
+          z
+        else
+          raise UnificationFailed)
+
+    fun unifySymbols ((u, sigma), (v, tau), rho) =
+      if Sort.eq (sigma, tau) then
+        case (u, v) of
+            (LN.FREE u', LN.FREE v') =>
+              insertSym rho (u', v')
+          | (LN.BOUND i, LN.BOUND j) =>
+              if Coord.eq (i, j) then
+                rho
+              else
+                raise UnificationFailed
+          | _ => raise UnificationFailed
+      else
+        raise UnificationFailed
+
+    fun unifyOperator rho (theta1 : LN.operator, theta2 : LN.operator) : symbol SymCtx.dict =
+      if Operator.eq (fn _ => true) (theta1, theta2) then
+        let
+          val us = Operator.support theta1
+          val vs = Operator.support theta2
+        in
+          ListPair.foldlEq unifySymbols rho (us, vs)
+        end
+      else
+        raise UnificationFailed
+
+    local
+      fun go (mrho, srho, vrho) =
+        fn (V (LN.FREE x, sigma), V (LN.FREE y, tau)) =>
+             if Sort.eq (sigma, tau) then
+               (mrho, srho, insertVar vrho (x, y))
+             else
+               raise UnificationFailed
+         | (V (LN.BOUND i, _), V (LN.BOUND j, _)) =>
+             if Coord.eq (i, j) then
+               (mrho, srho, vrho)
+             else
+               raise UnificationFailed
+         | (APP (theta1, es1), APP (theta2, es2)) =>
+             let
+               val srho' = unifyOperator srho (theta1, theta2)
+             in
+               Spine.foldr
+                 (fn ((ABS (_, _, m1), ABS (_, _, m2)), acc) => go acc (m1, m2))
+                 (mrho, srho', vrho)
+                 (Spine.Pair.zipEq (es1, es2))
+             end
+         | (META_APP ((x1, vl1), us1, ms1), META_APP ((x2, vl2), us2, ms2)) =>
+             let
+               val _ = if Valence.eq (vl1, vl2) then () else raise UnificationFailed
+               val mrho' = insertMetavar mrho (x1, x2)
+               val srho' =
+                 Spine.foldr
+                   (fn ((u, v), rho) => unifySymbols (u, v, rho))
+                   srho
+                   (Spine.Pair.zipEq (us1, us2))
+             in
+               Spine.foldr
+                 (fn ((m1, m2), acc) => go acc (m1, m2))
+                 (mrho', srho', vrho)
+                 (Spine.Pair.zipEq (ms1, ms2))
+             end
+         | _ => raise UnificationFailed
+    in
+      fun unify (m,n) = go (MetaCtx.empty, SymCtx.empty, VarCtx.empty) (m,n)
+    end
+  end
+
 end
 
 functor SimpleAbt (Operator : OPERATOR) =
