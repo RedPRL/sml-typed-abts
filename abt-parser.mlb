@@ -1,7 +1,7 @@
 local
   abt.mlb
   lib/cmlib.mlb
-  lib/sml-parcom-wrapper/parcom.mlb
+  lib/sml-parcom/parcom.mlb
   src/parser/charset.sig
   src/parser/charset.sml
   src/parser/parse_operator.sig

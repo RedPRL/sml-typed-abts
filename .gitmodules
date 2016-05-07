@@ -4,3 +4,6 @@
 [submodule "lib/sml-unparse"]
 	path = lib/sml-unparse
 	url = https://github.com/redprl/sml-unparse.git
+[submodule "lib/sml-parcom"]
+	path = lib/sml-parcom
+	url = https://github.com/RedPRL/sml-parcom.git
