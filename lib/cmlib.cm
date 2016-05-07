@@ -6,6 +6,7 @@ Library
   structure StringOrdered
   structure String
   structure StringHashable
+  structure IntOrdered
   functor HashTable
   structure Sum
 is

@@ -3,6 +3,7 @@ is
   $/basis.cm
   abt.cm
   abt-parser.cm
+  abt-lcs.cm
   lib/sml-parcom-wrapper/parcom.cm (bind:(anchor:libs value:lib))
   lib/cmlib.cm
   basis/basis.cm
