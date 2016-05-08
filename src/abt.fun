@@ -44,7 +44,7 @@ struct
       V of LN.variable * sort
     | APP of LN.operator * abs spine
     | META_APP of (metavariable * sort) * (LN.symbol * sort) spine * abt spine
-  and abs = ABS of (symbol * sort) spine * (variable * sort) spine * abt
+  and abs = ABS of (string * sort) spine * (string * sort) spine * abt
 
   val rec primToString =
     fn V (v, _) => LN.toString Variable.toString v
@@ -311,8 +311,8 @@ struct
       val () = assertSortEq (sigma, tau)
     in
       ABS
-        (Spine.Pair.zipEq (us, ssorts),
-         Spine.Pair.zipEq (xs, vsorts),
+        (Spine.Pair.zipEq (Spine.map Symbol.toString us, ssorts),
+         Spine.Pair.zipEq (Spine.map Variable.toString xs, vsorts),
          imprisonSymbols (us, ssorts) (imprisonVariables (xs, vsorts) m))
     end
 
@@ -336,8 +336,8 @@ struct
 
   and inferb (ABS (upsilon, gamma, m)) =
     let
-      val us = Spine.map (Symbol.clone o #1) upsilon
-      val xs = Spine.map (Variable.clone o #1) gamma
+      val us = Spine.map (Symbol.named o #1) upsilon
+      val xs = Spine.map (Variable.named o #1) gamma
       val m' = liberateSymbols us (liberateVariables xs m)
       val (_, tau) = infer m'
       val valence = ((Spine.map #2 upsilon, Spine.map #2 gamma), tau)
