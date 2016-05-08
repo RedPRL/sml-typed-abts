@@ -4,6 +4,7 @@ Library
   signature OPERATOR
   signature PRESYMBOL
   signature SYMBOL
+  signature IMPERATIVE_SYMBOL
   signature VALENCE
   signature SORT
   signature SPINE

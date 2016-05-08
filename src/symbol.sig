@@ -20,18 +20,23 @@ sig
   val compare : t * t -> order
 end
 
-(* A SYMBOL adds the ability to generate fresh symbols. Specifically,
- * [new] and [clone] should return symbols that are different (according
- * to the equality function) even though they may print identically
+(* A SYMBOL adds the ability to generate fresh symbols.
  *)
 signature SYMBOL =
 sig
   include PRESYMBOL
-  val new : unit -> t
-  val clone : t -> t
+
+  val fresh : t list -> string -> t
 
   (* DebugShow will pretty print more than a symbol's name so
    * that one can distinguish between identically named symbols.
    *)
   structure DebugShow : SHOW where type t = t
+end
+
+signature IMPERATIVE_SYMBOL =
+sig
+  include SYMBOL
+
+  val new : unit -> t
 end

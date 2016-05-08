@@ -1,4 +1,4 @@
-functor Symbol () :> SYMBOL =
+functor Symbol () :> IMPERATIVE_SYMBOL =
 struct
   type t = int * string
   val counter = ref 0
@@ -13,6 +13,9 @@ struct
 
   fun new () =
     named "@"
+
+  fun fresh _ =
+    named
 
   fun compare ((i, _), (j, _)) =
     Int.compare (i, j)
@@ -38,7 +41,7 @@ struct
   fun named x = x
 
   fun toString x = x
-  fun eq (x, y) = x = y
+  fun eq (x : t, y) = x = y
 
   val compare = String.compare
 end

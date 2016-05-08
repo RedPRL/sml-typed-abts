@@ -33,6 +33,7 @@ in
   signature AST_TO_ABT
   signature PRESYMBOL
   signature SYMBOL
+  signature IMPERATIVE_SYMBOL
   signature SORT
   signature SPINE
   signature VALENCE

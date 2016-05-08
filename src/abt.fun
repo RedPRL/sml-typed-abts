@@ -351,8 +351,11 @@ struct
 
   and inferb (ABS (upsilon, gamma, m)) =
     let
-      val us = Spine.map (fn (u, tau) => (Symbol.named u, tau)) upsilon
-      val xs = Spine.map (fn (x, tau) => (Variable.named x, tau)) gamma
+      val syms = SymCtx.domain (symctx m)
+      val vars = VarCtx.domain (varctx m)
+
+      val us = Spine.map (fn (u, tau) => (Symbol.fresh syms u, tau)) upsilon
+      val xs = Spine.map (fn (x, tau) => (Variable.fresh vars x, tau)) gamma
       val m' = liberateSymbols us (liberateVariables xs m)
       val (_, tau) = infer m'
       val valence = ((Spine.map #2 upsilon, Spine.map #2 gamma), tau)
