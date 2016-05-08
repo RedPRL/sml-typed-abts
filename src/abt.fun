@@ -43,7 +43,7 @@ struct
   datatype abt =
       V of LN.variable * sort
     | APP of LN.operator * abs spine
-    | META_APP of (metavariable * valence) * (LN.symbol * sort) spine * abt spine
+    | META_APP of (metavariable * sort) * (LN.symbol * sort) spine * abt spine
   and abs = ABS of (symbol * sort) spine * (variable * sort) spine * abt
 
   val rec primToString =
@@ -78,7 +78,7 @@ struct
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
-    | $# of metavariable * (symbol spine * 'a spine)
+    | $# of metavariable * ((symbol * sort) spine * 'a spine)
   and 'a bview =
      \ of (symbol spine * variable spine) * 'a
 
@@ -118,6 +118,10 @@ struct
 
   local
     structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
+    val getSort =
+      fn V (_, tau) => tau
+       | APP (theta, _) => #2 (Operator.arity theta)
+       | META_APP ((_, tau), _, _) => tau
   in
     fun metactx M =
       let
@@ -125,8 +129,12 @@ struct
           fn V _ => R
            | APP (theta, Es) =>
                Spine.foldr MetaCtxUtil.union R (Spine.map (go' MetaCtx.empty) Es)
-           | META_APP (mv, us, Ms) =>
-               Spine.foldr MetaCtxUtil.union (MetaCtxUtil.extend R mv) (Spine.map (go MetaCtx.empty) Ms)
+           | META_APP ((mv, tau), us, Ms) =>
+               let
+                 val vl = ((Spine.map #2 us, Spine.map getSort Ms), tau)
+               in
+                 Spine.foldr MetaCtxUtil.union (MetaCtxUtil.extend R (mv, vl)) (Spine.map (go MetaCtx.empty) Ms)
+               end
         and go' R (ABS (_, _, M)) = go R M
       in
         go MetaCtx.empty M
@@ -319,9 +327,9 @@ struct
          in
            (theta' $ Es', tau)
          end
-       | META_APP ((mv, (_, tau)), us, Ms) =>
+       | META_APP ((mv, tau), us, Ms) =>
          let
-           val us' = Spine.map (LN.getFree o #1) us
+           val us' = Spine.map (fn (u, sigma) => (LN.getFree u, sigma)) us
          in
            (mv $# (us', Ms), tau)
          end
@@ -357,14 +365,14 @@ struct
            end
        | mv $# (us, ms) =>
            let
-             val valence as ((ssorts, vsorts), tau) = MetaCtx.lookup psi mv
+             val valence as ((_, vsorts), tau) = MetaCtx.lookup psi mv
              val () = assertSortEq (sigma, tau)
-             val us' = Spine.Pair.zipEq (Spine.map LN.FREE us, ssorts)
+             val us' = Spine.map (fn (u, tau) => (LN.FREE u, tau)) us
              fun chkInf (m, tau) =
                (assertSortEq (tau, sort m); m)
              val ms' = Spine.Pair.mapEq chkInf (ms, vsorts)
            in
-             META_APP ((mv, valence), us', ms')
+             META_APP ((mv, tau), us', ms')
            end
 
 
@@ -428,7 +436,7 @@ struct
                         val (vs, xs) \ m = outb abs
                         val srho =
                           Spine.foldr
-                            (fn ((u, v), r) => SymCtx.insert r u v)
+                            (fn (((u, _), v), r) => SymCtx.insert r u v)
                             SymCtx.empty
                             (Spine.Pair.zipEq (us, vs))
                         val rho' =
@@ -557,9 +565,9 @@ struct
                  (mrho, srho', vrho)
                  (Spine.Pair.zipEq (es1, es2))
              end
-         | (META_APP ((x1, vl1), us1, ms1), META_APP ((x2, vl2), us2, ms2)) =>
+         | (META_APP ((x1, tau1), us1, ms1), META_APP ((x2, tau2), us2, ms2)) =>
              let
-               val _ = if Valence.eq (vl1, vl2) then () else raise UnificationFailed
+               val _ = if Sort.eq (tau1, tau2) then () else raise UnificationFailed
                val mrho' =
                  MetaRenUtil.extend mrho (x1, x2)
                val srho' =

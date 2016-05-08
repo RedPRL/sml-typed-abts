@@ -112,7 +112,7 @@ sig
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
-    | $# of metavariable * (symbol spine * 'a spine)
+    | $# of metavariable * ((symbol * sort) spine * 'a spine)
 
   val map : ('a -> 'b) -> 'a view -> 'b view
   val mapb : ('a -> 'b) -> 'a bview -> 'b bview

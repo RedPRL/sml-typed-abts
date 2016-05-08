@@ -19,7 +19,7 @@ struct
                 ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
        | mv $# (us, ms) =>
            let
-             val us' = Spine.pretty ShowSym.toString "," us
+             val us' = Spine.pretty (ShowSym.toString o #1) "," us
              val ms' = Spine.pretty toString "," ms
            in
              "#" ^ Abt.Metavariable.toString mv
