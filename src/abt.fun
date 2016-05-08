@@ -224,8 +224,8 @@ struct
      | V v => V v
      | APP (theta, es <: ctx) =>
          annotateApp theta (Spine.map (liftTraverseAbs (imprisonVariable (v, tau)) coord) es)
-     | META_APP ((x, tau), us, ms <: ctx) =>
-         annotateMetaApp (x, tau) us (Spine.map (imprisonVariable (v, tau) coord) ms)
+     | META_APP (mv, us, ms <: ctx) =>
+         annotateMetaApp mv us (Spine.map (imprisonVariable (v, tau) coord) ms)
 
   fun imprisonSymbol (v, tau) coord =
     fn V v => V v
@@ -467,7 +467,7 @@ struct
     fn m as V (LN.FREE x, sigma) => getOpt (VarCtx.find rho x, m)
      | m as V _ => m
      | APP (theta, es <: _) => annotateApp theta (Spine.map (mapAbs_ (substEnv rho)) es)
-     | META_APP ((x, tau), us, ms <: _) => annotateMetaApp (x, tau) us (Spine.map (substEnv rho) ms)
+     | META_APP (mv, us, ms <: _) => annotateMetaApp mv us (Spine.map (substEnv rho) ms)
 
   and renameEnv rho =
     fn m as V _ => m
@@ -478,12 +478,12 @@ struct
          in
            annotateApp theta' (Spine.map (mapAbs_ (renameEnv rho)) es)
          end
-     | META_APP ((x, tau), us, ms <: _) =>
+     | META_APP (mv, us, ms <: _) =>
          let
            fun ren u = getOpt (SymCtx.find rho u, u)
            fun ren' (l,s) = (LN.map ren l, s)
          in
-           annotateMetaApp (x, tau) (Spine.map ren' us) (Spine.map (renameEnv rho) ms)
+           annotateMetaApp mv (Spine.map ren' us) (Spine.map (renameEnv rho) ms)
          end
 
   fun unbind abs us ms =
@@ -615,3 +615,4 @@ functor SimpleAbt (Operator : OPERATOR) =
        structure Variable = Symbol ()
        structure Metavariable = Symbol ()
        structure Operator = Operator)
+
