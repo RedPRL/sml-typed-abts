@@ -1,9 +1,4 @@
-(* A PRESYMBOL is just something that captures the notion of a named
- * object. It should not be expected that [compare] is a very meaningful
- * ordering but without such a thing it becomes impossible to efficiently
- * maintain maps of PRESYMBOL like things
- *)
-signature PRESYMBOL =
+signature SYMBOL =
 sig
   type t
 
@@ -18,15 +13,11 @@ sig
   val eq : t * t -> bool
 
   val compare : t * t -> order
-end
 
-(* A SYMBOL adds the ability to generate fresh symbols.
- *)
-signature SYMBOL =
-sig
-  include PRESYMBOL
+  structure Ctx : DICT where type key = t
+  type 'a ctx = 'a Ctx.dict
 
-  val fresh : t list -> string -> t
+  val fresh : 'a Ctx.dict -> string -> t
 
   (* DebugShow will pretty print more than a symbol's name so
    * that one can distinguish between identically named symbols.

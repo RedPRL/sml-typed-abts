@@ -17,15 +17,26 @@ struct
   fun fresh _ =
     named
 
-  fun compare ((i, _), (j, _)) =
-    Int.compare (i, j)
-
-  fun eq ((i : int, _), (j, _)) = i = j
-
   fun clone (_, a) =
     named a
 
   fun toString (_, a) = a
+
+  structure Ordered =
+  struct
+    type t = t
+
+    fun eq ((i : int, _), (j, _)) =
+      i = j
+
+    fun compare ((i, _), (j, _)) =
+      Int.compare (i, j)
+  end
+
+  open Ordered
+
+  structure Ctx = SplayDict (structure Key = Ordered)
+  type 'a ctx = 'a Ctx.dict
 
   structure DebugShow =
   struct
@@ -35,13 +46,27 @@ struct
   end
 end
 
-structure StringPresymbol : PRESYMBOL =
+structure StringSymbol : SYMBOL =
 struct
   type t = string
+
+  structure Ctx = SplayDict (structure Key = StringOrdered)
+  type 'a ctx = 'a Ctx.dict
+
+  open StringOrdered
+
   fun named x = x
-
   fun toString x = x
-  fun eq (x : t, y) = x = y
 
-  val compare = String.compare
+  fun fresh ctx x =
+    if Ctx.member ctx x then
+      fresh ctx (x ^ "'")
+    else
+      x
+
+  structure DebugShow =
+  struct
+    type t = t
+    fun toString x = x
+  end
 end

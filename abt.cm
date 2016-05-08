@@ -2,7 +2,6 @@ Library
   signature ABT
   signature AST
   signature OPERATOR
-  signature PRESYMBOL
   signature SYMBOL
   signature IMPERATIVE_SYMBOL
   signature VALENCE
@@ -12,7 +11,7 @@ Library
   signature CONTEXT_UTIL
 
   functor Symbol
-  structure StringPresymbol
+  structure StringSymbol
   structure ListSpine
   functor Valence
   functor Arity

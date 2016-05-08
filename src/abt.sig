@@ -14,7 +14,7 @@ sig
   (* Just as variables can be used to stand in for an abt, metavariables can be
    * used to stand in for an abstraction/binder of any valence. Metavariables
    * are also sometimes called "second-order variables". *)
-  structure Metavariable : PRESYMBOL
+  structure Metavariable : SYMBOL
 
   (* Operators are the primitive building blocks of a language; the [Operator]
    * allows the ABT framework to be deployed at an arbitrary signature of
@@ -31,10 +31,6 @@ sig
   type valence = Operator.Arity.valence
   type 'a spine = 'a Operator.Arity.spine
 
-  structure MetaCtx : DICT where type key = metavariable
-  structure VarCtx : DICT where type key = variable
-  structure SymCtx : DICT where type key = symbol
-
   (* The core type of the signature. This is the type of the ABTs that
    * can be built from the given [operator]s, [variable]s, [symbol]s and
    * [metavariable]s
@@ -48,13 +44,13 @@ sig
    *)
   type abs
 
-  type metactx = valence MetaCtx.dict
-  type varctx = sort VarCtx.dict
-  type symctx = sort SymCtx.dict
+  type metactx = valence Metavariable.ctx
+  type varctx = sort Variable.ctx
+  type symctx = sort Symbol.ctx
 
-  type metaenv = abs MetaCtx.dict
-  type varenv = abt VarCtx.dict
-  type symenv = symbol SymCtx.dict
+  type metaenv = abs Metavariable.ctx
+  type varenv = abt Variable.ctx
+  type symenv = symbol Symbol.ctx
 
   (* Modify the term inside an abstraction*)
   val mapAbs : (abt -> abt) -> abs -> abs
@@ -139,7 +135,7 @@ sig
 
   structure Unify :
   sig
-    type renaming = metavariable MetaCtx.dict * symbol SymCtx.dict * variable VarCtx.dict
+    type renaming = metavariable Metavariable.ctx * symbol Symbol.ctx * variable Variable.ctx
 
     (* unify by synthesizing a renaming of metavariables and variables; raises
     * [UnificationFailed] when no renaming can be synthesized. *)

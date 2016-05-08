@@ -23,6 +23,7 @@ struct
 
   exception InvalidPattern of Error.t
 
+  structure MetaCtx = Metavariable.Ctx and VarCtx = Variable.Ctx
   structure CtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
 
   fun extend psi (mv, vl) =

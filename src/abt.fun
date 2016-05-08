@@ -1,7 +1,7 @@
 functor Abt
   (structure Symbol : SYMBOL
    structure Variable : SYMBOL
-   structure Metavariable : PRESYMBOL
+   structure Metavariable : SYMBOL
    structure Operator : OPERATOR) : ABT =
 struct
   structure Symbol = Symbol
@@ -13,9 +13,9 @@ struct
   structure Sort = Arity.Valence.Sort and Valence = Arity.Valence
   structure Spine = Valence.Spine
 
-  structure MetaCtx = SplayDict (structure Key = Metavariable)
-  structure VarCtx = SplayDict (structure Key = Variable)
-  structure SymCtx = SplayDict (structure Key = Symbol)
+  structure MetaCtx = Metavariable.Ctx
+  structure VarCtx = Variable.Ctx
+  structure SymCtx = Symbol.Ctx
 
   type sort = Sort.t
   type valence = Valence.t
@@ -351,8 +351,8 @@ struct
 
   and inferb (ABS (upsilon, gamma, m)) =
     let
-      val syms = SymCtx.domain (symctx m)
-      val vars = VarCtx.domain (varctx m)
+      val syms = symctx m
+      val vars = varctx m
 
       val us = Spine.map (fn (u, tau) => (Symbol.fresh syms u, tau)) upsilon
       val xs = Spine.map (fn (x, tau) => (Variable.fresh vars x, tau)) gamma

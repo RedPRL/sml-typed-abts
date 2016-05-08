@@ -159,7 +159,7 @@ struct
                         Sum.INR ast => ast
                       | Sum.INL err => raise Fail err
                  val (_, tau) = O.arity theta
-                 val abt = AstToAbt.convert MetaCtx.empty (ast, tau)
+                 val abt = AstToAbt.convert Metavariable.Ctx.empty (ast, tau)
                in
                  print (ShowAbt.toString abt ^ "\n\n")
                end

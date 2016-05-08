@@ -1,6 +1,6 @@
 functor Ast
   (structure Operator : OPERATOR
-   structure Metavariable : PRESYMBOL) : AST =
+   structure Metavariable : SYMBOL) : AST =
 struct
   type symbol = string
   type variable = string
@@ -83,7 +83,7 @@ struct
           end
        | Ast.$# (mv, (us, ms)) =>
            let
-             val ((ssorts, vsorts), _) = Abt.MetaCtx.lookup psi mv
+             val ((ssorts, vsorts), _) = Abt.Metavariable.Ctx.lookup psi mv
              val us' = Spine.Pair.zipEq (Spine.map (symbol snames) us, ssorts)
              val ms' = Spine.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
            in

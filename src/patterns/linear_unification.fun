@@ -11,6 +11,7 @@ struct
   structure Valence = Operator.Arity.Valence
   structure Spine = Valence.Spine
   structure Sort = Valence.Sort
+  structure SymCtx = Symbol.Ctx and MetaCtx = Metavariable.Ctx
 
   fun matchOperator (ptheta, theta) =
     (* compare if they are the "same" operator modulo parameters *)

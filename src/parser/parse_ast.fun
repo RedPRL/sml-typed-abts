@@ -3,7 +3,7 @@ functor ParseAst
     where type 'a spine = 'a list
    structure CharSet : CHARSET
    structure ParseOperator : PARSE_OPERATOR
-   structure Metavariable : PRESYMBOL
+   structure Metavariable : SYMBOL
    sharing type Ast.operator = ParseOperator.Operator.t
    sharing type Ast.metavariable = Metavariable.t) : PARSE_AST =
 struct
