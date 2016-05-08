@@ -72,14 +72,14 @@ struct
 
   fun convertOpen psi (snames, vnames) (m, tau) =
     case m of
-         Ast.` x => Abt.check psi (Abt.` (variable vnames x), tau)
+         Ast.` x => Abt.check (Abt.` (variable vnames x), tau)
        | Ast.$ (theta, es) =>
           let
             val (vls, _) = Abt.Operator.arity theta
             val theta' = Abt.Operator.map (symbol snames) theta
             val es' = Spine.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
           in
-            Abt.check psi (Abt.$ (theta', es'), tau)
+            Abt.check (Abt.$ (theta', es'), tau)
           end
        | Ast.$# (mv, (us, ms)) =>
            let
@@ -87,7 +87,7 @@ struct
              val us' = Spine.Pair.zipEq (Spine.map (symbol snames) us, ssorts)
              val ms' = Spine.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
            in
-             Abt.check psi (Abt.$# (mv, (us', ms')), tau)
+             Abt.check (Abt.$# (mv, (us', ms')), tau)
            end
 
   and convertOpenAbs psi (snames, vnames) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =

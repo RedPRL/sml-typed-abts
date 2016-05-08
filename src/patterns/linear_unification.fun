@@ -51,9 +51,8 @@ struct
         | go (MVAR mv :: pargs) (e :: es, vl :: vls) (rho, env) =
             let
               val _ \ m = e
-              val psi = metactx m
             in
-              go pargs (es, vls) (rho, extendEnv env (mv, checkb psi (e,vl)))
+              go pargs (es, vls) (rho, extendEnv env (mv, checkb (e,vl)))
             end
         | go (PAT pat :: pargs) ((([], []) \ m) :: es, vl :: vls) (rho, env) =
             let

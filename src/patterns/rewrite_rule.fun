@@ -15,15 +15,20 @@ struct
 
   exception InvalidRule
 
+  structure MetaCtxUtil = ContextUtil (structure Ctx = Abt.MetaCtx and Elem = Abt.Operator.Arity.Valence)
+
   (* a rewrite rule is valid in case the definiens is well-formed under
    * metavariable context induced by the definiendum *)
   fun into (p ~> m) =
     let
       val (_, psi) = Pattern.out p
+      val psi' = Abt.metactx m
+      (* Ensure that the metacontexts are compatible *)
+      val psi'' = MetaCtxUtil.union (psi, psi')
       val gamma = Abt.varctx m
     in
       if Abt.VarCtx.isEmpty gamma then
-        RULE (p ~> Abt.check psi (Abt.infer m))
+        RULE (p ~> m)
       else
         raise InvalidRule
     end

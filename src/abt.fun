@@ -320,7 +320,7 @@ struct
   end
 
 
-  fun checkb psi ((us, xs) \ m, ((ssorts, vsorts), sigma)) =
+  fun checkb ((us, xs) \ m, ((ssorts, vsorts), sigma)) =
     let
       val (_, tau) = infer m
       val () = assertSortEq (sigma, tau)
@@ -365,7 +365,7 @@ struct
   val outb = #1 o inferb
   val valence = #2 o inferb
 
-  fun check psi (m, sigma) =
+  fun check (m, sigma) =
     case m of
          `x => V (LN.FREE x, sigma)
        | theta $ es =>
@@ -373,26 +373,23 @@ struct
              val (valences, tau)  = Operator.arity theta
              val () = assertSortEq (sigma, tau)
              val theta' = Operator.map LN.FREE theta
-             val es' = Spine.Pair.mapEq (checkb psi) (es, valences)
+             val es' = Spine.Pair.mapEq checkb (es, valences)
            in
              annotateApp theta' es'
            end
-       | mv $# (us, ms) =>
+       | x $# (us, ms) =>
            let
-             val valence as ((_, vsorts), tau) = MetaCtx.lookup psi mv
-             val () = assertSortEq (sigma, tau)
+             val ssorts = Spine.map #2 us
+             val vsorts = Spine.map sort ms
+
              val us' = Spine.map (fn (u, tau) => (LN.FREE u, tau)) us
              fun chkInf (m, tau) =
                (assertSortEq (tau, sort m); m)
              val ms' = Spine.Pair.mapEq chkInf (ms, vsorts)
              val ctx = Spine.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms'
            in
-             annotateMetaApp (mv, tau) us' ms'
+             annotateMetaApp (x, sigma) us' ms'
            end
-
-
-  val check' = check MetaCtx.empty
-  val checkb' = checkb MetaCtx.empty
 
 
   fun mapb f ((us, xs) \ m) =
@@ -401,9 +398,8 @@ struct
   fun mapAbs f abs =
     let
       val ((us, xs) \ m, vl) = inferb abs
-      val psi = metactx m
     in
-      checkb psi ((us, xs) \ f m, vl)
+      checkb ((us, xs) \ f m, vl)
     end
 
   fun map f =
@@ -432,20 +428,19 @@ struct
 
   fun metasubstEnv rho m =
     let
-      val psi = metactx m
       val (view, tau) = infer m
     in
       case view of
            `x => m
          | theta $ es =>
-             check psi (theta $ Spine.map (mapb (metasubstEnv rho)) es, tau)
+             check (theta $ Spine.map (mapb (metasubstEnv rho)) es, tau)
          | mv $# (us, ms) =>
              let
                val ms' = Spine.map (metasubstEnv rho) ms
              in
                case MetaCtx.find rho mv of
                     NONE =>
-                      check psi (mv $# (us, ms'), tau)
+                      check (mv $# (us, ms'), tau)
                   | SOME abs =>
                       let
                         val (vs, xs) \ m = outb abs
@@ -515,10 +510,9 @@ struct
 
   fun mapSubterms f m =
     let
-      val psi = metactx m
       val (view, tau) = infer m
     in
-      check psi (map f view, tau)
+      check (map f view, tau)
     end
 
   fun deepMapSubterms f m =

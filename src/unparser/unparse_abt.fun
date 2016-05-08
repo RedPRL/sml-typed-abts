@@ -36,13 +36,13 @@ struct
                    @@ O.toString S.toString theta
                     ^ (if Spine.isEmpty es then "" else "(" ^ es' ^ ")")
                end
-           | v $# (us, ms) =>
+           | x $# (us, ms) =>
                let
-                 val us' = Spine.pretty S.toString "," us
+                 val us' = Spine.pretty (S.toString o #1) "," us
                  val ms' = Spine.pretty (parens o done o outer) "," ms
                in
                  atom
-                   @@ "#" ^ M.toString v
+                   @@ "#" ^ M.toString x
                     ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
                     ^ (if Spine.isEmpty ms then "" else "[" ^ ms' ^ "]")
                end

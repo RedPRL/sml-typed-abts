@@ -122,8 +122,7 @@ sig
    *)
 
   (* construct an abt from a view by checking it against a sort. *)
-  val check : metactx -> abt view * sort -> abt
-  val check' : abt view * sort -> abt
+  val check : abt view * sort -> abt
 
   (* pattern match on an abt and its sort *)
   val infer : abt -> abt view * sort
@@ -131,8 +130,7 @@ sig
   val sort : abt -> sort
 
   (* construct an abstraction from a view by checking it against a valence *)
-  val checkb : metactx -> abt bview * valence -> abs
-  val checkb' : abt bview * valence -> abs
+  val checkb : abt bview * valence -> abs
 
   (* pattern match on an abstraction and its valence *)
   val inferb : abs -> abt bview * valence
