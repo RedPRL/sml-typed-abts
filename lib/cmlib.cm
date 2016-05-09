@@ -9,5 +9,6 @@ Library
   structure IntOrdered
   functor HashTable
   structure Sum
+  structure Susp
 is
   cmlib/cmlib.cm

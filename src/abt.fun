@@ -38,39 +38,39 @@ struct
   type varctx = sort VarCtx.dict
   type symctx = sort SymCtx.dict
 
-  type ctx = metactx * symctx * varctx
-
   structure Ctx =
   struct
     structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
     structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = Sort)
     structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sort)
 
-    val empty =
-      (MetaCtx.empty,
-       SymCtx.empty,
-       VarCtx.empty)
+    type ctx = metactx Susp.susp * symctx Susp.susp * varctx Susp.susp
+
+    val empty : ctx =
+      (Susp.delay (fn _ => MetaCtx.empty),
+       Susp.delay (fn _ => SymCtx.empty),
+       Susp.delay (fn _ => VarCtx.empty))
 
     fun merge ((mctx1, sctx1, vctx1), (mctx2, sctx2, vctx2)) =
       let
-        val mctx = MetaCtxUtil.union (mctx1, mctx2)
-        val sctx = SymCtxUtil.union (sctx1, sctx2)
-        val vctx = VarCtxUtil.union (vctx1, vctx2)
+        val mctx = Susp.delay (fn _ => MetaCtxUtil.union (Susp.force mctx1, Susp.force mctx2))
+        val sctx = Susp.delay (fn _ => SymCtxUtil.union (Susp.force sctx1, Susp.force sctx2))
+        val vctx = Susp.delay (fn _ => VarCtxUtil.union (Susp.force vctx1, Susp.force vctx2))
       in
         (mctx, sctx, vctx)
       end
 
     fun modifyMetas f (mctx, sctx, vctx) =
-      (f mctx, sctx, vctx)
+      (Susp.delay (fn _ => f (Susp.force mctx)), sctx, vctx)
 
     fun modifySyms f (mctx, sctx, vctx) =
-      (mctx, f sctx, vctx)
+      (mctx, Susp.delay (fn _ => f (Susp.force sctx)), vctx)
 
     fun modifyVars f (mctx, sctx, vctx) =
-      (mctx, sctx, f vctx)
+      (mctx, sctx, Susp.delay (fn _ => f (Susp.force vctx)))
   end
 
-  datatype 'a ann = <: of 'a * (metactx * symctx * varctx)
+  datatype 'a ann = <: of 'a * Ctx.ctx
   infix <:
 
   (* Note that we use LN.variable so V may work with both free and bound
@@ -154,12 +154,12 @@ struct
 
   val metactx =
     fn V _ => MetaCtx.empty
-     | APP (theta, es <: (mctx, _, _)) => mctx
+     | APP (theta, es <: (mctx, _, _)) => Susp.force mctx
      | META_APP ((mv, tau), us, ms <: (mctx, _, _)) =>
          let
            val vl = ((Spine.map #2 us, Spine.map sort ms), tau)
          in
-           Ctx.MetaCtxUtil.extend mctx (mv, vl)
+           Ctx.MetaCtxUtil.extend (Susp.force mctx) (mv, vl)
          end
 
   val symctx =
@@ -168,23 +168,25 @@ struct
          List.foldr
            (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
              | (_, memo) => memo)
-           sctx
+           (Susp.force sctx)
            (Operator.support theta)
      | META_APP (_, us, ms <: (_, sctx, _)) =>
          Spine.foldr
            (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
              | (_, memo) => memo)
-           sctx
+           (Susp.force sctx)
            us
 
   val varctx =
     fn V (LN.FREE x, sigma) => VarCtx.singleton x sigma
      | V _ => VarCtx.empty
-     | APP (theta, es <: (_, _, vctx)) => vctx
-     | META_APP (_, _, ms <: (_, _, vctx)) => vctx
+     | APP (theta, es <: (_, _, vctx)) => Susp.force vctx
+     | META_APP (_, _, ms <: (_, _, vctx)) => Susp.force vctx
 
-  fun getCtx m =
-    (metactx m, symctx m, varctx m)
+  fun getCtx m : Ctx.ctx =
+    (Susp.delay (fn _ => metactx m),
+     Susp.delay (fn _ => symctx m),
+     Susp.delay (fn _ => varctx m))
 
   fun mapAbs_ f (ABS (us, xs, m)) =
     ABS (us, xs, f m)
