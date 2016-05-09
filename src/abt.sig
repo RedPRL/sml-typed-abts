@@ -120,6 +120,8 @@ sig
   (* construct an abt from a view by checking it against a sort. *)
   val check : abt view * sort -> abt
 
+  val $$ : operator * abt bview spine -> abt
+
   (* pattern match on an abt and its sort *)
   val infer : abt -> abt view * sort
   val out : abt -> abt view

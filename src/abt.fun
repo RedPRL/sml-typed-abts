@@ -396,6 +396,12 @@ struct
              annotateMetaApp (x, sigma) us' ms'
            end
 
+  fun $$ (theta, es) =
+    let
+      val (_, tau) = Operator.arity theta
+    in
+      check (theta $ es, tau)
+    end
 
   fun mapb f ((us, xs) \ m) =
     (us, xs) \ f m
