@@ -14,7 +14,7 @@ sig
   (* Just as variables can be used to stand in for an abt, metavariables can be
    * used to stand in for an abstraction/binder of any valence. Metavariables
    * are also sometimes called "second-order variables". *)
-  structure Metavariable : PRESYMBOL
+  structure Metavariable : SYMBOL
 
   (* Operators are the primitive building blocks of a language; the [Operator]
    * allows the ABT framework to be deployed at an arbitrary signature of
@@ -31,10 +31,6 @@ sig
   type valence = Operator.Arity.valence
   type 'a spine = 'a Operator.Arity.spine
 
-  structure MetaCtx : DICT where type key = metavariable
-  structure VarCtx : DICT where type key = variable
-  structure SymCtx : DICT where type key = symbol
-
   (* The core type of the signature. This is the type of the ABTs that
    * can be built from the given [operator]s, [variable]s, [symbol]s and
    * [metavariable]s
@@ -48,13 +44,13 @@ sig
    *)
   type abs
 
-  type metactx = valence MetaCtx.dict
-  type varctx = sort VarCtx.dict
-  type symctx = sort SymCtx.dict
+  type metactx = valence Metavariable.ctx
+  type varctx = sort Variable.ctx
+  type symctx = sort Symbol.ctx
 
-  type metaenv = abs MetaCtx.dict
-  type varenv = abt VarCtx.dict
-  type symenv = symbol SymCtx.dict
+  type metaenv = abs Metavariable.ctx
+  type varenv = abt Variable.ctx
+  type symenv = symbol Symbol.ctx
 
   (* Modify the term inside an abstraction*)
   val mapAbs : (abt -> abt) -> abs -> abs
@@ -112,7 +108,7 @@ sig
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
-    | $# of metavariable * (symbol spine * 'a spine)
+    | $# of metavariable * ((symbol * sort) spine * 'a spine)
 
   val map : ('a -> 'b) -> 'a view -> 'b view
   val mapb : ('a -> 'b) -> 'a bview -> 'b bview
@@ -122,8 +118,7 @@ sig
    *)
 
   (* construct an abt from a view by checking it against a sort. *)
-  val check : metactx -> abt view * sort -> abt
-  val check' : abt view * sort -> abt
+  val check : abt view * sort -> abt
 
   (* pattern match on an abt and its sort *)
   val infer : abt -> abt view * sort
@@ -131,8 +126,7 @@ sig
   val sort : abt -> sort
 
   (* construct an abstraction from a view by checking it against a valence *)
-  val checkb : metactx -> abt bview * valence -> abs
-  val checkb' : abt bview * valence -> abs
+  val checkb : abt bview * valence -> abs
 
   (* pattern match on an abstraction and its valence *)
   val inferb : abs -> abt bview * valence
@@ -141,7 +135,7 @@ sig
 
   structure Unify :
   sig
-    type renaming = metavariable MetaCtx.dict * symbol SymCtx.dict * variable VarCtx.dict
+    type renaming = metavariable Metavariable.ctx * symbol Symbol.ctx * variable Variable.ctx
 
     (* unify by synthesizing a renaming of metavariables and variables; raises
     * [UnificationFailed] when no renaming can be synthesized. *)

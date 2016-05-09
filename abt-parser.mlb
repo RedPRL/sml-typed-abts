@@ -1,7 +1,17 @@
 local
+  $(SML_LIB)/basis/basis.mlb
+
   abt.mlb
   lib/cmlib.mlb
-  lib/sml-parcom/parcom.mlb
+  local
+    lib/sml-parcom/parcom.mlb
+  in
+    structure CharParser
+    structure ParserCombinators
+    signature LANGUAGE_DEF
+    functor TokenParser
+  end
+
   src/parser/charset.sig
   src/parser/charset.sml
   src/parser/parse_operator.sig

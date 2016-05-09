@@ -11,6 +11,7 @@ struct
   structure Valence = Operator.Arity.Valence
   structure Spine = Valence.Spine
   structure Sort = Valence.Sort
+  structure SymCtx = Symbol.Ctx and MetaCtx = Metavariable.Ctx
 
   fun matchOperator (ptheta, theta) =
     (* compare if they are the "same" operator modulo parameters *)
@@ -51,9 +52,8 @@ struct
         | go (MVAR mv :: pargs) (e :: es, vl :: vls) (rho, env) =
             let
               val _ \ m = e
-              val psi = metactx m
             in
-              go pargs (es, vls) (rho, extendEnv env (mv, checkb psi (e,vl)))
+              go pargs (es, vls) (rho, extendEnv env (mv, checkb (e,vl)))
             end
         | go (PAT pat :: pargs) ((([], []) \ m) :: es, vl :: vls) (rho, env) =
             let

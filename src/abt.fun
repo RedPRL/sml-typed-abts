@@ -1,7 +1,7 @@
 functor Abt
   (structure Symbol : SYMBOL
    structure Variable : SYMBOL
-   structure Metavariable : PRESYMBOL
+   structure Metavariable : SYMBOL
    structure Operator : OPERATOR) : ABT =
 struct
   structure Symbol = Symbol
@@ -13,9 +13,9 @@ struct
   structure Sort = Arity.Valence.Sort and Valence = Arity.Valence
   structure Spine = Valence.Spine
 
-  structure MetaCtx = SplayDict (structure Key = Metavariable)
-  structure VarCtx = SplayDict (structure Key = Variable)
-  structure SymCtx = SplayDict (structure Key = Symbol)
+  structure MetaCtx = Metavariable.Ctx
+  structure VarCtx = Variable.Ctx
+  structure SymCtx = Symbol.Ctx
 
   type sort = Sort.t
   type valence = Valence.t
@@ -34,6 +34,45 @@ struct
     type variable = variable t
   end
 
+  type metactx = valence MetaCtx.dict
+  type varctx = sort VarCtx.dict
+  type symctx = sort SymCtx.dict
+
+  structure Ctx =
+  struct
+    structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
+    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = Sort)
+    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sort)
+
+    type ctx = metactx Susp.susp * symctx Susp.susp * varctx Susp.susp
+
+    val empty : ctx =
+      (Susp.delay (fn _ => MetaCtx.empty),
+       Susp.delay (fn _ => SymCtx.empty),
+       Susp.delay (fn _ => VarCtx.empty))
+
+    fun merge ((mctx1, sctx1, vctx1), (mctx2, sctx2, vctx2)) =
+      let
+        val mctx = Susp.delay (fn _ => MetaCtxUtil.union (Susp.force mctx1, Susp.force mctx2))
+        val sctx = Susp.delay (fn _ => SymCtxUtil.union (Susp.force sctx1, Susp.force sctx2))
+        val vctx = Susp.delay (fn _ => VarCtxUtil.union (Susp.force vctx1, Susp.force vctx2))
+      in
+        (mctx, sctx, vctx)
+      end
+
+    fun modifyMetas f (mctx, sctx, vctx) =
+      (Susp.delay (fn _ => f (Susp.force mctx)), sctx, vctx)
+
+    fun modifySyms f (mctx, sctx, vctx) =
+      (mctx, Susp.delay (fn _ => f (Susp.force sctx)), vctx)
+
+    fun modifyVars f (mctx, sctx, vctx) =
+      (mctx, sctx, Susp.delay (fn _ => f (Susp.force vctx)))
+  end
+
+  datatype 'a ann = <: of 'a * Ctx.ctx
+  infix <:
+
   (* Note that we use LN.variable so V may work with both free and bound
    * variables and LN.operator/symbols to distinguish free and bound symbols.
    * Otherwise this is almost the same as a pattern except that
@@ -42,13 +81,13 @@ struct
    *)
   datatype abt =
       V of LN.variable * sort
-    | APP of LN.operator * abs spine
-    | META_APP of (metavariable * valence) * (LN.symbol * sort) spine * abt spine
-  and abs = ABS of (symbol * sort) spine * (variable * sort) spine * abt
+    | APP of LN.operator * abs spine ann
+    | META_APP of (metavariable * sort) * (LN.symbol * sort) spine * abt spine ann
+  and abs = ABS of (string * sort) spine * (string * sort) spine * abt
 
   val rec primToString =
     fn V (v, _) => LN.toString Variable.toString v
-     | APP (theta, es) =>
+     | APP (theta, es <: _) =>
          Operator.toString (LN.toString Symbol.toString) theta
            ^ "("
            ^ Spine.pretty primToStringAbs ";" es
@@ -60,16 +99,9 @@ struct
       ^ (if Spine.isEmpty upsilon then "" else "[" ^ Spine.pretty (Sort.toString o #2) "," gamma ^ "]")
       ^ "." ^ primToString m
 
-  type metactx = valence MetaCtx.dict
-  type varctx = sort VarCtx.dict
-  type symctx = sort SymCtx.dict
-
   type metaenv = abs MetaCtx.dict
   type varenv = abt VarCtx.dict
   type symenv = symbol SymCtx.dict
-
-  fun mapAbs_ f (ABS (us, xs, m)) =
-    ABS (us, xs, f m)
 
   fun abtToAbs m =
     ABS (Spine.empty (), Spine.empty (), m)
@@ -78,7 +110,7 @@ struct
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
-    | $# of metavariable * (symbol spine * 'a spine)
+    | $# of metavariable * ((symbol * sort) spine * 'a spine)
   and 'a bview =
      \ of (symbol spine * variable spine) * 'a
 
@@ -115,80 +147,66 @@ struct
    * binding.
    *)
 
+  val sort =
+    fn V (_, tau) => tau
+     | APP (theta, _) => #2 (Operator.arity theta)
+     | META_APP ((_, tau), _, _) => tau
 
-  local
-    structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
-  in
-    fun metactx M =
-      let
-        fun go R =
-          fn V _ => R
-           | APP (theta, Es) =>
-               Spine.foldr MetaCtxUtil.union R (Spine.map (go' MetaCtx.empty) Es)
-           | META_APP (mv, us, Ms) =>
-               Spine.foldr MetaCtxUtil.union (MetaCtxUtil.extend R mv) (Spine.map (go MetaCtx.empty) Ms)
-        and go' R (ABS (_, _, M)) = go R M
-      in
-        go MetaCtx.empty M
-      end
-  end
+  val metactx =
+    fn V _ => MetaCtx.empty
+     | APP (theta, es <: (mctx, _, _)) => Susp.force mctx
+     | META_APP ((mv, tau), us, ms <: (mctx, _, _)) =>
+         let
+           val vl = ((Spine.map #2 us, Spine.map sort ms), tau)
+         in
+           Ctx.MetaCtxUtil.extend (Susp.force mctx) (mv, vl)
+         end
 
-  local
-    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = Sort)
-  in
-    fun varctx M =
-      let
-        fun go R =
-          fn V (LN.FREE v, sigma) =>
-               VarCtxUtil.extend R (v, sigma)
-           | APP (theta, Es) =>
-               Spine.foldr VarCtxUtil.union R (Spine.map (go' VarCtx.empty) Es)
-           | META_APP (m, us, Ms) =>
-               Spine.foldr VarCtxUtil.union R (Spine.map (go VarCtx.empty) Ms)
-           | _ => R
-        and go' R (ABS (_, _, M)) = go R M
-      in
-        go VarCtx.empty M
-      end
-  end
+  val symctx =
+    fn V _ => SymCtx.empty
+     | APP (theta, es <: (_, sctx, _)) =>
+         List.foldr
+           (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
+             | (_, memo) => memo)
+           (Susp.force sctx)
+           (Operator.support theta)
+     | META_APP (_, us, ms <: (_, sctx, _)) =>
+         Spine.foldr
+           (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
+             | (_, memo) => memo)
+           (Susp.force sctx)
+           us
 
-  local
-    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sort)
-  in
-    fun symctx M =
-      let
-        fun tryExtendFree R (u, sigma) =
-          SymCtxUtil.extend R (LN.getFree u, sigma)
-            handle _ => R
+  val varctx =
+    fn V (LN.FREE x, sigma) => VarCtx.singleton x sigma
+     | V _ => VarCtx.empty
+     | APP (theta, es <: (_, _, vctx)) => Susp.force vctx
+     | META_APP (_, _, ms <: (_, _, vctx)) => Susp.force vctx
 
-        fun opSupport theta =
-          List.foldl
-            (fn ((u, sigma), R) => tryExtendFree R (u, sigma))
-            SymCtx.empty
-            (Operator.support theta)
+  fun getCtx m : Ctx.ctx =
+    (Susp.delay (fn _ => metactx m),
+     Susp.delay (fn _ => symctx m),
+     Susp.delay (fn _ => varctx m))
 
-        fun go R =
-          fn APP (theta, Es) =>
-               Spine.foldr
-                 SymCtxUtil.union
-                 (SymCtxUtil.union (R, opSupport theta))
-                 (Spine.map (go' SymCtx.empty) Es)
-           | META_APP (m, us, Ms) =>
-               SymCtxUtil.union
-                 (Spine.foldr (fn ((u, sigma), X) => tryExtendFree X (u, sigma)) SymCtx.empty us,
-                  Spine.foldr SymCtxUtil.union R (Spine.map (go SymCtx.empty) Ms))
-           | _ => R
-        and go' R (ABS (_, _, M)) = go R M
-      in
-        go SymCtx.empty M
-      end
-  end
-
-  fun mapAbs_ f (ABS (us, xs, M)) =
-    ABS (us, xs, f M)
+  fun mapAbs_ f (ABS (us, xs, m)) =
+    ABS (us, xs, f m)
 
   fun liftTraverseAbs f coord =
     mapAbs_ (f (Coord.shiftRight coord))
+
+  fun annotateApp theta es =
+    let
+      val ctx = Spine.foldr (fn (ABS (_, _, m), ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty es
+    in
+      APP (theta, es <: ctx)
+    end
+
+  fun annotateMetaApp (mv, tau) us ms =
+    let
+      val ctx = Spine.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms
+    in
+      META_APP ((mv, tau), us, ms <: ctx)
+    end
 
 
   (* This function takes a variable and its sort and switches it to a
@@ -206,63 +224,66 @@ struct
          else
            m
      | V v => V v
-     | APP (theta, es) =>
-         APP (theta, Spine.map (liftTraverseAbs (imprisonVariable (v, tau)) coord) es)
-     | META_APP (m, us, ms) =>
-         META_APP (m, us, Spine.map (imprisonVariable (v, tau) coord) ms)
+     | APP (theta, es <: ctx) =>
+         annotateApp theta (Spine.map (liftTraverseAbs (imprisonVariable (v, tau)) coord) es)
+     | META_APP (mv, us, ms <: ctx) =>
+         annotateMetaApp mv us (Spine.map (imprisonVariable (v, tau) coord) ms)
 
   fun imprisonSymbol (v, tau) coord =
     fn V v => V v
-     | APP (theta, Es) =>
+     | APP (theta, es <: ctx) =>
          let
            fun rho v' = if Symbol.eq (v, v') then LN.BOUND coord else LN.FREE v'
            fun chk (LN.FREE v', tau') = if Symbol.eq (v, v') then assertSortEq (tau, tau') else ()
              | chk _ = ()
            val _ = List.app chk (Operator.support theta)
            val theta' = Operator.map (LN.bind rho) theta
+           val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
          in
-           APP (theta', Spine.map (liftTraverseAbs (imprisonSymbol (v,tau)) coord) Es)
+           APP (theta', Spine.map (liftTraverseAbs (imprisonSymbol (v,tau)) coord) es <: ctx')
          end
-     | META_APP (m, us, Ms) =>
+     | META_APP (m, us, Ms <: ctx) =>
          let
            fun rho v' = if Symbol.eq (v, v') then LN.BOUND coord else LN.FREE v'
            fun rho' (l, s) = (LN.bind rho l, s)
            val vs = Spine.map rho' us
+           val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
          in
-           META_APP (m, vs, Spine.map (imprisonSymbol (v, tau) coord) Ms)
+           META_APP (m, vs, Spine.map (imprisonSymbol (v, tau) coord) Ms <: ctx')
          end
 
   (* This is the reverse of the above, given a position we hunt around for
    * a bound variable in the correct slot and switch out for a free one.
    *)
-  fun liberateVariable v coord =
+  fun liberateVariable (v, sigma) coord =
     fn e as V (LN.FREE _, _) => e
      | e as V (LN.BOUND coord', sigma) =>
          if Coord.eq (coord, coord') then V (LN.FREE v, sigma) else e
-     | APP (theta, es) =>
-         APP (theta, Spine.map (liftTraverseAbs (liberateVariable v) coord) es)
-     | META_APP (x, us, ms) =>
-         META_APP (x, us, Spine.map (liberateVariable v coord) ms)
+     | APP (theta, es <: ctx) =>
+         annotateApp theta (Spine.map (liftTraverseAbs (liberateVariable (v, sigma)) coord) es)
+     | META_APP ((x, tau), us, ms <: ctx) =>
+         annotateMetaApp (x, tau) us (Spine.map (liberateVariable (v, sigma) coord) ms)
 
-  fun liberateSymbol u coord =
+  fun liberateSymbol (u, sigma) coord =
     let
       fun rho (LN.BOUND coord') = if Coord.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
         | rho u' = u'
     in
       fn e as V _ => e
-       | APP (theta, es) =>
+       | APP (theta, es <: ctx) =>
            let
              val theta' = Operator.map rho theta
-             val fs = Spine.map (liftTraverseAbs (liberateSymbol u) coord) es
+             val fs = Spine.map (liftTraverseAbs (liberateSymbol (u, sigma)) coord) es
            in
-             APP (theta', fs)
+             annotateApp theta' fs
            end
-       | META_APP (x, us, ms) =>
+       | META_APP ((x, tau), us, ms <: ctx) =>
            let
              val vs = Spine.map (fn (l,s) => (rho l, s)) us
-             val ns = Spine.map (liberateSymbol u coord) ms
+             val ns = Spine.map (liberateSymbol (u, sigma) coord) ms
+             val ctx' = Ctx.modifySyms (fn sctx => SymCtx.insert sctx u sigma) ctx
            in
-            META_APP (x, vs, ns)
+             annotateMetaApp (x, tau) vs ns
            end
     end
 
@@ -292,26 +313,30 @@ struct
   in
     val imprisonVariables = foldStar imprisonVariable o Spine.Pair.zipEq
     val imprisonSymbols = foldStar imprisonSymbol o Spine.Pair.zipEq
-    val liberateVariables = foldStar liberateVariable
-    val liberateSymbols = foldStar liberateSymbol
+
+    val liberateVariables : (variable * sort) Spine.t -> abt -> abt =
+      foldStar liberateVariable
+
+    val liberateSymbols : (symbol * sort) Spine.t -> abt -> abt =
+      foldStar liberateSymbol
   end
 
 
-  fun checkb psi ((us, xs) \ m, ((ssorts, vsorts), sigma)) =
+  fun checkb ((us, xs) \ m, ((ssorts, vsorts), sigma)) =
     let
       val (_, tau) = infer m
       val () = assertSortEq (sigma, tau)
     in
       ABS
-        (Spine.Pair.zipEq (us, ssorts),
-         Spine.Pair.zipEq (xs, vsorts),
+        (Spine.Pair.zipEq (Spine.map Symbol.toString us, ssorts),
+         Spine.Pair.zipEq (Spine.map Variable.toString xs, vsorts),
          imprisonSymbols (us, ssorts) (imprisonVariables (xs, vsorts) m))
     end
 
   and infer M =
     case M of
          V (x, tau) => (` (LN.getFree x), tau)
-       | APP (theta, Es) =>
+       | APP (theta, Es <: _) =>
          let
            val (_, tau) = Operator.arity theta
            val theta' = Operator.map LN.getFree theta
@@ -319,31 +344,33 @@ struct
          in
            (theta' $ Es', tau)
          end
-       | META_APP ((mv, (_, tau)), us, Ms) =>
+       | META_APP ((mv, tau), us, Ms <: _) =>
          let
-           val us' = Spine.map (LN.getFree o #1) us
+           val us' = Spine.map (fn (u, sigma) => (LN.getFree u, sigma)) us
          in
            (mv $# (us', Ms), tau)
          end
 
   and inferb (ABS (upsilon, gamma, m)) =
     let
-      val us = Spine.map (Symbol.clone o #1) upsilon
-      val xs = Spine.map (Variable.clone o #1) gamma
+      val syms = symctx m
+      val vars = varctx m
+
+      val us = Spine.map (fn (u, tau) => (Symbol.fresh syms u, tau)) upsilon
+      val xs = Spine.map (fn (x, tau) => (Variable.fresh vars x, tau)) gamma
       val m' = liberateSymbols us (liberateVariables xs m)
       val (_, tau) = infer m'
       val valence = ((Spine.map #2 upsilon, Spine.map #2 gamma), tau)
     in
-      ((us, xs) \ m',
+      ((Spine.map #1 us, Spine.map #1 xs) \ m',
        valence)
     end
 
   val out = #1 o infer
-  val sort = #2 o infer
   val outb = #1 o inferb
   val valence = #2 o inferb
 
-  fun check psi (m, sigma) =
+  fun check (m, sigma) =
     case m of
          `x => V (LN.FREE x, sigma)
        | theta $ es =>
@@ -351,25 +378,23 @@ struct
              val (valences, tau)  = Operator.arity theta
              val () = assertSortEq (sigma, tau)
              val theta' = Operator.map LN.FREE theta
-             val es' = Spine.Pair.mapEq (checkb psi) (es, valences)
+             val es' = Spine.Pair.mapEq checkb (es, valences)
            in
-             APP (theta', es')
+             annotateApp theta' es'
            end
-       | mv $# (us, ms) =>
+       | x $# (us, ms) =>
            let
-             val valence as ((ssorts, vsorts), tau) = MetaCtx.lookup psi mv
-             val () = assertSortEq (sigma, tau)
-             val us' = Spine.Pair.zipEq (Spine.map LN.FREE us, ssorts)
+             val ssorts = Spine.map #2 us
+             val vsorts = Spine.map sort ms
+
+             val us' = Spine.map (fn (u, tau) => (LN.FREE u, tau)) us
              fun chkInf (m, tau) =
                (assertSortEq (tau, sort m); m)
              val ms' = Spine.Pair.mapEq chkInf (ms, vsorts)
+             val ctx = Spine.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms'
            in
-             META_APP ((mv, valence), us', ms')
+             annotateMetaApp (x, sigma) us' ms'
            end
-
-
-  val check' = check MetaCtx.empty
-  val checkb' = checkb MetaCtx.empty
 
 
   fun mapb f ((us, xs) \ m) =
@@ -378,9 +403,8 @@ struct
   fun mapAbs f abs =
     let
       val ((us, xs) \ m, vl) = inferb abs
-      val psi = metactx m
     in
-      checkb psi ((us, xs) \ f m, vl)
+      checkb ((us, xs) \ f m, vl)
     end
 
   fun map f =
@@ -397,9 +421,9 @@ struct
      * implements alpha equivalence (and is very efficient!)
      *)
     fun eq (V (v, _), V (v', _)) = LN.eq Variable.eq (v, v')
-      | eq (APP (theta, es), APP (theta', es')) =
+      | eq (APP (theta, es <: _), APP (theta', es' <: _)) =
           OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eqAbs (es, es')
-      | eq (META_APP ((mv, _), us, ms), META_APP ((mv', _), us', ms')) =
+      | eq (META_APP ((mv, _), us, ms <: _), META_APP ((mv', _), us', ms' <: _)) =
           Metavariable.eq (mv, mv')
             andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Symbol.eq (x,y)) (us, us')
             andalso Spine.Pair.allEq eq (ms, ms')
@@ -409,26 +433,25 @@ struct
 
   fun metasubstEnv rho m =
     let
-      val psi = metactx m
       val (view, tau) = infer m
     in
       case view of
            `x => m
          | theta $ es =>
-             check psi (theta $ Spine.map (mapb (metasubstEnv rho)) es, tau)
+             check (theta $ Spine.map (mapb (metasubstEnv rho)) es, tau)
          | mv $# (us, ms) =>
              let
                val ms' = Spine.map (metasubstEnv rho) ms
              in
                case MetaCtx.find rho mv of
                     NONE =>
-                      check psi (mv $# (us, ms'), tau)
+                      check (mv $# (us, ms'), tau)
                   | SOME abs =>
                       let
                         val (vs, xs) \ m = outb abs
                         val srho =
                           Spine.foldr
-                            (fn ((u, v), r) => SymCtx.insert r u v)
+                            (fn (((u, _), v), r) => SymCtx.insert r u v)
                             SymCtx.empty
                             (Spine.Pair.zipEq (us, vs))
                         val rho' =
@@ -445,24 +468,24 @@ struct
   and substEnv rho =
     fn m as V (LN.FREE x, sigma) => getOpt (VarCtx.find rho x, m)
      | m as V _ => m
-     | APP (theta, es) => APP (theta, Spine.map (mapAbs_ (substEnv rho)) es)
-     | META_APP (m, us, ms) => META_APP (m, us, Spine.map (substEnv rho) ms)
+     | APP (theta, es <: _) => annotateApp theta (Spine.map (mapAbs_ (substEnv rho)) es)
+     | META_APP (mv, us, ms <: _) => annotateMetaApp mv us (Spine.map (substEnv rho) ms)
 
   and renameEnv rho =
     fn m as V _ => m
-     | APP (theta, es) =>
+     | APP (theta, es <: _) =>
          let
            fun ren u = getOpt (SymCtx.find rho u, u)
            val theta' = Operator.map (LN.map ren) theta
          in
-           APP (theta', Spine.map (mapAbs_ (renameEnv rho)) es)
+           annotateApp theta' (Spine.map (mapAbs_ (renameEnv rho)) es)
          end
-     | META_APP (x, us, ms) =>
+     | META_APP (mv, us, ms <: _) =>
          let
            fun ren u = getOpt (SymCtx.find rho u, u)
            fun ren' (l,s) = (LN.map ren l, s)
          in
-           META_APP (x, Spine.map ren' us, Spine.map (renameEnv rho) ms)
+           annotateMetaApp mv (Spine.map ren' us) (Spine.map (renameEnv rho) ms)
          end
 
   fun unbind abs us ms =
@@ -492,10 +515,9 @@ struct
 
   fun mapSubterms f m =
     let
-      val psi = metactx m
       val (view, tau) = infer m
     in
-      check psi (map f view, tau)
+      check (map f view, tau)
     end
 
   fun deepMapSubterms f m =
@@ -548,7 +570,7 @@ struct
                (mrho, srho, vrho)
              else
                raise UnificationFailed
-         | (APP (theta1, es1), APP (theta2, es2)) =>
+         | (APP (theta1, es1 <: _), APP (theta2, es2 <: _)) =>
              let
                val srho' = unifyOperator srho (theta1, theta2)
              in
@@ -557,9 +579,9 @@ struct
                  (mrho, srho', vrho)
                  (Spine.Pair.zipEq (es1, es2))
              end
-         | (META_APP ((x1, vl1), us1, ms1), META_APP ((x2, vl2), us2, ms2)) =>
+         | (META_APP ((x1, tau1), us1, ms1 <: _), META_APP ((x2, tau2), us2, ms2 <: _)) =>
              let
-               val _ = if Valence.eq (vl1, vl2) then () else raise UnificationFailed
+               val _ = if Sort.eq (tau1, tau2) then () else raise UnificationFailed
                val mrho' =
                  MetaRenUtil.extend mrho (x1, x2)
                val srho' =
@@ -595,3 +617,4 @@ functor SimpleAbt (Operator : OPERATOR) =
        structure Variable = Symbol ()
        structure Metavariable = Symbol ()
        structure Operator = Operator)
+

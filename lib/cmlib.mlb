@@ -10,4 +10,5 @@ in
   structure StringHashable
   functor HashTable
   structure Sum
+  structure Susp
 end
