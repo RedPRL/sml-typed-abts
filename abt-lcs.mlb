@@ -1,0 +1,18 @@
+local
+  $(SML_LIB)/basis/basis.mlb
+  lib/cmlib.mlb
+  abt.mlb
+  src/lcs/canonicity.sig
+  src/lcs/canonicity.sml
+  src/lcs/operator.sig
+  src/lcs/util.sig
+  src/lcs/util.fun
+in
+  signature LCS_CANONICITY
+  structure LcsCanonicity
+
+  signature LCS_OPERATOR
+
+  signature LCS_UTIL
+  functor LcsUtil
+end

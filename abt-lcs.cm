@@ -1,0 +1,21 @@
+Library
+  signature LCS_CANONICITY
+  structure LcsCanonicity
+
+  signature LCS_OPERATOR
+
+  signature LCS_UTIL
+  functor LcsUtil
+
+  structure Playground
+is
+  $/basis.cm
+  lib/cmlib.cm
+  abt.cm
+  src/lcs/canonicity.sig
+  src/lcs/canonicity.sml
+  src/lcs/operator.sig
+  src/lcs/util.sig
+  src/lcs/util.fun
+  src/lcs/playground.sml
+  src/lcs/tagless.sig
