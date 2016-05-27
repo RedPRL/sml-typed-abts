@@ -97,15 +97,15 @@ struct
   infix 1 \
 
   fun ap m n =
-    C (CUT ((), ())) $$ [([],[]) \ K AP $$ [([],[]) \ n], ([],[]) \ m]
+    CUT ((), ()) $$ [([],[]) \ K AP $$ [([],[]) \ n], ([],[]) \ m]
 
   fun lam (x, m) =
-    C (RET ()) $$ [([],[]) \ V LAM $$ [([], [x]) \ m]]
+    RET () $$ [([],[]) \ V LAM $$ [([], [x]) \ m]]
 
-  val ax = C (RET ()) $$ [([],[]) \ V AX $$ []]
+  val ax = RET () $$ [([],[]) \ V AX $$ []]
 
   val x = Variable.named "x"
-  val tm1 = ap (lam (x, check (`x, CMD ()))) ax
+  val tm1 = ap (lam (x, check (`x, EXP ()))) ax
   val tm2 = eval () tm1
 
   structure Show = DebugShowAbt (LambdaAbt)

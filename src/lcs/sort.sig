@@ -7,7 +7,7 @@ sig
   datatype t =
       VAL of atomic
     | CONT of atomic * atomic
-    | CMD of atomic
+    | EXP of atomic
 
   (* Select a sort with which to reflect user-defined operator id symbols *)
   val opidSort : atomic option

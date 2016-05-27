@@ -77,7 +77,7 @@ struct
      | m <: env || CONT (k <: env' || cont) =>
          let
            val O.Sort.CONT (sigma, tau) = sort k
-           val m' = O.C (O.CUT (sigma, tau)) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
+           val m' = O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
          in
            project @@ m' <: env' || cont
          end
@@ -97,11 +97,11 @@ struct
          in
            m <: (mrho', srho'', vrho'') || cont
          end
-     | O.C (O.RET sigma) $ [_ \ n] =>
+     | O.RET sigma $ [_ \ n] =>
          (case cont of
              CONT (k <: env' || cont') => Instructions.interpret env' (plug (quoteCont k) (quoteVal n)) || cont'
            | DONE => m <: env || cont)
-     | O.C (O.CUT (sigma, tau)) $ [_ \ k, _ \ e] =>
+     | O.CUT (sigma, tau) $ [_ \ k, _ \ e] =>
          e <: env || CONT (k <: env || cont)
      | _ => raise Fail "Expected command"
 
@@ -110,7 +110,7 @@ struct
       val rec go =
         fn st as m <: env || k =>
             (case (out m, k) of
-                (O.C (O.RET _) $ _, DONE) => force (m <: env)
+                (O.RET _ $ _, DONE) => force (m <: env)
               | _ => go (step sign st))
     in
       go o inject

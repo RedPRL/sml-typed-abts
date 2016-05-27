@@ -20,14 +20,11 @@ sig
   type valence = (sort list * sort list) * sort
   type arity = valence list * sort
 
-  datatype 'i cmd =
-     RET of Sort.atomic
-   | CUT of Sort.atomic * Sort.atomic
-
   datatype 'i operator =
      V of 'i Val.t
    | K of 'i Cont.t
-   | C of 'i cmd
+   | RET of Sort.atomic
+   | CUT of Sort.atomic * Sort.atomic
 
   include OPERATOR
     where type 'i t = 'i operator
