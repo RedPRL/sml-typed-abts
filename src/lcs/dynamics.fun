@@ -32,8 +32,8 @@ struct
   structure Lcs = Lcs and Abt = Abt
 
   open Lcs Abt
-  infix 1 <:
-  infix 2 $ $$ $# \
+  infix 3 <:
+  infix 3 $ $$ $# \
 
   fun @@ (f, x) = f x
   infix 0 @@
@@ -52,42 +52,38 @@ struct
      | _ => raise Fail "Expected continuation"
 
 
-  structure Closure = LcsClosure (Abt)
-  structure Instructions = Instructions (structure P = P and Cl = Closure)
-  open Closure
 
-  type expr = abt
-  type cont = abt
+  structure Cl = LcsClosure (Abt)
+  structure M =
+    LcsMachine
+      (structure Cl = Cl
+       fun isFinal m =
+         case out m of
+            O.RET _ $ _ => true
+          | _ => false)
 
-  datatype continuation =
-     DONE
-   | CONT of cont state
-
-  and 'a state = || of 'a closure * continuation
-
+  structure I = Instructions (structure P = P and Cl = Cl)
+  open Cl M
   infix 1 ||
 
-  fun inject m =
-    Closure.new m || DONE
-
   (* To take an intermediate state and turn it into a term *)
-  fun project (s : expr state) : expr =
+  fun run (s : expr state) : expr =
     case s of
-       cl || DONE => force cl
-     | m <: env || CONT (k <: env' || cont) =>
+       cl || [] => force cl
+     | m <: env || ((k <: env') :: stack) =>
          let
            val O.Sort.CONT (sigma, tau) = sort k
            val m' = O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
          in
-           project @@ m' <: env' || cont
+           run @@ m' <: env' || stack
          end
 
   type sign = unit
 
   (* I'm not sure this is right, but it seems to be on the right track. It's basically a CEK machine. *)
-  fun step sign (m <: (env as (mrho, srho, vrho)) || cont) : expr state =
+  fun step sign (m <: (env as (mrho, srho, vrho)) || stack) : expr state =
     case out m of
-       `x => Variable.Ctx.lookup vrho x || cont
+       `x => Variable.Ctx.lookup vrho x || stack
      | x $# (us, ms) =>
          let
            val e <: (mrho', srho', vrho') = Metavariable.Ctx.lookup mrho x
@@ -95,25 +91,19 @@ struct
            val srho'' = ListPair.foldlEq  (fn (v,(u, _),r) => Symbol.Ctx.insert r v u) srho' (vs', us)
            val vrho'' = ListPair.foldlEq (fn (x,m,r) => Variable.Ctx.insert r x (m <: (mrho', srho', vrho'))) vrho' (xs, ms)
          in
-           m <: (mrho', srho'', vrho'') || cont
+           m <: (mrho', srho'', vrho'') || stack
          end
      | O.RET sigma $ [_ \ n] =>
-         (case cont of
-             CONT (k <: env' || cont') => Instructions.interpret env' (plug (quoteCont k) (quoteVal n)) || cont'
-           | DONE => m <: env || cont)
+         (case stack of
+             (k <: env') :: stack' => I.interpret env' (plug (quoteCont k) (quoteVal n)) || stack'
+           | [] => m <: env || [])
      | O.CUT (sigma, tau) $ [_ \ k, _ \ e] =>
-         e <: env || CONT (k <: env || cont)
+         e <: env || (k <: env) :: stack
      | _ => raise Fail "Expected command"
 
   fun eval sign =
-    let
-      val rec go =
-        fn st as m <: env || k =>
-            (case (out m, k) of
-                (O.RET _ $ _, DONE) => force (m <: env)
-              | _ => go (step sign st))
-    in
-      go o inject
-    end
+    run
+      o star (step sign)
+      o start
 
 end
