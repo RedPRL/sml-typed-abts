@@ -1,6 +1,13 @@
 signature LCS_DYNAMICS =
 sig
   structure Lcs : LCS_DEFINITION
+  structure Abt : ABT
+  sharing type Lcs.O.operator = Abt.Operator.t
 
-  (*val step : abt closure -> (abt closure -> abt closure option) -> abt closure option*)
+  type 'a state
+  val step : Abt.abt state -> Abt.abt state
+  val eval : Abt.abt -> Abt.abt
+
+  val inject : 'a -> 'a state
+  val project : Abt.abt state -> Abt.abt
 end

@@ -6,7 +6,7 @@ functor LcsDynamics
      where type 'a Operator.Arity.Valence.Spine.t = 'a list) : LCS_DYNAMICS =
 struct
 
-  structure Lcs = Lcs
+  structure Lcs = Lcs and Abt = Abt
 
   open Lcs Abt
   infix 1 <:
@@ -70,6 +70,9 @@ struct
     Abt.mapAbs (fn m => force (m <: env)) e
 
 
+  fun inject m =
+    m <: (Metavariable.Ctx.empty, Symbol.Ctx.empty, Variable.Ctx.empty) || DONE
+
   (* To take an intermediate state and turn it into a term *)
   fun project (s : expr state) : expr =
     case s of
@@ -102,4 +105,13 @@ struct
      | O.C (O.CUT (sigma, tau)) $ [_ \ k, _ \ e] =>
          e <: env || CONT (k <: env || cont)
      | _ => raise Fail "Expected command"
+
+  local
+    fun go (cl || DONE) = force cl
+      | go st = go (step st)
+  in
+    val eval : abt -> abt =
+      go o inject
+  end
+
 end
