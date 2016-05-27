@@ -29,8 +29,8 @@ struct
      | _ => raise Fail "Expected continuation"
 
 
-  datatype 'a closure = <: of 'a * environment
-  withtype environment = abs closure Metavariable.Ctx.dict * symbol Symbol.Ctx.dict * abt closure Variable.Ctx.dict
+  structure Closure = LcsClosure (Abt)
+  open Closure
 
   fun interpret (env as (mrho, srho, vrho)) =
     fn P.RETURN x => x <: env
@@ -57,18 +57,6 @@ struct
   and 'a state = || of 'a closure * continuation
 
   infix 1 ||
-
-  (* To perform substitutions suspended in a closure *)
-  fun force (m <: (mrho, srho, rho)) : abt =
-    let
-      val mrho' = Metavariable.Ctx.map forceB mrho
-      val rho' = Variable.Ctx.map force rho
-    in
-      Abt.renameEnv srho (Abt.substEnv rho' (Abt.metasubstEnv mrho' m))
-    end
-  and forceB (e <: env) =
-    Abt.mapAbs (fn m => force (m <: env)) e
-
 
   fun inject m =
     m <: (Metavariable.Ctx.empty, Symbol.Ctx.empty, Variable.Ctx.empty) || DONE

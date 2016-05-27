@@ -5,9 +5,10 @@ sig
   sharing type Lcs.O.operator = Abt.Operator.t
 
   type 'a state
-  val step : Abt.abt state -> Abt.abt state
-  val eval : Abt.abt -> Abt.abt
 
   val inject : 'a -> 'a state
   val project : Abt.abt state -> Abt.abt
+
+  val step : Abt.abt state -> Abt.abt state
+  val eval : Abt.abt -> Abt.abt
 end

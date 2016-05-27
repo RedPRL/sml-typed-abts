@@ -9,5 +9,6 @@ sig
   datatype 'a closure =
     <: of 'a * (Abt.abs closure metaenv * symenv * Abt.abt closure varenv)
 
+  val force : Abt.abt closure -> Abt.abt
   val map : ('a -> 'b) -> 'a closure -> 'b closure
 end

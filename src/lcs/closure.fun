@@ -13,4 +13,15 @@ struct
   infix <:
 
   fun map f (m <: rho) = f m <: rho
+
+  fun force (m <: (mrho, srho, rho)) =
+    let
+      val mrho' = Abt.Metavariable.Ctx.map forceB mrho
+      val rho' = Abt.Variable.Ctx.map force rho
+    in
+      Abt.renameEnv srho (Abt.substEnv rho' (Abt.metasubstEnv mrho' m))
+    end
+  and forceB (e <: env) =
+    Abt.mapAbs (fn m => force (m <: env)) e
+
 end
