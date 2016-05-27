@@ -29,8 +29,6 @@ struct
 
 
 
-  type control = abt
-
   datatype 'a closure = <: of 'a * environment
   withtype environment = abs closure Metavariable.Ctx.dict * symbol Symbol.Ctx.dict * abt closure Variable.Ctx.dict
 
@@ -49,20 +47,20 @@ struct
            interpret (mrho, srho', vrho) p
          end
 
+  type expr = abt
+  type cont = abt
+
   datatype continuation =
      DONE
-   | CONT of abt * environment * continuation
+   | CONT of cont state
 
-  type machine = control * environment * continuation
+  and 'a state = || of 'a closure * continuation
 
-  fun step (m, env as (mrho, srho, vrho), cont) : machine =
+  infix ||
+
+  fun step (m <: (env as (mrho, srho, vrho)) || cont) : expr state =
     case out m of
-       `x =>
-         let
-           val n <: env' = Variable.Ctx.lookup vrho x
-         in
-           (n, env', cont)
-         end
+       `x => Variable.Ctx.lookup vrho x || cont
      | x $# (us, ms) =>
          let
            val e <: (mrho', srho', vrho') = Metavariable.Ctx.lookup mrho x
@@ -70,18 +68,13 @@ struct
            val srho'' = ListPair.foldlEq  (fn (v,(u, _),r) => Symbol.Ctx.insert r v u) srho' (vs', us)
            val vrho'' = ListPair.foldlEq (fn (x,m,r) => Variable.Ctx.insert r x (m <: (mrho', srho', vrho'))) vrho' (xs, ms)
          in
-           (m, (mrho', srho'', vrho''), cont)
+           m <: (mrho', srho'', vrho'') || cont
          end
      | O.C (O.RET sigma) $ [_ \ n] =>
          (case cont of
-             CONT (k, env', cont') =>
-               let
-                 val m' <: env' = interpret env' @@ plug (quoteCont k) (quoteVal n)
-               in
-                 (m', env', cont')
-               end
-           | DONE => (m, env, cont))
+             CONT (k <: env' || cont') => interpret env' (plug (quoteCont k) (quoteVal n)) || cont'
+           | DONE => m <: env || cont)
      | O.C (O.CUT (sigma, tau)) $ [_ \ k, _ \ e] =>
-         (e, env, CONT (k, env, cont))
+         e <: env || CONT (k <: env || cont)
      | _ => raise Fail "Expected command"
 end
