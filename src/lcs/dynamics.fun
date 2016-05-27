@@ -1,3 +1,26 @@
+functor Instructions (structure P : LCS_PATTERN and Cl : LCS_CLOSURE) =
+struct
+  open Cl
+  open Abt
+
+  infix <:
+
+  fun interpret (env as (mrho, srho, vrho)) =
+    fn P.RETURN x => x <: env
+     | P.SUBST ((x, p), p') =>
+         let
+           val vrho' = Variable.Ctx.insert vrho x (interpret env p)
+         in
+           interpret (mrho, srho, vrho') p'
+         end
+     | P.REN ((u, v), p) =>
+         let
+           val srho' = Symbol.Ctx.insert srho u v
+         in
+           interpret (mrho, srho', vrho) p
+         end
+end
+
 functor LcsDynamics
   (structure Lcs : LCS_DEFINITION
    structure Abt : ABT
@@ -30,22 +53,8 @@ struct
 
 
   structure Closure = LcsClosure (Abt)
+  structure Instructions = Instructions (structure P = P and Cl = Closure)
   open Closure
-
-  fun interpret (env as (mrho, srho, vrho)) =
-    fn P.RETURN x => x <: env
-     | P.SUBST ((x, p), p') =>
-         let
-           val vrho' = Variable.Ctx.insert vrho x (interpret env p)
-         in
-           interpret (mrho, srho, vrho') p'
-         end
-     | P.REN ((u, v), p) =>
-         let
-           val srho' = Symbol.Ctx.insert srho u v
-         in
-           interpret (mrho, srho', vrho) p
-         end
 
   type expr = abt
   type cont = abt
@@ -59,7 +68,7 @@ struct
   infix 1 ||
 
   fun inject m =
-    m <: (Metavariable.Ctx.empty, Symbol.Ctx.empty, Variable.Ctx.empty) || DONE
+    Closure.new m || DONE
 
   (* To take an intermediate state and turn it into a term *)
   fun project (s : expr state) : expr =
@@ -88,7 +97,7 @@ struct
          end
      | O.C (O.RET sigma) $ [_ \ n] =>
          (case cont of
-             CONT (k <: env' || cont') => interpret env' (plug (quoteCont k) (quoteVal n)) || cont'
+             CONT (k <: env' || cont') => Instructions.interpret env' (plug (quoteCont k) (quoteVal n)) || cont'
            | DONE => m <: env || cont)
      | O.C (O.CUT (sigma, tau)) $ [_ \ k, _ \ e] =>
          e <: env || CONT (k <: env || cont)

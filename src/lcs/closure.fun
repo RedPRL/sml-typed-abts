@@ -14,6 +14,14 @@ struct
 
   fun map f (m <: rho) = f m <: rho
 
+  val emptyEnv =
+    (Abt.Metavariable.Ctx.empty,
+     Abt.Symbol.Ctx.empty,
+     Abt.Variable.Ctx.empty)
+
+  fun new x =
+    x <: emptyEnv
+
   fun force (m <: (mrho, srho, rho)) =
     let
       val mrho' = Abt.Metavariable.Ctx.map forceB mrho
