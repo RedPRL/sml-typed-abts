@@ -4,7 +4,7 @@ Group is
   src/lcs/sort.sig
   src/lcs/operator.sig
   src/lcs/pattern.sig
-  src/lcs/definition.sig
+  src/lcs/language.sig
   src/lcs/closure.sig
   src/lcs/machine.sig
   src/lcs/dynamics.sig

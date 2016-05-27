@@ -1,9 +1,7 @@
 signature LCS_DYNAMICS =
 sig
-  structure Lcs : LCS_DEFINITION
+  structure L : LCS_LANGUAGE
   structure M : LCS_MACHINE
-
-  sharing type Lcs.O.operator = M.Cl.Abt.Operator.t
 
   val run : M.expr M.state -> M.expr
 
