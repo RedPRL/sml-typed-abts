@@ -53,7 +53,7 @@ struct
            val srho'' = ListPair.foldlEq  (fn (v,(u, _),r) => Symbol.Ctx.insert r v u) srho' (vs', us)
            val vrho'' = ListPair.foldlEq (fn (x,m,r) => Variable.Ctx.insert r x (m <: (mrho', srho', vrho'))) vrho' (xs, ms)
          in
-           raise Match
+           SOME @@ m <: (mrho', srho'', vrho'')
          end
      | O.C (O.RET sigma) $ _ => NONE
      | O.C (O.CUT (sigma, tau)) $ [_ \ k, _ \ e] =>
