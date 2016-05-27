@@ -63,7 +63,15 @@ struct
          in
            (n, env', cont)
          end
-     | _ $# _ => raise Fail "Not implemented"
+     | x $# (us, ms) =>
+         let
+           val e <: (mrho', srho', vrho') = Metavariable.Ctx.lookup mrho x
+           val (vs', xs) \ m = outb e
+           val srho'' = ListPair.foldlEq  (fn (v,(u, _),r) => Symbol.Ctx.insert r v u) srho' (vs', us)
+           val vrho'' = ListPair.foldlEq (fn (x,m,r) => Variable.Ctx.insert r x (m <: (mrho', srho', vrho'))) vrho' (xs, ms)
+         in
+           (m, (mrho', srho'', vrho''), cont)
+         end
      | O.C (O.RET sigma) $ [_ \ n] =>
          (case cont of
              CONT (k, env', cont') =>
@@ -76,26 +84,4 @@ struct
      | O.C (O.CUT (sigma, tau)) $ [_ \ k, _ \ e] =>
          (e, env, CONT (k, env, cont))
      | _ => raise Fail "Expected command"
-
-    (*
-    case out m of
-       ` x => cc @@ Variable.Ctx.lookup vrho x
-     | x $# (us, ms) =>
-         let
-           val e <: (mrho', srho', vrho') = Metavariable.Ctx.lookup mrho x
-           val (vs', xs) \ m = outb e
-           val srho'' = ListPair.foldlEq  (fn (v,(u, _),r) => Symbol.Ctx.insert r v u) srho' (vs', us)
-           val vrho'' = ListPair.foldlEq (fn (x,m,r) => Variable.Ctx.insert r x (m <: (mrho', srho', vrho'))) vrho' (xs, ms)
-         in
-           cc @@ m <: (mrho', srho'', vrho'')
-         end
-     | O.C (O.RET sigma) $ _ => NONE
-     | O.C (O.CUT (sigma, tau)) $ [_ \ k, _ \ e] =>
-         (case step (e <: env) (fn x => O.C (O.CUT (sigma, tau)) $$ [([],[]) \ k, ([],[]) \ x]) of
-             NONE =>
-               (case out e of
-                   O.C (O.RET sigma) $ [_ \ m] => SOME @@ interpret env (plug (quoteCont k) (quoteVal m))
-                 | _ => raise Fail "Expected RET")
-           | SOME (e' <: env') => SOME (e' <: env))
-     | _ => raise Match*)
 end
