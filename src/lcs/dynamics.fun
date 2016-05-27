@@ -1,13 +1,13 @@
 functor LcsDynamics
   (structure Lcs : LCS_DEFINITION
-   structure Closure : LCS_CLOSURE where type 'a Abt.Operator.Arity.Valence.Spine.t = 'a list
-   sharing type Closure.Abt.Operator.t = Lcs.O.operator) : LCS_DYNAMICS =
+   structure Abt : ABT
+     where type 'a Operator.t = 'a Lcs.O.operator
+     where type 'a Operator.Arity.Valence.Spine.t = 'a list) : LCS_DYNAMICS =
 struct
 
-  structure Lcs = Lcs and Closure = Closure
+  structure Lcs = Lcs
 
-  open Closure Lcs
-  open Abt
+  open Lcs Abt
   infix 1 <:
   infix 2 $ $$ $# \
 
@@ -28,6 +28,12 @@ struct
      | _ => raise Fail "Expected continuation"
 
 
+
+  type control = abt
+
+  datatype 'a closure = <: of 'a * environment
+  withtype environment = abs closure Metavariable.Ctx.dict * symbol Symbol.Ctx.dict * abt closure Variable.Ctx.dict
+
   fun interpret (env as (mrho, srho, vrho)) =
     fn P.RETURN x => x <: env
      | P.SUBST ((x, p), p') =>
@@ -43,9 +49,37 @@ struct
            interpret (mrho, srho', vrho) p
          end
 
-  fun step (m <: (env as (mrho, srho, vrho))) =
+  datatype continuation =
+     DONE
+   | CONT of abt * environment * continuation
+
+  type machine = control * environment * continuation
+
+  fun step (m, env as (mrho, srho, vrho), cont) : machine =
     case out m of
-       ` x => SOME @@ Variable.Ctx.lookup vrho x
+       `x =>
+         let
+           val n <: env' = Variable.Ctx.lookup vrho x
+         in
+           (n, env', cont)
+         end
+     | _ $# _ => raise Fail "Not implemented"
+     | O.C (O.RET sigma) $ [_ \ n] =>
+         (case cont of
+             CONT (k, env', cont') =>
+               let
+                 val m' <: env' = interpret env' @@ plug (quoteCont k) (quoteVal n)
+               in
+                 (m', env', cont')
+               end
+           | DONE => (m, env, cont))
+     | O.C (O.CUT (sigma, tau)) $ [_ \ k, _ \ e] =>
+         (e, env, CONT (k, env, cont))
+     | _ => raise Fail "Expected command"
+
+    (*
+    case out m of
+       ` x => cc @@ Variable.Ctx.lookup vrho x
      | x $# (us, ms) =>
          let
            val e <: (mrho', srho', vrho') = Metavariable.Ctx.lookup mrho x
@@ -53,15 +87,15 @@ struct
            val srho'' = ListPair.foldlEq  (fn (v,(u, _),r) => Symbol.Ctx.insert r v u) srho' (vs', us)
            val vrho'' = ListPair.foldlEq (fn (x,m,r) => Variable.Ctx.insert r x (m <: (mrho', srho', vrho'))) vrho' (xs, ms)
          in
-           SOME @@ m <: (mrho', srho'', vrho'')
+           cc @@ m <: (mrho', srho'', vrho'')
          end
      | O.C (O.RET sigma) $ _ => NONE
      | O.C (O.CUT (sigma, tau)) $ [_ \ k, _ \ e] =>
-         (case step (e <: env) of
+         (case step (e <: env) (fn x => O.C (O.CUT (sigma, tau)) $$ [([],[]) \ k, ([],[]) \ x]) of
              NONE =>
                (case out e of
                    O.C (O.RET sigma) $ [_ \ m] => SOME @@ interpret env (plug (quoteCont k) (quoteVal m))
                  | _ => raise Fail "Expected RET")
-           | SOME (e' <: env') => SOME @@ O.C (O.CUT (sigma, tau)) $$ [([],[]) \ k, ([],[]) \ e'] <: env')
-     | _ => raise Match
+           | SOME (e' <: env') => SOME (e' <: env))
+     | _ => raise Match*)
 end
