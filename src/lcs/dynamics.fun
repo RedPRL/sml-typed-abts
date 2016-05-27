@@ -22,16 +22,13 @@ struct
 end
 
 functor LcsDynamics
-  (structure L : LCS_LANGUAGE
-   structure O : LCS_OPERATOR
-     where V = L.V and K = L.K
-
+  (structure O : LCS_OPERATOR
    structure Abt : ABT
      where type 'a Operator.t = 'a O.operator
      where type Operator.Arity.Valence.Sort.t = O.Sort.t
      where type 'a Operator.Arity.Valence.Spine.t = 'a list) : LCS_DYNAMICS =
 struct
-
+  open O
   structure L = L and Abt = Abt
 
   open L Abt

@@ -1,4 +1,21 @@
-Group is
+Library
+  signature LCS_SORT
+  signature LCS_PATTERN
+  signature LCS_LANGUAGE
+  signature LCS_OPERATOR
+  signature LCS_CLOSURE
+  signature LCS_MACHINE
+  signature LCS_DYNAMICS
+  signature LCS_FRAMEWORK
+
+  functor LcsSort
+  functor LcsOperator
+  structure LcsPattern
+  functor LcsClosure
+  functor LcsMachine
+  functor LcsDynamics
+  functor LcsFramework
+is
   $/basis.cm
   abt.cm
   src/lcs/sort.sig
@@ -18,7 +35,7 @@ Group is
   src/lcs/machine.fun
 
   src/lcs/dynamics.fun
-  
+
   src/lcs/framework.fun
 
   src/lcs/playground.sml

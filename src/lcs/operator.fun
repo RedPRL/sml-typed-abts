@@ -1,5 +1,6 @@
 functor LcsOperator (L : LCS_LANGUAGE) : LCS_OPERATOR =
 struct
+  structure L = L
   open L
 
   structure Sort = LcsSort (structure AtomicSort = V.Arity.Valence.Sort val opidSort = opidSort)
