@@ -22,19 +22,12 @@ struct
   type symenv = Abt.symbol Abt.Symbol.Ctx.dict
 
   datatype 'a closure =
-    <: of 'a * (Abt.abs closure metaenv * symenv * Abt.abt closure varenv)
+    <: of 'a * env
+  withtype env = Abt.abs closure metaenv * symenv * Abt.abt closure varenv
 
   infix <:
 
   fun map f (m <: rho) = f m <: rho
-
-  val emptyEnv =
-    (Abt.Metavariable.Ctx.empty,
-     Abt.Symbol.Ctx.empty,
-     Abt.Variable.Ctx.empty)
-
-  fun new x =
-    x <: emptyEnv
 
   fun force (m <: (mrho, srho, rho)) =
     let
@@ -68,5 +61,43 @@ struct
 
   val toString =
     toStringAbt
+
+  local
+    open Abt
+  in
+    val emptyEnv =
+      (Metavariable.Ctx.empty,
+       Symbol.Ctx.empty,
+       Variable.Ctx.empty)
+
+    fun mergeEnv ((mrho1, srho1, vrho1), (mrho2, srho2, vrho2)) =
+      let
+        val mrho3 =
+          Metavariable.Ctx.union mrho1 mrho2 (fn (k, e1 <: env1, e2 <: env2) =>
+            if Abt.eqAbs (e1, e2) then
+              e1 <: mergeEnv (env1, env2)
+            else
+              raise Fail ("Environment merge failure: " ^ ShowAbt.toStringAbs e1 ^ " vs " ^ ShowAbt.toStringAbs e2))
+
+        val srho3 =
+          Symbol.Ctx.union srho1 srho2 (fn (k, u, v) =>
+            if Symbol.eq (u, v) then
+              u
+            else
+              raise Fail "Environment merge failure")
+
+        val vrho3 =
+          Variable.Ctx.union vrho1 vrho2 (fn (k, m1 <: env1, m2 <: env2) =>
+            if Abt.eq (m1, m2) then
+              m1 <: mergeEnv (env1, env2)
+            else
+              raise Fail ("Environment merge failure: " ^ ShowAbt.toString m1 ^ " vs " ^ ShowAbt.toString m2))
+      in
+        (mrho3, srho3, vrho3)
+      end
+  end
+
+  fun new x =
+    x <: emptyEnv
 
 end

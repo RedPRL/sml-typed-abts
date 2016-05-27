@@ -9,6 +9,9 @@ sig
   datatype 'a closure =
     <: of 'a * (Abt.abs closure metaenv * symenv * Abt.abt closure varenv)
 
+  type env = Abt.abs closure metaenv * symenv * Abt.abt closure varenv
+  val mergeEnv : env * env -> env
+
   val new : 'a -> 'a closure
   val force : Abt.abt closure -> Abt.abt
   val map : ('a -> 'b) -> 'a closure -> 'b closure
