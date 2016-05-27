@@ -73,11 +73,11 @@ struct
   (* To take an intermediate state and turn it into a term *)
   fun project (s : expr state) : expr =
     case s of
-       cl || DONE => raise Match
+       cl || DONE => force cl
      | m <: env || CONT (k <: env' || cont) =>
          let
            val O.Sort.CONT (sigma, tau) = sort k
-           val m' = O.C (O.CUT (sigma, tau)) $$ [([],[]) \ force (m <: env), ([],[]) \ k]
+           val m' = O.C (O.CUT (sigma, tau)) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
          in
            project @@ m' <: env' || cont
          end
