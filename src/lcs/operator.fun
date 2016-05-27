@@ -41,7 +41,7 @@ struct
          in
            (List.map (mapValence Sort.CMD) vls, Sort.CONT (sigma, tau))
          end
-     | C (RET sigma) => ([], Sort.VAL sigma)
+     | C (RET sigma) => ([(([],[]), Sort.VAL sigma)], Sort.CMD sigma)
      | C (CUT (sigma, tau)) =>
        ([(([],[]), Sort.CONT (sigma, tau)),
          (([],[]), Sort.CMD sigma)],
