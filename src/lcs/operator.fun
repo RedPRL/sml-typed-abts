@@ -5,6 +5,10 @@ functor LcsOperator
    sharing type Val.Arity.Valence.Sort.t = Sort.AtomicSort.t
    sharing type Cont.Arity.Valence.Sort.t = Sort.AtomicSort.t) : LCS_OPERATOR =
 struct
+  type sort = Sort.t
+  type valence = (sort list * sort list) * sort
+  type arity = valence list * sort
+
   datatype 'i cmd =
      RET of Sort.atomic
    | CUT of Sort.atomic * Sort.atomic

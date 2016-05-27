@@ -60,7 +60,7 @@ end
 structure LambdaSort = LcsSort (UnisortedValence.Sort)
 structure LambdaOperator = LcsOperator (structure Sort = LambdaSort and Val = LambdaVal and Cont = LambdaCont)
 
-structure LambdaLcs : LCS_DEFINTION =
+structure LambdaLcs : LCS_DEFINITION =
 struct
   structure O = LambdaOperator and P = LcsPattern
   type sign = unit

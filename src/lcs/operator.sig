@@ -9,11 +9,16 @@ sig
   structure Sort : LCS_SORT
 
   structure Val : OPERATOR
+    where type 'a Arity.Valence.Spine.t = 'a list
   sharing type Val.Arity.Valence.Sort.t = Sort.AtomicSort.t
 
   structure Cont : CONT_OPERATOR
+    where type 'a Arity.Valence.Spine.t = 'a list
   sharing type Cont.Arity.Valence.Sort.t = Sort.AtomicSort.t
-  sharing type Cont.Arity.Valence.Spine.t = Val.Arity.Valence.Spine.t
+
+  type sort = Sort.t
+  type valence = (sort list * sort list) * sort
+  type arity = valence list * sort
 
   datatype 'i cmd =
      RET of Sort.atomic
@@ -27,5 +32,5 @@ sig
   include OPERATOR
     where type 'i t = 'i operator
     where type Arity.Valence.Sort.t = Sort.t
-    where type 'a Arity.Valence.Spine.t = 'a Val.Arity.Valence.Spine.t
+    where type 'a Arity.Valence.Spine.t = 'a list
 end

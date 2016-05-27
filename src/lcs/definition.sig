@@ -1,4 +1,4 @@
-signature LCS_DEFINTION =
+signature LCS_DEFINITION =
 sig
   structure O : LCS_OPERATOR
   structure P : LCS_PATTERN

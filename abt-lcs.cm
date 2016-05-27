@@ -5,9 +5,15 @@ Group is
   src/lcs/operator.sig
   src/lcs/pattern.sig
   src/lcs/definition.sig
+  src/lcs/closure.sig
+  src/lcs/dynamics.sig
+
+  src/lcs/closure.fun
 
   src/lcs/sort.fun
   src/lcs/operator.fun
   src/lcs/pattern.sml
+
+  src/lcs/dynamics.fun
 
   src/lcs/playground.sml
