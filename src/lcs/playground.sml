@@ -1,228 +1,84 @@
-
-
-structure IntSet = SplaySet (structure Elem = IntOrdered)
-
-functor PrincipalArguments (type 'a operator) : INSTR =
+structure LambdaVal =
 struct
-  type addr = int
-  type 'a operator = 'a operator
-  type var = unit
-  type sym = unit
-  type term = unit
+  structure Arity = UnisortedArity
+  datatype 'i t = LAM | AX | PAIR
 
-  type instr = IntSet.set
+  val arity =
+    fn LAM => Arity.make [(0,1)]
+     | PAIR => Arity.make [(0,0), (0,0)]
+     | AX => Arity.make []
 
-  datatype scope = \\ of (int -> var) * term
-  infix \\
+  fun support _ = []
 
-  fun self k =
-    k ()
+  fun eq _ =
+    fn (LAM, LAM) => true
+     | (PAIR, PAIR) => true
+     | (AX, AX) => true
+     | _ => false
 
-  val final =
-    IntSet.empty
+  fun toString _ =
+    fn LAM => "lam"
+     | PAIR => "pair"
+     | AX => "ax"
 
-  fun expect (a, theta, k) =
-    IntSet.insert (k ((fn _ => ()) \\ ())) a
-
-  fun use (m, theta, k) =
-    k ((fn _ => ()) \\ ())
-
-  fun subst (n, x, m, k) =
-    k ()
-
-  fun ret m =
-    IntSet.empty
-
-  val stuck =
-    IntSet.empty
-
-  fun orElse (u, v) =
-    IntSet.union u v
+  fun map f =
+    fn LAM => LAM
+     | PAIR => PAIR
+     | AX => AX
 end
 
-functor Compile (Abt : ABT where type 'a Operator.Arity.Valence.Spine.t = 'a list) : INSTR =
+structure LambdaCont =
 struct
-  open Abt
-  infix $ \ $#
+  structure Arity = UnisortedArity
+  datatype 'i t = AP | SPREAD
 
-  type addr = int
-  type 'a operator = 'a Operator.t
-  type sym = symbol
-  type var = variable
-  type term = abt
+  val arity =
+    fn AP => Arity.make [(0,0)]
+     | SPREAD => Arity.make [(0,2)]
 
-  type instr = (abt -> abt) -> abt -> abt option
-  datatype scope = \\ of (int -> var) * term
-  infix \\
+  val input =
+    fn AP => ()
+     | SPREAD => ()
 
-  fun self k eval x =
-    k x eval x
+  fun support _ = []
 
-  fun final x _ =
-    NONE
+  fun eq _ =
+    fn (AP, AP) => true
+     | (SPREAD, SPREAD) => true
+     | _ => false
 
-  fun ret n eval m =
-    SOME n
+  fun toString _ =
+    fn AP => "ap"
+     | SPREAD => "spread"
 
-  fun toScope ((us, xs) \ m) =
-    (fn i => List.nth (xs, i) handle _ => raise Fail "FUCK!") \\ m
-
-  fun matchOperator pat theta =
-    Operator.eq
-      (fn _ => true)
-      (Operator.map (fn _ => ()) theta, pat)
-
-  fun getNthArg i m =
-    case out m of
-       theta $ es =>
-         toScope (List.nth (es, i))
-     | _ => raise Fail "Expected operator"
-
-  fun expect (i, pat, k) eval m =
-    let
-      val e as xs \\ m' = getNthArg i m
-      val m'' = eval m'
-    in
-      case out m'' of
-         theta $ es =>
-           if matchOperator pat theta then
-             k (xs \\ m'') eval m
-           else
-             raise Fail ("Expected " ^ Operator.toString (fn _ => "-") pat ^ " but got " ^ Operator.toString Symbol.toString theta)
-       | _ => raise Fail "Expected operator"
-    end
-
-  fun use (n, i, k) eval m =
-    k (getNthArg i n) eval m
-
-  fun stuck _ _ =
-    raise Fail "STUCK!"
-
-  fun orElse (f, g) eval x =
-    f eval x handle _ => g eval x
-
-  fun subst (n2, x, n1, k) eval m =
-    k (Abt.subst (n2, x) n1) eval m
+  fun map _ =
+    fn AP => AP
+     | SPREAD => SPREAD
 end
 
-structure UnitSort : SORT =
+
+structure LambdaSort = LcsSort (UnisortedValence.Sort)
+structure LambdaOperator = LcsOperator (structure Sort = LambdaSort and Val = LambdaVal and Cont = LambdaCont)
+
+structure LambdaLcs : LCS_DEFINTION =
 struct
-  type t = unit
-  fun eq _ = true
-  fun toString _ = "exp"
-end
+  structure O = LambdaOperator and P = LcsPattern
+  type sign = unit
 
-structure LambdaOperatorData =
-struct
-  datatype operator = LAM | AP | AX
-end
+  open P O
 
-structure LambdaOperator = SimpleOperator
-  (struct
-    structure Arity = ListArity (UnitSort)
-    open LambdaOperatorData
+  type ('s, 'v, 't) value = ('s, 'v, 's O.Val.t, 't) P.pat
+  type ('s, 'v, 't) kont = ('s, 'v, 's O.Cont.t, 't) P.pat
 
-    type t = operator
-
-    fun makeValence n =
-      (([], List.tabulate (n, fn _ => ())), ())
-
-    fun makeArity xs =
-      (List.map makeValence xs, ())
-
-    val arity =
-      fn LAM => makeArity [1]
-       | AP => makeArity [0,0]
-       | AX => makeArity []
-
-    fun eq (x : t, y) =
-      x = y
-
-    val toString =
-      fn LAM => "lam"
-       | AP => "ap"
-       | AX => "ax"
-  end)
-
-structure Lambda = SimpleAbt (LambdaOperator)
-
-functor LambdaComputationRepr (I : INSTR where type 'a operator = 'a LambdaOperator.t) =
-struct
-  open LambdaOperatorData
-
-  open I
-  infix \\
-
-  fun get (i, k) =
-    self (fn m => use (m, i, k))
-
-  val table =
-    fn LAM => final
-     | AX => final
-     | AP =>
-         expect (0, LAM, fn _ \\ lam =>
-           use (lam, 0, fn xs \\ mx =>
-             get (1, fn _ \\ n =>
-               subst (n, xs 0, mx, ret))))
-end
-
-signature REDEX_TABLE =
-sig
-  structure Abt : ABT
-  val table : Abt.operator -> (Abt.abt -> Abt.abt) -> Abt.abt -> Abt.abt option
-end
-
-signature SMALL_STEP =
-sig
-  structure Abt : ABT
-  val step : Abt.abt -> Abt.abt option
-end
-
-functor SmallStep (R : REDEX_TABLE) : SMALL_STEP =
-struct
-  structure Abt = R.Abt
-  open R.Abt
   infix $ \
 
-  structure Show = PlainShowAbt (R.Abt)
+  nonfix ^
+  val ^ = RETURN
 
-  fun step m =
-    case out m of
-       theta $ _ => R.table theta eval m
-     | _ => raise Fail "Stuck!"
-  and eval m =
-    case step m of
-       SOME m' => eval m'
-     | NONE => m
-end
+  fun plug (LAM $ [(_, [x]) \ mx]) (AP $ [_ \ n]) =
+       SUBST ((x, ^ n), ^ mx)
+    | plug (PAIR $ [_ \ m1, _ \ m2]) (SPREAD $ [(_, [x,y]) \ nxy]) =
+       SUBST ((x, ^ m1), SUBST ((y, ^ m2), ^ nxy))
+    | plug _ _ = raise Match
 
-structure LambdaComputation = LambdaComputationRepr (Compile (Lambda))
-structure Welp = SmallStep (structure Abt = Lambda open LambdaComputation)
-
-structure Playground =
-struct
-  open LambdaOperatorData Lambda
-  structure ShowLambda = PlainShowAbt (Lambda)
-  infix 5 $ \
-
-  fun $$ (theta, es) = Lambda.check' (theta $ es, ())
-  fun `` x = Lambda.check' (`x, ())
-
-  infix 6 $$
-
-  val x = Variable.named "x"
-
-  val id = LAM $$ [([],[x]) \ ``x]
-  val ax = AX $$ []
-  fun ap m n = AP $$ [([],[]) \ m, ([],[]) \ n]
-
-  val ex1 = ap (ap id id) ax
-  val SOME ex1' = Welp.step ex1
-
-  val _ = print ("\n\n" ^ ShowLambda.toString ex1' ^ "\n\n")
-
-    (*
-  val ex1 = LAM $ [["x"] \ `"x"]
-  val ex2 = AP $ [[] \ ex1, [] \ (AX $ [])]
-  *)
 end
