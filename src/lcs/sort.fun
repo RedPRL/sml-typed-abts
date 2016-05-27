@@ -1,4 +1,6 @@
-functor LcsSort (AtomicSort : SORT) : LCS_SORT =
+functor LcsSort
+  (structure AtomicSort : SORT
+   val opidSort : AtomicSort.t option) : LCS_SORT =
 struct
   structure AtomicSort = AtomicSort
   type atomic = AtomicSort.t
@@ -18,4 +20,6 @@ struct
     fn VAL sigma => AtomicSort.toString sigma
      | CONT (sigma, tau) => "[" ^ AtomicSort.toString sigma ^ " > " ^ AtomicSort.toString tau ^ "]"
      | CMD sigma => "{" ^ AtomicSort.toString sigma ^ "}"
+
+  val opidSort = opidSort
 end

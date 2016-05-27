@@ -57,7 +57,7 @@ struct
 end
 
 
-structure LambdaSort = LcsSort (UnisortedValence.Sort)
+structure LambdaSort = LcsSort (structure AtomicSort = UnisortedValence.Sort val opidSort = NONE)
 structure LambdaOperator = LcsOperator (structure Sort = LambdaSort and Val = LambdaVal and Cont = LambdaCont)
 
 structure LambdaLcs : LCS_DEFINITION =

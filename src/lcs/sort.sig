@@ -9,6 +9,9 @@ sig
     | CONT of atomic * atomic
     | CMD of atomic
 
+  (* Select a sort with which to reflect user-defined operator id symbols *)
+  val opidSort : atomic option
+
   val eq : t * t -> bool
   val toString : t -> string
 end

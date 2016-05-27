@@ -82,8 +82,10 @@ struct
            project @@ m' <: env' || cont
          end
 
+  type sign = unit
+
   (* I'm not sure this is right, but it seems to be on the right track. It's basically a CEK machine. *)
-  fun step (m <: (env as (mrho, srho, vrho)) || cont) : expr state =
+  fun step sign (m <: (env as (mrho, srho, vrho)) || cont) : expr state =
     case out m of
        `x => Variable.Ctx.lookup vrho x || cont
      | x $# (us, ms) =>
@@ -103,12 +105,12 @@ struct
          e <: env || CONT (k <: env || cont)
      | _ => raise Fail "Expected command"
 
-  local
-    fun go (cl || DONE) = force cl
-      | go st = go (step st)
-  in
-    val eval : abt -> abt =
+  fun eval sign =
+    let
+      fun go (cl || DONE) = force cl
+        | go st = go (step sign st)
+    in
       go o inject
-  end
+    end
 
 end

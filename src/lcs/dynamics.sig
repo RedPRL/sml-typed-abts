@@ -9,6 +9,8 @@ sig
   val inject : 'a -> 'a state
   val project : Abt.abt state -> Abt.abt
 
-  val step : Abt.abt state -> Abt.abt state
-  val eval : Abt.abt -> Abt.abt
+  type sign
+
+  val step : sign -> Abt.abt state -> Abt.abt state
+  val eval : sign -> Abt.abt -> Abt.abt
 end
