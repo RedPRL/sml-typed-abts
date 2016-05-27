@@ -63,6 +63,8 @@ structure LambdaOperator = LcsOperator (structure Sort = LambdaSort and Val = La
 structure LambdaLcs : LCS_DEFINITION =
 struct
   structure O = LambdaOperator and P = LcsPattern
+  open LambdaVal LambdaCont
+
   type sign = unit
 
   open P O
@@ -75,10 +77,37 @@ struct
   nonfix ^
   val ^ = RETURN
 
-  fun plug (LAM $ [(_, [x]) \ mx]) (AP $ [_ \ n]) =
+  fun plug (AP $ [_ \ n]) (LAM $ [(_, [x]) \ mx]) =
        SUBST ((x, ^ n), ^ mx)
-    | plug (PAIR $ [_ \ m1, _ \ m2]) (SPREAD $ [(_, [x,y]) \ nxy]) =
+    | plug (SPREAD $ [(_, [x,y]) \ nxy]) (PAIR $ [_ \ m1, _ \ m2])  =
        SUBST ((x, ^ m1), SUBST ((y, ^ m2), ^ nxy))
-    | plug _ _ = raise Match
+    | plug (theta1 $ _) (theta2 $ _) =
+        raise Fail (LambdaVal.toString (fn _ => "-") theta2)
 
+end
+
+structure LambdaAbt = SimpleAbt (LambdaOperator)
+structure LambdaDynamics = LcsDynamics (structure Lcs = LambdaLcs and Abt = LambdaAbt)
+
+structure Test =
+struct
+  open LambdaVal LambdaCont LambdaSort LambdaOperator LambdaAbt LambdaDynamics
+
+  infix 2 $ $$
+  infix 1 \
+
+  fun ap m n =
+    C (CUT ((), ())) $$ [([],[]) \ K AP $$ [([],[]) \ n], ([],[]) \ m]
+
+  fun lam (x, m) =
+    C (RET ()) $$ [([],[]) \ V LAM $$ [([], [x]) \ m]]
+
+  val ax = C (RET ()) $$ [([],[]) \ V AX $$ []]
+
+  val x = Variable.named "x"
+  val tm1 = ap (lam (x, check (`x, CMD ()))) ax
+  val tm2 = eval () tm1
+
+  structure Show = DebugShowAbt (LambdaAbt)
+  val _ = print (Show.toString tm2 ^ "\n")
 end
