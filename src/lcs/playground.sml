@@ -95,13 +95,19 @@ struct
   infix 2 $ $$
   infix 1 \
 
-  fun ap m n =
-    CUT ((), ()) $$ [([],[]) \ K AP $$ [([],[]) \ n], ([],[]) \ m]
+  fun ret m =
+    RET () $$ [([],[]) \ m]
+
+  fun cut k e =
+    CUT ((), ()) $$ [([],[]) \ k, ([],[]) \ e]
+
+  fun ap e1 e2 =
+    cut (K AP $$ [([],[]) \ e2]) e1
 
   fun lam (x, m) =
-    RET () $$ [([],[]) \ V LAM $$ [([], [x]) \ m]]
+    ret (V LAM $$ [([],[x]) \ m])
 
-  val ax = RET () $$ [([],[]) \ V AX $$ []]
+  val ax = ret (V AX $$ [])
 
   val x = Variable.named "x"
   val tm1 = ap (lam (x, check (`x, EXP ()))) ax
