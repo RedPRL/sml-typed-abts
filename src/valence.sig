@@ -21,3 +21,12 @@ sig
   val toString : t -> string
   val eq : t * t -> bool
 end
+
+signature UNISORTED_VALENCE =
+sig
+  include VALENCE
+    where type Sort.t = unit
+    where type 'a Spine.t = 'a list
+
+  val make : int * int -> t
+end

@@ -18,3 +18,12 @@ sig
   val toString : t -> string
   val eq : t * t -> bool
 end
+
+signature UNISORTED_ARITY =
+sig
+  include ARITY
+    where type Valence.Sort.t = unit
+    where type 'a Valence.Spine.t = 'a list
+
+  val make : (int * int) list -> t
+end

@@ -5,17 +5,21 @@ Library
   signature SYMBOL
   signature IMPERATIVE_SYMBOL
   signature VALENCE
+  signature UNISORTED_VALENCE
   signature SORT
   signature SPINE
   signature ARITY
+  signature UNISORTED_ARITY
   signature CONTEXT_UTIL
 
   functor Symbol
   structure StringSymbol
   structure ListSpine
   functor Valence
+  structure UnisortedValence
   functor Arity
   functor ListArity
+  structure UnisortedArity
   functor ContextUtil
   functor Abt
   functor SimpleAbt

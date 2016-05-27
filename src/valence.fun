@@ -21,4 +21,24 @@ struct
     end
 end
 
+structure UnisortedValence :> UNISORTED_VALENCE =
+struct
+  local
+    structure Sort =
+    struct
+      type t = unit
+      fun eq _ = true
+      fun toString _ = "_"
+    end
 
+    structure Valence = Valence (structure Sort = Sort and Spine = ListSpine)
+  in
+    open Valence
+  end
+
+  fun repeat n =
+    List.tabulate (n, fn _ => ())
+
+  fun make (i, j) =
+    ((repeat i, repeat j), ())
+end
