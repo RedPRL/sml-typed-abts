@@ -1,3 +1,17 @@
+functor ShowEnv (S : SYMBOL) =
+struct
+  fun toString (f : 'a -> string) (rho : 'a S.Ctx.dict) =
+    let
+      val xs = S.Ctx.toList rho
+      fun f' (x, e) =
+        S.toString x
+          ^ " ~> "
+          ^ f e
+    in
+      "[" ^ ListSpine.pretty f' ", " xs ^ "]"
+    end
+end
+
 functor LcsClosure (Abt : ABT) : LCS_CLOSURE =
 struct
 
@@ -31,5 +45,28 @@ struct
     end
   and forceB (e <: env) =
     Abt.mapAbs (fn m => force (m <: env)) e
+
+  structure ShowAbt = DebugShowAbt (Abt)
+  structure ShowMetaEnv = ShowEnv (Abt.Metavariable)
+  structure ShowSymEnv = ShowEnv (Abt.Symbol)
+  structure ShowVarEnv = ShowEnv (Abt.Variable)
+
+  fun toStringAbt (m <: env : Abt.abt closure) : string =
+    ShowAbt.toString m ^ " <: " ^ envToString env
+
+  and toStringAbs (e <: env : Abt.abs closure) : string =
+    ShowAbt.toStringAbs e ^ " <: " ^ envToString env
+
+  and envToString (mrho, srho, vrho) =
+    "("
+      ^ ShowMetaEnv.toString toStringAbs mrho
+      ^ ", "
+      ^ ShowSymEnv.toString Abt.Symbol.toString srho
+      ^ ", "
+      ^ ShowVarEnv.toString toStringAbt vrho
+      ^ ")"
+
+  val toString =
+    toStringAbt
 
 end

@@ -1,7 +1,11 @@
 functor ShowAbt
   (structure Abt : ABT
    structure ShowVar : SHOW where type t = Abt.variable
-   structure ShowSym : SHOW where type t = Abt.symbol) :> SHOW where type t = Abt.abt =
+   structure ShowSym : SHOW where type t = Abt.symbol) :>
+sig
+  include SHOW where type t = Abt.abt
+  val toStringAbs : Abt.abs -> string
+end =
 struct
   open Abt infix $ $# infixr \
   type t = abt
@@ -40,6 +44,7 @@ struct
         ^ toString M
     end
 
+  val toStringAbs = toStringB o outb
 
 end
 
@@ -54,5 +59,3 @@ functor DebugShowAbt (Abt : ABT) =
     (structure Abt = Abt
      and ShowVar = Abt.Variable.DebugShow
      and ShowSym = Abt.Symbol.DebugShow)
-
-

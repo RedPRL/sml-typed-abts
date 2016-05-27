@@ -28,4 +28,16 @@ struct
       st
     else
       star step (step st)
+
+  fun map f (cl || st) =
+    Cl.map f cl || st
+
+  val rec stackToString =
+    fn [] => "[]"
+     | x :: xs => Cl.toString x ^ " :: " ^ stackToString xs
+
+  fun toString (cl || st) =
+    Cl.toString cl
+      ^ " || "
+      ^ stackToString st
 end

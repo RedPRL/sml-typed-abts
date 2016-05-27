@@ -12,4 +12,6 @@ sig
   val new : 'a -> 'a closure
   val force : Abt.abt closure -> Abt.abt
   val map : ('a -> 'b) -> 'a closure -> 'b closure
+
+  val toString : Abt.abt closure -> string
 end

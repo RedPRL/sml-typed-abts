@@ -11,4 +11,7 @@ sig
   val start : 'a -> 'a state
   val isFinal : expr state -> bool
   val star : (expr state -> expr state) -> expr state -> expr state
+
+  val map : ('a -> 'b) -> 'a state -> 'b state
+  val toString : expr state -> string
 end
