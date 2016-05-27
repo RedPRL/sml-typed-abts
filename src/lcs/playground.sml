@@ -68,7 +68,7 @@ struct
   open P O
 
   type ('s, 'v, 't) value = ('s, 'v, 's O.Val.t, 't) P.pat
-  type ('s, 'v, 't) kont = ('s, 'v, 's O.Cont.t, 't) P.pat
+  type ('s, 'v, 't) cont = ('s, 'v, 's O.Cont.t, 't) P.pat
 
   infix $ \
 
