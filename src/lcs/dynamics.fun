@@ -106,4 +106,20 @@ struct
       o star (step sign)
       o start
 
+  fun debugTrace sign m =
+    let
+      fun debugStep s =
+        let
+          val s' = step sign s
+          val _ = print @@ M.toString s' ^ "\n"
+        in
+          s'
+        end
+      val s0 = start m
+    in
+      print @@ M.toString s0 ^ "\n";
+      star debugStep s0;
+      ()
+    end
+
 end

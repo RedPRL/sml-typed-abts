@@ -109,10 +109,18 @@ struct
 
   val ax = ret (V AX $$ [])
 
-  val x = Variable.named "x"
-  val tm1 = ap (lam (x, check (`x, EXP ()))) ax
+  fun id () =
+    let
+      val x = Variable.named "x"
+    in
+      lam (x, check (`x, EXP ()))
+    end
+
+  val tm1 = ap (id ()) (ap (id ()) ax)
   val tm2 = eval () tm1
 
   structure Show = DebugShowAbt (LambdaAbt)
-  val _ = print (Show.toString tm2 ^ "\n")
+  val _ = print "\n\n"
+  val _ = debugTrace () tm1
+  val _ = print "\n\n"
 end

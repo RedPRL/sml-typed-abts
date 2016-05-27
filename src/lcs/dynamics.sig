@@ -11,4 +11,6 @@ sig
 
   val step : sign -> M.expr M.state -> M.expr M.state
   val eval : sign -> M.expr -> M.expr
+
+  val debugTrace : sign -> M.expr -> unit
 end

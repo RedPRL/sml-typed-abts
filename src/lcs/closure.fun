@@ -46,7 +46,7 @@ struct
   and forceB (e <: env) =
     Abt.mapAbs (fn m => force (m <: env)) e
 
-  structure ShowAbt = DebugShowAbt (Abt)
+  structure ShowAbt = PlainShowAbt (Abt)
   structure ShowMetaEnv = ShowEnv (Abt.Metavariable)
   structure ShowSymEnv = ShowEnv (Abt.Symbol)
   structure ShowVarEnv = ShowEnv (Abt.Variable)
