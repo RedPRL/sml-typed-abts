@@ -2,6 +2,7 @@ Library
   signature ABT
   signature AST
   signature OPERATOR
+  signature SIMPLE_OPERATOR
   signature SYMBOL
   signature IMPERATIVE_SYMBOL
   signature VALENCE

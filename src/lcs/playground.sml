@@ -1,36 +1,36 @@
-structure LambdaVal =
+structure Lambda =
+struct
+  datatype value = LAM | AX | PAIR
+  datatype cont = AP | SPREAD
+end
+
+structure LambdaVal : SIMPLE_OPERATOR =
 struct
   structure Arity = UnisortedArity
-  datatype 'i t = LAM | AX | PAIR
+
+  open Lambda
+  type t = Lambda.value
 
   val arity =
     fn LAM => Arity.make [(0,1)]
      | PAIR => Arity.make [(0,0), (0,0)]
      | AX => Arity.make []
 
-  fun support _ = []
+  fun eq (x : t, y) = x = y
 
-  fun eq _ =
-    fn (LAM, LAM) => true
-     | (PAIR, PAIR) => true
-     | (AX, AX) => true
-     | _ => false
-
-  fun toString _ =
+  val toString =
     fn LAM => "lam"
      | PAIR => "pair"
      | AX => "ax"
-
-  fun map f =
-    fn LAM => LAM
-     | PAIR => PAIR
-     | AX => AX
 end
 
-structure LambdaCont =
+structure LambdaCont : CONT_OPERATOR =
 struct
   structure Arity = UnisortedArity
-  datatype 'i t = AP | SPREAD
+
+  type 'i t = Lambda.cont
+
+  open Lambda
 
   val arity =
     fn AP => Arity.make [(0,0)]
@@ -58,7 +58,7 @@ end
 
 
 structure LambdaSort = LcsSort (structure AtomicSort = UnisortedValence.Sort val opidSort = NONE)
-structure LambdaOperator = LcsOperator (structure Sort = LambdaSort and Val = LambdaVal and Cont = LambdaCont)
+structure LambdaOperator = LcsOperator (structure Sort = LambdaSort and Val = SimpleOperator(LambdaVal) and Cont = LambdaCont)
 
 structure LambdaLcs : LCS_DEFINITION =
 struct
@@ -82,8 +82,7 @@ struct
     | plug (SPREAD $ [(_, [x,y]) \ nxy]) (PAIR $ [_ \ m1, _ \ m2])  =
        SUBST ((x, ^ m1), SUBST ((y, ^ m2), ^ nxy))
     | plug (theta1 $ _) (theta2 $ _) =
-        raise Fail (LambdaVal.toString (fn _ => "-") theta2)
-
+        raise Fail (LambdaVal.toString theta2)
 end
 
 structure LambdaAbt = SimpleAbt (LambdaOperator)
@@ -91,7 +90,7 @@ structure LambdaDynamics = LcsDynamics (structure Lcs = LambdaLcs and Abt = Lamb
 
 structure Test =
 struct
-  open LambdaVal LambdaCont LambdaSort LambdaOperator LambdaAbt LambdaDynamics
+  open Lambda LambdaCont LambdaSort LambdaOperator LambdaAbt LambdaDynamics
 
   infix 2 $ $$
   infix 1 \

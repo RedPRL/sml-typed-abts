@@ -28,6 +28,7 @@ local
 
 in
   signature OPERATOR
+  signature SIMPLE_OPERATOR
   signature ABT
   signature AST
   signature AST_TO_ABT
