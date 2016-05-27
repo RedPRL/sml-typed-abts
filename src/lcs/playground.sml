@@ -74,14 +74,13 @@ struct
         raise Fail (LambdaV.toString theta2)
 end
 
-structure LambdaOperator = LcsOperator (LambdaLang)
-structure LambdaAbt = SimpleAbt (LambdaOperator)
-structure LambdaDynamics = LcsDynamics (structure L = LambdaLang and Abt = LambdaAbt and O = LambdaOperator)
+structure LambdaFramework = LcsFramework (LambdaLang)
 
 structure Test =
 struct
-  open Lambda LambdaV LambdaK LambdaOperator LambdaAbt LambdaDynamics
-  open LambdaOperator.Sort
+  open LambdaFramework
+  open Lambda LambdaV LambdaK Dynamics
+  open Operator Sort Abt
 
   infix 2 $ $$
   infix 1 \
@@ -110,7 +109,7 @@ struct
   val tm1 = ap (id "a") (ap (id "b") ax)
   val tm2 = eval () tm1
 
-  structure Show = DebugShowAbt (LambdaAbt)
+  structure Show = DebugShowAbt (Abt)
   val _ = print "\n\n"
   val _ = debugTrace () tm1
   val _ = print "\n\n"
