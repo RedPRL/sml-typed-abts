@@ -107,8 +107,11 @@ struct
 
   fun eval sign =
     let
-      fun go (cl || DONE) = force cl
-        | go st = go (step sign st)
+      val rec go =
+        fn st as m <: env || k =>
+            (case (out m, k) of
+                (O.C (O.RET _) $ _, DONE) => force (m <: env)
+              | _ => go (step sign st))
     in
       go o inject
     end
