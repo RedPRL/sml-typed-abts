@@ -2,6 +2,7 @@ functor LcsDynamics
   (structure Lcs : LCS_DEFINITION
    structure Abt : ABT
      where type 'a Operator.t = 'a Lcs.O.operator
+     where type Operator.Arity.Valence.Sort.t = Lcs.O.Sort.t
      where type 'a Operator.Arity.Valence.Spine.t = 'a list) : LCS_DYNAMICS =
 struct
 
@@ -26,7 +27,6 @@ struct
     case out k of
        O.K theta $ es => P.$ (theta, List.map quoteB es)
      | _ => raise Fail "Expected continuation"
-
 
 
   datatype 'a closure = <: of 'a * environment
@@ -56,8 +56,33 @@ struct
 
   and 'a state = || of 'a closure * continuation
 
-  infix ||
+  infix 1 ||
 
+  (* To perform substitutions suspended in a closure *)
+  fun force (m <: (mrho, srho, rho)) : abt =
+    let
+      val mrho' = Metavariable.Ctx.map forceB mrho
+      val rho' = Variable.Ctx.map force rho
+    in
+      Abt.renameEnv srho (Abt.substEnv rho' (Abt.metasubstEnv mrho' m))
+    end
+  and forceB (e <: env) =
+    Abt.mapAbs (fn m => force (m <: env)) e
+
+
+  (* To take an intermediate state and turn it into a term *)
+  fun project (s : expr state) : expr =
+    case s of
+       cl || DONE => raise Match
+     | m <: env || CONT (k <: env' || cont) =>
+         let
+           val O.Sort.CONT (sigma, tau) = sort k
+           val m' = O.C (O.CUT (sigma, tau)) $$ [([],[]) \ force (m <: env), ([],[]) \ k]
+         in
+           project @@ m' <: env' || cont
+         end
+
+  (* I'm not sure this is right, but it seems to be on the right track. It's basically a CEK machine. *)
   fun step (m <: (env as (mrho, srho, vrho)) || cont) : expr state =
     case out m of
        `x => Variable.Ctx.lookup vrho x || cont
