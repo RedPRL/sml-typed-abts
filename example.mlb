@@ -1,11 +1,13 @@
 local
   $(SML_LIB)/basis/basis.mlb
   abt.mlb
+  abt-lcs.mlb
   abt-parser.mlb
   lib/sml-parcom/parcom.mlb
   basis/basis.mlb
   example/example.sml
   example/main.sml
+  example/lcs-playground.sml
 in
   structure Main
 end

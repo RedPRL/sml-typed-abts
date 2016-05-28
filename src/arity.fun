@@ -25,3 +25,16 @@ functor ListArity (S : SORT) : ARITY =
     (Valence
       (structure Sort = S
        structure Spine = ListSpine))
+
+structure UnisortedArity : UNISORTED_ARITY =
+struct
+  local
+    structure V = UnisortedValence
+    structure A = Arity (V)
+  in
+    open A
+
+    fun make vls =
+      (List.map V.make vls, ())
+  end
+end
