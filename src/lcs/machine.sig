@@ -1,3 +1,4 @@
+(* A stack machine for lazy computation systems *)
 signature LCS_MACHINE =
 sig
   structure Cl : LCS_CLOSURE
