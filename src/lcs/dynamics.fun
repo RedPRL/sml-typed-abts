@@ -97,15 +97,17 @@ struct
     end
     | step sign (m <: env |> []) = m <: env |> []
     | step sign (m <: env |> (k <: env') :: stack) =
-        (case out m of
-            B.O.RET sigma $ [_ \ n] =>
-              B.plug sign ((quoteV n, quoteK k) <: env') stack
-          | _ =>
-            let
-              val B.O.S.CONT (sigma, tau) = sort k
-            in
-              B.O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ m] <: env' |> stack
-            end)
+        let
+          fun tryPlug () =
+            case out m of
+               B.O.RET sigma $ [_ \ n] => B.plug sign ((quoteV n, quoteK k) <: env') stack
+             | _ => raise Match
+        in
+          tryPlug () handle _ =>
+            (case sort k of
+                B.O.S.CONT (sigma, tau) => B.O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ m] <: env' |> stack
+              | _ => raise Fail "Expected continuation sort")
+        end
 
   fun eval sign =
     run
