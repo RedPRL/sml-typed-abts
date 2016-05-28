@@ -38,23 +38,21 @@ is
   basis/basis.cm
   lib/cmlib.cm
 
-  src/symbol.sig
-  src/symbol.fun
-
-  src/context_util.sig
-  src/context_util.fun
-
-  src/sort.sig
-  src/valence.sig
-  src/spine.sig
-  src/spine.sml
-  src/arity.sig
-  src/operator.sig
-  src/operator.fun
-  src/ast.sig
-  src/abt.sig
-  src/show_abt.fun
-  src/valence.fun
-  src/arity.fun
-  src/abt.fun
-  src/ast.fun
+  src/core/symbol.sig
+  src/core/symbol.fun
+  src/core/context_util.sig
+  src/core/context_util.fun
+  src/core/sort.sig
+  src/core/valence.sig
+  src/core/spine.sig
+  src/core/spine.sml
+  src/core/arity.sig
+  src/core/operator.sig
+  src/core/operator.fun
+  src/core/ast.sig
+  src/core/abt.sig
+  src/core/show_abt.fun
+  src/core/valence.fun
+  src/core/arity.fun
+  src/core/abt.fun
+  src/core/ast.fun
