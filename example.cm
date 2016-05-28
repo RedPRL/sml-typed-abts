@@ -8,5 +8,8 @@ is
   lib/cmlib.cm
   basis/basis.cm
   example/lcs-playground.sml
+
+  (*
   example/example.sml
   example/main.sml
+  *)
