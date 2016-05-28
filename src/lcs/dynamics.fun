@@ -98,10 +98,16 @@ struct
     | step sign (m <: env |> []) = m <: env |> []
     | step sign (m <: env |> (k <: env') :: stack) =
         let
+          (* If we are in |> mode, then we may assume that we have got either
+             a value or a neutral term. If the former, then [tryPlug] will use the
+             client-provided dynamics basis to plug the value into the continuation;
+             if [tryPlug] fails, this means we have a "stuck term". If the term is
+             either neutral or stuck, we will re-wrap it in the continuation and continue
+             working our way through the stack. *)
           fun tryPlug () =
             case out m of
                B.O.RET sigma $ [_ \ n] => B.plug sign ((quoteV n, quoteK k) <: env') stack
-             | _ => raise Match
+             | _ => raise Fail "Expected value"
         in
           tryPlug () handle _ =>
             (case sort k of
