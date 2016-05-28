@@ -6,9 +6,9 @@
  *  - The sort of the actual term once it's been instantiated with all
  *    the appropriate missing pieces
  *)
-signature VALENCE =
+signature ABT_VALENCE =
 sig
-  structure Sort : SORT
+  structure Sort : ABT_SORT
   structure Spine : SPINE
 
   type sort = Sort.t
@@ -22,9 +22,9 @@ sig
   val eq : t * t -> bool
 end
 
-signature UNISORTED_VALENCE =
+signature UNISORTED_ABT_VALENCE =
 sig
-  include VALENCE
+  include ABT_VALENCE
     where type Sort.t = unit
     where type 'a Spine.t = 'a list
 

@@ -9,7 +9,7 @@
  *)
 signature LOCALLY_NAMELESS =
 sig
-  structure Coord : COORD
+  structure Coord : LN_COORD
 
   datatype 'a t =
       FREE of 'a

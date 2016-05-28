@@ -1,4 +1,4 @@
-functor Valence (structure Sort : SORT and Spine : SPINE) : VALENCE =
+functor AbtValence (structure Sort : ABT_SORT and Spine : SPINE) : ABT_VALENCE =
 struct
   structure Sort = Sort and Spine = Spine
   type sort = Sort.t
@@ -21,7 +21,7 @@ struct
     end
 end
 
-structure UnisortedValence :> UNISORTED_VALENCE =
+structure UnisortedAbtValence :> UNISORTED_ABT_VALENCE =
 struct
   local
     structure Sort =
@@ -31,7 +31,7 @@ struct
       fun toString _ = "_"
     end
 
-    structure Valence = Valence (structure Sort = Sort and Spine = ListSpine)
+    structure Valence = AbtValence (structure Sort = Sort and Spine = ListSpine)
   in
     open Valence
   end

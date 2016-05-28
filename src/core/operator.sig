@@ -1,6 +1,6 @@
-signature OPERATOR =
+signature ABT_OPERATOR =
 sig
-  structure Arity : ARITY
+  structure Arity : ABT_ARITY
 
   type 'i t
 
@@ -12,13 +12,12 @@ sig
   val map : ('i -> 'j) -> 'i t -> 'j t
 end
 
-signature SIMPLE_OPERATOR =
+signature ABT_SIMPLE_OPERATOR =
 sig
-  structure Arity : ARITY
+  structure Arity : ABT_ARITY
 
   type t
   val arity : t -> Arity.t
   val eq : t * t -> bool
   val toString : t -> string
 end
-

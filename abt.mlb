@@ -5,58 +5,56 @@ local
   lib/cmlib.mlb
   locally-nameless.mlb
 
-  src/symbol.sig
-  src/symbol.fun
-
-  src/context_util.sig
-  src/context_util.fun
-
-  src/sort.sig
-  src/spine.sig
-  src/valence.sig
-  src/spine.sml
-  src/arity.sig
-  src/operator.sig
-  src/operator.fun
-  src/abt.sig
-  src/ast.sig
-  src/show_abt.fun
-  src/valence.fun
-  src/arity.fun
-  src/abt.fun
-  src/ast.fun
+  src/core/symbol.sig
+  src/core/symbol.fun
+  src/core/context_util.sig
+  src/core/context_util.fun
+  src/core/sort.sig
+  src/core/spine.sig
+  src/core/valence.sig
+  src/core/spine.sml
+  src/core/arity.sig
+  src/core/operator.sig
+  src/core/operator.fun
+  src/core/abt.sig
+  src/core/ast.sig
+  src/core/show_abt.fun
+  src/core/valence.fun
+  src/core/arity.fun
+  src/core/abt.fun
+  src/core/ast.fun
 
 in
-  signature OPERATOR
-  signature SIMPLE_OPERATOR
+  signature ABT_OPERATOR
+  signature ABT_SIMPLE_OPERATOR
   signature ABT
   signature AST
   signature AST_TO_ABT
-  signature SYMBOL
-  signature IMPERATIVE_SYMBOL
-  signature SORT
+  signature ABT_SYMBOL
+  signature ABT_IMPERATIVE_SYMBOL
+  signature ABT_SORT
   signature SPINE
-  signature VALENCE
-  signature UNISORTED_VALENCE
-  signature ARITY
-  signature UNISORTED_ARITY
+  signature ABT_VALENCE
+  signature UNISORTED_ABT_VALENCE
+  signature ABT_ARITY
+  signature UNISORTED_ABT_ARITY
   signature CONTEXT_UTIL
 
-  functor Symbol
-  structure StringSymbol
+  functor AbtSymbol
+  structure StringAbtSymbol
   structure ListSpine
-  functor Valence
-  structure UnisortedValence
-  functor Arity
-  functor ListArity
-  structure UnisortedArity
+  functor AbtValence
+  structure UnisortedAbtValence
+  functor AbtArity
+  functor ListAbtArity
+  structure UnisortedAbtArity
   functor ContextUtil
   functor Abt
   functor SimpleAbt
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
-  functor SimpleOperator
+  functor AbtSimpleOperator
   functor Ast
   functor AstToAbt
 end

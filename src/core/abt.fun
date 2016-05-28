@@ -1,8 +1,8 @@
 functor Abt
-  (structure Symbol : SYMBOL
-   structure Variable : SYMBOL
-   structure Metavariable : SYMBOL
-   structure Operator : OPERATOR) : ABT =
+  (structure Symbol : ABT_SYMBOL
+   structure Variable : ABT_SYMBOL
+   structure Metavariable : ABT_SYMBOL
+   structure Operator : ABT_OPERATOR) : ABT =
 struct
   structure Symbol = Symbol
     and Variable = Variable
@@ -19,7 +19,7 @@ struct
 
   type sort = Sort.t
   type valence = Valence.t
-  type coord = Coord.t
+  type coord = LnCoord.t
   type symbol = Symbol.t
   type variable = Variable.t
   type metavariable = Metavariable.t
@@ -28,7 +28,7 @@ struct
 
   structure LN =
   struct
-    local structure S = LocallyNameless (Coord) in open S end
+    local structure S = LocallyNameless (LnCoord) in open S end
     type symbol = symbol t
     type operator = symbol Operator.t
     type variable = variable t
@@ -192,7 +192,7 @@ struct
     ABS (us, xs, f m)
 
   fun liftTraverseAbs f coord =
-    mapAbs_ (f (Coord.shiftRight coord))
+    mapAbs_ (f (LnCoord.shiftRight coord))
 
   fun annotateApp theta es =
     let
@@ -258,7 +258,7 @@ struct
   fun liberateVariable (v, sigma) coord =
     fn e as V (LN.FREE _, _) => e
      | e as V (LN.BOUND coord', sigma) =>
-         if Coord.eq (coord, coord') then V (LN.FREE v, sigma) else e
+         if LnCoord.eq (coord, coord') then V (LN.FREE v, sigma) else e
      | APP (theta, es <: ctx) =>
          annotateApp theta (Spine.map (liftTraverseAbs (liberateVariable (v, sigma)) coord) es)
      | META_APP ((x, tau), us, ms <: ctx) =>
@@ -266,7 +266,7 @@ struct
 
   fun liberateSymbol (u, sigma) coord =
     let
-      fun rho (LN.BOUND coord') = if Coord.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
+      fun rho (LN.BOUND coord') = if LnCoord.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
         | rho u' = u'
     in
       fn e as V _ => e
@@ -297,7 +297,7 @@ struct
     struct
       type ('a, 'b) hom = (coord * 'a -> 'b)
       fun id (_, x) = x
-      fun comp (f, g) (coord, a) = f (coord, g (Coord.shiftDown coord, a))
+      fun comp (f, g) (coord, a) = f (coord, g (LnCoord.shiftDown coord, a))
     end
 
     structure ShiftFoldMap =
@@ -309,7 +309,7 @@ struct
       ShiftFoldMap.foldMap
         (fn v => fn (c, M) => f v c M)
         xs
-        (Coord.origin, t)
+        (LnCoord.origin, t)
   in
     val imprisonVariables = foldStar imprisonVariable o Spine.Pair.zipEq
     val imprisonSymbols = foldStar imprisonSymbol o Spine.Pair.zipEq
@@ -545,7 +545,7 @@ struct
             (LN.FREE u', LN.FREE v') =>
               SymRenUtil.extend rho (u', v')
           | (LN.BOUND i, LN.BOUND j) =>
-              if Coord.eq (i, j) then
+              if LnCoord.eq (i, j) then
                 rho
               else
                 raise UnificationFailed
@@ -572,7 +572,7 @@ struct
              else
                raise UnificationFailed
          | (V (LN.BOUND i, _), V (LN.BOUND j, _)) =>
-             if Coord.eq (i, j) then
+             if LnCoord.eq (i, j) then
                (mrho, srho, vrho)
              else
                raise UnificationFailed
@@ -618,9 +618,8 @@ struct
 
 end
 
-functor SimpleAbt (Operator : OPERATOR) =
-  Abt (structure Symbol = Symbol ()
-       structure Variable = Symbol ()
-       structure Metavariable = Symbol ()
-       structure Operator = Operator)
-
+functor SimpleAbt (O : ABT_OPERATOR) =
+  Abt (structure Symbol = AbtSymbol ()
+       structure Variable = AbtSymbol ()
+       structure Metavariable = AbtSymbol ()
+       structure Operator = O)

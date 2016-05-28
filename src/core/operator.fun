@@ -1,4 +1,4 @@
-functor SimpleOperator (O : SIMPLE_OPERATOR) : OPERATOR =
+functor AbtSimpleOperator (O : ABT_SIMPLE_OPERATOR) : ABT_OPERATOR =
 struct
   structure Arity = O.Arity
 

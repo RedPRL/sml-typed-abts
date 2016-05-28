@@ -1,5 +1,5 @@
 functor LcsSort
-  (structure AtomicSort : SORT
+  (structure AtomicSort : ABT_SORT
    val opidSort : AtomicSort.t option) : LCS_SORT =
 struct
   structure AtomicSort = AtomicSort

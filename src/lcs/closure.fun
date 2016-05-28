@@ -1,4 +1,4 @@
-functor ShowEnv (S : SYMBOL) =
+functor ShowEnv (S : ABT_SYMBOL) =
 struct
   fun toString (f : 'a -> string) (rho : 'a S.Ctx.dict) =
     let

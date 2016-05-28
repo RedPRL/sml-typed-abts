@@ -4,9 +4,9 @@ struct
   datatype cont = AP | SPREAD
 end
 
-structure LambdaV : SIMPLE_OPERATOR =
+structure LambdaV : ABT_SIMPLE_OPERATOR =
 struct
-  structure Arity = UnisortedArity
+  structure Arity = UnisortedAbtArity
 
   open Lambda
   type t = Lambda.value
@@ -24,9 +24,9 @@ struct
      | AX => "ax"
 end
 
-structure LambdaK : SIMPLE_OPERATOR =
+structure LambdaK : ABT_SIMPLE_OPERATOR =
 struct
-  structure Arity = UnisortedArity
+  structure Arity = UnisortedAbtArity
 
   open Lambda
   type t = Lambda.cont
@@ -48,7 +48,7 @@ end
 
 structure LambdaLang : LCS_LANGUAGE =
 struct
-  structure V = SimpleOperator (LambdaV) and K = SimpleOperator (LambdaK)
+  structure V = AbtSimpleOperator (LambdaV) and K = AbtSimpleOperator (LambdaK)
   fun input _ = ()
   val opidSort = NONE
 end

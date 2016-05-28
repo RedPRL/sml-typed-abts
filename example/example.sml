@@ -1,8 +1,8 @@
 structure Example =
 struct
-  structure M = Symbol ()
-  structure V = Symbol ()
-  structure I = Symbol ()
+  structure M = AbtSymbol ()
+  structure V = AbtSymbol ()
+  structure I = AbtSymbol ()
 
   structure O =
   struct
@@ -16,8 +16,8 @@ struct
     end
 
 
-    structure Valence = Valence (structure Sort = Sort and Spine = ListSpine)
-    structure Arity = Arity (Valence)
+    structure Valence = AbtValence (structure Sort = Sort and Spine = ListSpine)
+    structure Arity = AbtArity (Valence)
 
     datatype 'i t =
         LAM | AP | NUM | LIT of int | RET
@@ -71,7 +71,7 @@ struct
       | map f (SET i) = SET (f i)
   end
 
-  structure OParser : PARSE_OPERATOR =
+  structure OParser : PARSE_ABT_OPERATOR =
   struct
     structure Operator = O
     open O

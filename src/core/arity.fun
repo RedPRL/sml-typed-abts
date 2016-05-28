@@ -1,4 +1,4 @@
-functor Arity (V : VALENCE) : ARITY =
+functor AbtArity (V : ABT_VALENCE) : ABT_ARITY =
 struct
   structure Valence = V and Sort = V.Sort
 
@@ -20,17 +20,17 @@ struct
       end
 end
 
-functor ListArity (S : SORT) : ARITY =
-  Arity
-    (Valence
+functor ListAbtArity (S : ABT_SORT) : ABT_ARITY =
+  AbtArity
+    (AbtValence
       (structure Sort = S
        structure Spine = ListSpine))
 
-structure UnisortedArity : UNISORTED_ARITY =
+structure UnisortedAbtArity : UNISORTED_ABT_ARITY =
 struct
   local
-    structure V = UnisortedValence
-    structure A = Arity (V)
+    structure V = UnisortedAbtValence
+    structure A = AbtArity (V)
   in
     open A
 
