@@ -25,11 +25,16 @@ functor LcsDynamics
   (structure O : LCS_OPERATOR
    structure Abt : ABT
      where type 'a Operator.t = 'a O.operator
+     where type 'a Operator.Arity.Valence.Spine.t = 'a list
      where type Operator.Arity.Valence.Sort.t = O.Sort.t
-     where type 'a Operator.Arity.Valence.Spine.t = 'a list) : LCS_DYNAMICS =
+   structure Sig : LCS_SIGNATURE where type valence = O.L.V.Arity.Valence.t
+   sharing type Sig.symbol = Abt.Symbol.t
+   sharing type Sig.metavariable = Abt.Metavariable.t
+   sharing type Sig.sort = O.Sort.AtomicSort.t
+   sharing type Sig.term = Abt.abt) : LCS_DYNAMICS =
 struct
   open O
-  structure L = L and Abt = Abt
+  structure L = L and Abt = Abt and Sig = Sig
 
   open L Abt
   infix 3 <:
@@ -50,8 +55,6 @@ struct
     case out k of
        O.K theta $ es => P.$ (theta, List.map quoteB es)
      | _ => raise Fail "Expected continuation"
-
-
 
   structure Cl = LcsClosure (Abt)
   structure M =
@@ -78,7 +81,20 @@ struct
            run @@ m' <: env' || stack
          end
 
-  type sign = unit
+  structure Pattern = Pattern (Abt)
+  structure Unify = AbtLinearUnification (structure Abt = Abt and Pattern = Pattern)
+  structure SymEnvUtil = ContextUtil (structure Ctx = Symbol.Ctx and Elem = Symbol)
+  structure AbsEq = struct type t = Abt.abs val eq = Abt.eqAbs end
+
+  fun patternFromDef (opid, arity) (def : Sig.def) : Pattern.pattern =
+    let
+      open Pattern infix 2 $@
+      val {parameters, arguments, ...} = def
+      val theta = CUSTOM (opid, parameters, arity)
+    in
+      into @@ theta $@ List.map (fn (x,_) => MVAR x) arguments
+    end
+
 
   (* I'm not sure this is right, but it seems to be on the right track. It's basically a CEK machine. *)
   fun step sign (m <: (env as (mrho, srho, vrho)) || stack) : expr state =
@@ -99,7 +115,22 @@ struct
            | [] => m <: env || [])
      | O.CUT (sigma, tau) $ [_ \ k, _ \ e] =>
          e <: env || (k <: env) :: stack
-     | _ => raise Fail "Expected command"
+     | O.CUSTOM (opid, params, ar) $ _ =>
+         let
+           open Unify infix <*>
+           val def as {definiens, ...} = Sig.lookup sign opid
+           val pat = patternFromDef (opid, ar) def
+
+           val (srho', mrho') = unify (pat <*> m)
+           val srho'' = SymEnvUtil.union (srho, srho)
+           val mrho'' =
+             Metavariable.Ctx.union mrho
+               (Metavariable.Ctx.map (fn e => e <: (mrho, srho, vrho)) mrho')
+               (fn _ => raise Fail "Stuck")
+         in
+           definiens <: (mrho'', srho'', vrho) || stack
+         end
+     | _ => raise Fail "Expected expression"
 
   fun eval sign =
     run

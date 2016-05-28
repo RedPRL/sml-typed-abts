@@ -15,6 +15,7 @@ sig
    | K of 'i L.K.t
    | RET of Sort.atomic
    | CUT of Sort.atomic * Sort.atomic
+   | CUSTOM of 'i * ('i * Sort.atomic) list * L.V.Arity.t
 
   include OPERATOR
     where type 'i t = 'i operator

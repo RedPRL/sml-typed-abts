@@ -1,20 +1,25 @@
 local
   $(SML_LIB)/basis/basis.mlb
   abt.mlb
+  abt-patterns.mlb
+
   src/lcs/sort.sig
   src/lcs/pattern.sig
   src/lcs/language.sig
   src/lcs/operator.sig
+  src/lcs/signature.sig
   src/lcs/closure.sig
   src/lcs/machine.sig
   src/lcs/dynamics.sig
   src/lcs/framework.sig
+
   src/lcs/sort.fun
   src/lcs/operator.fun
   src/lcs/pattern.sml
   src/lcs/closure.fun
   src/lcs/machine.fun
   src/lcs/dynamics.fun
+  src/lcs/signature.fun
   src/lcs/framework.fun
 in
   signature LCS_SORT
@@ -23,6 +28,7 @@ in
   signature LCS_OPERATOR
   signature LCS_CLOSURE
   signature LCS_MACHINE
+  signature LCS_SIGNATURE
   signature LCS_DYNAMICS
   signature LCS_FRAMEWORK
 
@@ -32,5 +38,6 @@ in
   functor LcsClosure
   functor LcsMachine
   functor LcsDynamics
+  functor LcsSignature
   functor LcsFramework
 end

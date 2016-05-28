@@ -1,7 +1,8 @@
-functor LcsFramework (L : LCS_LANGUAGE) : LCS_FRAMEWORK =
+functor LcsFramework (structure L : LCS_LANGUAGE) : LCS_FRAMEWORK =
 struct
   structure Operator = LcsOperator (L)
   structure Sort = Operator.Sort
   structure Abt = SimpleAbt (Operator)
-  structure Dynamics = LcsDynamics (structure L = L and O = Operator and Abt = Abt)
+  structure Sig = LcsSignature (structure L = L and Abt = Abt)
+  structure Dynamics = LcsDynamics (structure L = L and O = Operator and Abt = Abt and Sig = Sig)
 end
