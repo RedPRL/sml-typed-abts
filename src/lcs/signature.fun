@@ -18,6 +18,9 @@ struct
 
   type t = def Dict.dict
 
+
+  val empty = Dict.empty
+  
   fun define sign opid def =
     Dict.insert sign opid def
 

@@ -74,12 +74,14 @@ struct
     case s of
        cl || [] => force cl
      | m <: env || ((k <: env') :: stack) =>
-         let
-           val O.Sort.CONT (sigma, tau) = sort k
-           val m' = O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
-         in
-           run @@ m' <: env' || stack
-         end
+         (case sort k of
+             O.Sort.CONT (sigma, tau) =>
+               let
+                 val m' = O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
+               in
+                 run @@ m' <: env' || stack
+               end
+           | _ => raise Fail "Expected continuation sort")
 
   structure Pattern = Pattern (Abt)
   structure Unify = AbtLinearUnification (structure Abt = Abt and Pattern = Pattern)

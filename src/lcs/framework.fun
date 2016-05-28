@@ -1,4 +1,4 @@
-functor LcsFramework (structure L : LCS_LANGUAGE) : LCS_FRAMEWORK =
+functor LcsFramework (L : LCS_LANGUAGE) : LCS_FRAMEWORK =
 struct
   structure Operator = LcsOperator (L)
   structure Sort = Operator.Sort

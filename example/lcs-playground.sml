@@ -107,10 +107,10 @@ struct
     end
 
   val tm1 = ap (id "a") (ap (id "b") ax)
-  val tm2 = eval () tm1
+  val tm2 = eval Sig.empty tm1
 
   structure Show = DebugShowAbt (Abt)
   val _ = print "\n\n"
-  val _ = debugTrace () tm1
+  val _ = debugTrace Sig.empty tm1
   val _ = print "\n\n"
 end

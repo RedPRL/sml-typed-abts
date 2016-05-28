@@ -19,6 +19,7 @@ sig
      sort : sort,
      definiens : term}
 
+  val empty : t
   val define : t -> symbol -> def -> t
   val lookup : t -> symbol -> def
 end
