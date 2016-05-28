@@ -98,7 +98,6 @@ struct
     end
 
 
-  (* I'm not sure this is right, but it seems to be on the right track. It's basically a CEK machine. *)
   fun step sign (m <: (env as (mrho, srho, vrho)) || stack) : expr state =
     case out m of
        `x => Variable.Ctx.lookup vrho x || stack
