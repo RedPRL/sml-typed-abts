@@ -2,9 +2,9 @@ signature LCS_CLOSURE =
 sig
   structure Abt : ABT
 
-  type 'a metaenv = 'a Abt.Metavariable.Ctx.dict
-  type 'a varenv = 'a Abt.Variable.Ctx.dict
-  type symenv = Abt.symbol Abt.Symbol.Ctx.dict
+  type 'a metaenv = 'a Abt.Metavar.Ctx.dict
+  type 'a varenv = 'a Abt.Var.Ctx.dict
+  type symenv = Abt.symbol Abt.Sym.Ctx.dict
 
   datatype 'a closure =
     <: of 'a * (Abt.abs closure metaenv * symenv * Abt.abt closure varenv)

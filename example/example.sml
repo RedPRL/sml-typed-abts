@@ -119,10 +119,10 @@ struct
         || string "set" >> squares identifier wth SET
   end
 
-  structure Ast = Ast (structure Operator = O and Metavariable = M)
-  structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavariable = M and CharSet = GreekCharSet)
+  structure Ast = Ast (structure Operator = O and Metavar = M)
+  structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavar = M and CharSet = GreekCharSet)
 
-  structure Abt = Abt (structure Operator = O and Metavariable = M and Variable = V and Symbol = I)
+  structure Abt = Abt (structure O = O and Metavar = M and Var = V and Sym = I)
   structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
 
   structure ShowAbt = DebugShowAbt (Abt)
@@ -159,7 +159,7 @@ struct
                         Sum.INR ast => ast
                       | Sum.INL err => raise Fail err
                  val (_, tau) = O.arity theta
-                 val abt = AstToAbt.convert Metavariable.Ctx.empty (ast, tau)
+                 val abt = AstToAbt.convert Metavar.Ctx.empty (ast, tau)
                in
                  print (ShowAbt.toString abt ^ "\n\n")
                end

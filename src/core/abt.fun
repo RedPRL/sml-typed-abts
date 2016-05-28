@@ -1,36 +1,31 @@
 functor Abt
-  (structure Symbol : ABT_SYMBOL
-   structure Variable : ABT_SYMBOL
-   structure Metavariable : ABT_SYMBOL
-   structure Operator : ABT_OPERATOR) : ABT =
+  (structure Sym : ABT_SYMBOL
+   structure Var : ABT_SYMBOL
+   structure Metavar : ABT_SYMBOL
+   structure O : ABT_OPERATOR) : ABT =
 struct
-  structure Symbol = Symbol
-    and Variable = Variable
-    and Metavariable = Metavariable
-    and Operator = Operator
-    and Arity = Operator.Ar
-
-  structure Sort = Arity.Vl.Sort and Valence = Arity.Vl
+  structure Sym = Sym and Var = Var and Metavar = Metavar and O = O and Ar = O.Ar
+  structure Sort = Ar.Vl.Sort and Valence = Ar.Vl
   structure Sp = Valence.Sp
 
-  structure MetaCtx = Metavariable.Ctx
-  structure VarCtx = Variable.Ctx
-  structure SymCtx = Symbol.Ctx
+  structure MetaCtx = Metavar.Ctx
+  structure VarCtx = Var.Ctx
+  structure SymCtx = Sym.Ctx
 
   type sort = Sort.t
   type valence = Valence.t
   type coord = LnCoord.t
-  type symbol = Symbol.t
-  type variable = Variable.t
-  type metavariable = Metavariable.t
-  type operator = symbol Operator.t
+  type symbol = Sym.t
+  type variable = Var.t
+  type metavariable = Metavar.t
+  type operator = symbol O.t
   type 'a spine = 'a Sp.t
 
   structure LN =
   struct
     local structure S = LocallyNameless (LnCoord) in open S end
     type symbol = symbol t
-    type operator = symbol Operator.t
+    type operator = symbol O.t
     type variable = variable t
   end
 
@@ -86,9 +81,9 @@ struct
   and abs = ABS of (string * sort) spine * (string * sort) spine * abt
 
   val rec primToString =
-    fn V (v, _) => LN.toString Variable.toString v
+    fn V (v, _) => LN.toString Var.toString v
      | APP (theta, es <: _) =>
-         Operator.toString (LN.toString Symbol.toString) theta
+         O.toString (LN.toString Sym.toString) theta
            ^ "("
            ^ Sp.pretty primToStringAbs ";" es
            ^ ")"
@@ -149,7 +144,7 @@ struct
 
   val sort =
     fn V (_, tau) => tau
-     | APP (theta, _) => #2 (Operator.arity theta)
+     | APP (theta, _) => #2 (O.arity theta)
      | META_APP ((_, tau), _, _) => tau
 
   val metactx =
@@ -169,7 +164,7 @@ struct
            (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
              | (_, memo) => memo)
            (Susp.force sctx)
-           (Operator.support theta)
+           (O.support theta)
      | META_APP (_, us, ms <: (_, sctx, _)) =>
          Sp.foldr
            (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
@@ -218,7 +213,7 @@ struct
    *)
   fun imprisonVariable (v, tau) coord =
     fn m as V (LN.FREE v', sigma) =>
-         if Variable.eq (v, v') then
+         if Var.eq (v, v') then
            (assertSortEq (sigma, tau);
             V (LN.BOUND coord, sigma))
          else
@@ -233,18 +228,18 @@ struct
     fn V v => V v
      | APP (theta, es <: ctx) =>
          let
-           fun rho v' = if Symbol.eq (v, v') then LN.BOUND coord else LN.FREE v'
-           fun chk (LN.FREE v', tau') = if Symbol.eq (v, v') then assertSortEq (tau, tau') else ()
+           fun rho v' = if Sym.eq (v, v') then LN.BOUND coord else LN.FREE v'
+           fun chk (LN.FREE v', tau') = if Sym.eq (v, v') then assertSortEq (tau, tau') else ()
              | chk _ = ()
-           val _ = List.app chk (Operator.support theta)
-           val theta' = Operator.map (LN.bind rho) theta
+           val _ = List.app chk (O.support theta)
+           val theta' = O.map (LN.bind rho) theta
            val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
          in
            APP (theta', Sp.map (liftTraverseAbs (imprisonSymbol (v,tau)) coord) es <: ctx')
          end
      | META_APP (m, us, Ms <: ctx) =>
          let
-           fun rho v' = if Symbol.eq (v, v') then LN.BOUND coord else LN.FREE v'
+           fun rho v' = if Sym.eq (v, v') then LN.BOUND coord else LN.FREE v'
            fun rho' (l, s) = (LN.bind rho l, s)
            val vs = Sp.map rho' us
            val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
@@ -272,7 +267,7 @@ struct
       fn e as V _ => e
        | APP (theta, es <: ctx) =>
            let
-             val theta' = Operator.map rho theta
+             val theta' = O.map rho theta
              val fs = Sp.map (liftTraverseAbs (liberateSymbol (u, sigma)) coord) es
            in
              annotateApp theta' fs
@@ -328,8 +323,8 @@ struct
       val () = assertSortEq (sigma, tau)
     in
       ABS
-        (Sp.Pair.zipEq (Sp.map Symbol.toString us, ssorts),
-         Sp.Pair.zipEq (Sp.map Variable.toString xs, vsorts),
+        (Sp.Pair.zipEq (Sp.map Sym.toString us, ssorts),
+         Sp.Pair.zipEq (Sp.map Var.toString xs, vsorts),
          imprisonSymbols (us, ssorts) (imprisonVariables (xs, vsorts) m))
     end
 
@@ -338,8 +333,8 @@ struct
          V (x, tau) => (` (LN.getFree x), tau)
        | APP (theta, Es <: _) =>
          let
-           val (_, tau) = Operator.arity theta
-           val theta' = Operator.map LN.getFree theta
+           val (_, tau) = O.arity theta
+           val theta' = O.map LN.getFree theta
            val Es' = Sp.map (#1 o inferb) Es
          in
            (theta' $ Es', tau)
@@ -356,8 +351,8 @@ struct
       val syms = symctx m
       val vars = varctx m
 
-      val us = Sp.map (fn (u, tau) => (Symbol.fresh syms u, tau)) upsilon
-      val xs = Sp.map (fn (x, tau) => (Variable.fresh vars x, tau)) gamma
+      val us = Sp.map (fn (u, tau) => (Sym.fresh syms u, tau)) upsilon
+      val xs = Sp.map (fn (x, tau) => (Var.fresh vars x, tau)) gamma
       val m' = liberateSymbols us (liberateVariables xs m)
       val (_, tau) = infer m'
       val valence = ((Sp.map #2 upsilon, Sp.map #2 gamma), tau)
@@ -375,9 +370,9 @@ struct
          `x => V (LN.FREE x, sigma)
        | theta $ es =>
            let
-             val (valences, tau)  = Operator.arity theta
+             val (valences, tau)  = O.arity theta
              val () = assertSortEq (sigma, tau)
-             val theta' = Operator.map LN.FREE theta
+             val theta' = O.map LN.FREE theta
              val es' = Sp.Pair.mapEq checkb (es, valences)
            in
              annotateApp theta' es'
@@ -398,7 +393,7 @@ struct
 
   fun $$ (theta, es) =
     let
-      val (_, tau) = Operator.arity theta
+      val (_, tau) = O.arity theta
     in
       check (theta $ es, tau)
     end
@@ -421,17 +416,17 @@ struct
          mv $# (us, Sp.map f ms)
 
   local
-    structure OpLnEq = struct val eq = Operator.eq (LN.eq Symbol.eq) end
+    structure OpLnEq = struct val eq = O.eq (LN.eq Sym.eq) end
   in
     (* While this looks simple by using locally nameless representations this
      * implements alpha equivalence (and is very efficient!)
      *)
-    fun eq (V (v, _), V (v', _)) = LN.eq Variable.eq (v, v')
+    fun eq (V (v, _), V (v', _)) = LN.eq Var.eq (v, v')
       | eq (APP (theta, es <: _), APP (theta', es' <: _)) =
           OpLnEq.eq (theta, theta') andalso Sp.Pair.allEq eqAbs (es, es')
       | eq (META_APP ((mv, _), us, ms <: _), META_APP ((mv', _), us', ms' <: _)) =
-          Metavariable.eq (mv, mv')
-            andalso Sp.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Symbol.eq (x,y)) (us, us')
+          Metavar.eq (mv, mv')
+            andalso Sp.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Sym.eq (x,y)) (us, us')
             andalso Sp.Pair.allEq eq (ms, ms')
       | eq _ = false
     and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
@@ -482,7 +477,7 @@ struct
      | APP (theta, es <: _) =>
          let
            fun ren u = getOpt (SymCtx.find rho u, u)
-           val theta' = Operator.map (LN.map ren) theta
+           val theta' = O.map (LN.map ren) theta
          in
            annotateApp theta' (Sp.map (mapAbs_ (renameEnv rho)) es)
          end
@@ -535,9 +530,9 @@ struct
 
     exception UnificationFailed
 
-    structure MetaRenUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Metavariable)
-    structure SymRenUtil = ContextUtil (structure Ctx = SymCtx and Elem = Symbol)
-    structure VarRenUtil = ContextUtil (structure Ctx = VarCtx and Elem = Variable)
+    structure MetaRenUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Metavar)
+    structure SymRenUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sym)
+    structure VarRenUtil = ContextUtil (structure Ctx = VarCtx and Elem = Var)
 
     fun unifySymbols ((u, sigma), (v, tau), rho) =
       if Sort.eq (sigma, tau) then
@@ -554,10 +549,10 @@ struct
         raise UnificationFailed
 
     fun unifyOperator rho (theta1 : LN.operator, theta2 : LN.operator) : symbol SymCtx.dict =
-      if Operator.eq (fn _ => true) (theta1, theta2) then
+      if O.eq (fn _ => true) (theta1, theta2) then
         let
-          val us = Operator.support theta1
-          val vs = Operator.support theta2
+          val us = O.support theta1
+          val vs = O.support theta2
         in
           ListPair.foldlEq unifySymbols rho (us, vs)
         end
@@ -619,7 +614,7 @@ struct
 end
 
 functor SimpleAbt (O : ABT_OPERATOR) =
-  Abt (structure Symbol = AbtSymbol ()
-       structure Variable = AbtSymbol ()
-       structure Metavariable = AbtSymbol ()
-       structure Operator = O)
+  Abt (structure Sym = AbtSymbol ()
+       structure Var = AbtSymbol ()
+       structure Metavar = AbtSymbol ()
+       structure O = O)

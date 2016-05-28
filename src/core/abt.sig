@@ -4,32 +4,32 @@
 
 signature ABT =
 sig
-  structure Variable : ABT_SYMBOL
+  structure Var : ABT_SYMBOL
 
   (* Symbols are not variables; they parameterize operators and do not appear as
    * terms in the syntax of abstract binding trees. Therefore, they are subject
    * to apartness-preserving (injective) renamings, and not substitution. *)
-  structure Symbol : ABT_SYMBOL
+  structure Sym : ABT_SYMBOL
 
   (* Just as variables can be used to stand in for an abt, metavariables can be
-   * used to stand in for an abstraction/binder of any valence. Metavariables
+   * used to stand in for an abstraction/binder of any valence. Metavars
    * are also sometimes called "second-order variables". *)
-  structure Metavariable : ABT_SYMBOL
+  structure Metavar : ABT_SYMBOL
 
   (* Operators are the primitive building blocks of a language; the [Operator]
    * allows the ABT framework to be deployed at an arbitrary signature of
    * operators. In older texts on universal algebra, sometimes operators are
    * often referred to as "function symbols". *)
-  structure Operator : ABT_OPERATOR
+  structure O : ABT_OPERATOR
 
   (* Convienent shorthands for the types found in the above structures *)
-  type symbol = Symbol.t
-  type variable = Variable.t
-  type metavariable = Metavariable.t
-  type operator = symbol Operator.t
-  type sort = Operator.Ar.sort
-  type valence = Operator.Ar.valence
-  type 'a spine = 'a Operator.Ar.spine
+  type symbol = Sym.t
+  type variable = Var.t
+  type metavariable = Metavar.t
+  type operator = symbol O.t
+  type sort = O.Ar.sort
+  type valence = O.Ar.valence
+  type 'a spine = 'a O.Ar.spine
 
   (* The core type of the signature. This is the type of the ABTs that
    * can be built from the given [operator]s, [variable]s, [symbol]s and
@@ -44,13 +44,13 @@ sig
    *)
   type abs
 
-  type metactx = valence Metavariable.ctx
-  type varctx = sort Variable.ctx
-  type symctx = sort Symbol.ctx
+  type metactx = valence Metavar.ctx
+  type varctx = sort Var.ctx
+  type symctx = sort Sym.ctx
 
-  type metaenv = abs Metavariable.ctx
-  type varenv = abt Variable.ctx
-  type symenv = symbol Symbol.ctx
+  type metaenv = abs Metavar.ctx
+  type varenv = abt Var.ctx
+  type symenv = symbol Sym.ctx
 
   (* Modify the term inside an abstraction*)
   val mapAbs : (abt -> abt) -> abs -> abs
@@ -137,7 +137,7 @@ sig
 
   structure Unify :
   sig
-    type renaming = metavariable Metavariable.ctx * symbol Symbol.ctx * variable Variable.ctx
+    type renaming = metavariable Metavar.ctx * symbol Sym.ctx * variable Var.ctx
 
     (* unify by synthesizing a renaming of metavariables and variables; raises
     * [UnificationFailed] when no renaming can be synthesized. *)

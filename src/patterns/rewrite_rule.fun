@@ -15,7 +15,7 @@ struct
 
   exception InvalidRule
 
-  structure MetaCtxUtil = ContextUtil (structure Ctx = Abt.Metavariable.Ctx and Elem = Abt.Operator.Ar.Vl)
+  structure MetaCtxUtil = ContextUtil (structure Ctx = Abt.Metavar.Ctx and Elem = Abt.O.Ar.Vl)
 
   (* a rewrite rule is valid in case the definiens is well-formed under
    * metavariable context induced by the definiendum *)
@@ -27,7 +27,7 @@ struct
       val psi'' = MetaCtxUtil.union (psi, psi')
       val gamma = Abt.varctx m
     in
-      if Abt.Variable.Ctx.isEmpty gamma then
+      if Abt.Var.Ctx.isEmpty gamma then
         RULE (p ~> m)
       else
         raise InvalidRule

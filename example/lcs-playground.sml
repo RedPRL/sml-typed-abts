@@ -57,8 +57,10 @@ structure LambdaKit = LcsDynamicsBasisKit (LambdaLang)
 
 structure LambdaBasis : LCS_DYNAMICS_BASIS =
 struct
-  open Lambda LambdaKit
-  open Abt M M.Cl
+  open Lambda
+  open LambdaKit.Abt
+  open LambdaKit
+  open M M.Cl
 
   infix 1 ||
   infix 2 <:
@@ -66,7 +68,7 @@ struct
   infix 2 \
 
   fun pushV (cl : abt closure, x) (mrho, srho, vrho) =
-    (mrho, srho, Variable.Ctx.insert vrho x cl)
+    (mrho, srho, Var.Ctx.insert vrho x cl)
 
   fun plug sign ((v, k) <: env || st) =
     case (v, k) of
@@ -112,7 +114,7 @@ struct
 
   fun id a =
     let
-      val x = Variable.named a
+      val x = Var.named a
     in
       lam (x, check (`x, EXP ()))
     end

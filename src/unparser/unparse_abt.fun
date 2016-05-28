@@ -1,5 +1,5 @@
 signature LIST_ABT =
-  ABT where type 'a Operator.Ar.Vl.Sp.t = 'a list
+  ABT where type 'a O.Ar.Vl.Sp.t = 'a list
 
 functor UnparseAbt
   (structure Abt : LIST_ABT
@@ -11,7 +11,7 @@ struct
   open Abt Unparse
   infix 5 $ $# \
 
-  structure O = Operator and V = Variable and S = Symbol and M = Metavariable
+  structure V = Var and S = Sym and M = Metavar
   structure Sp = O.Ar.Vl.Sp
 
   type unparser = Abt.abt -> string Unparse.part

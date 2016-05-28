@@ -5,7 +5,7 @@ struct
   type sort = L.V.Ar.sort
   type valence = L.V.Ar.valence
 
-  structure Dict = Symbol.Ctx
+  structure Dict = Sym.Ctx
 
   type arguments = (metavariable * valence) list
   type symbols = (symbol * sort) list
