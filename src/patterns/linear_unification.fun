@@ -8,9 +8,8 @@ struct
   datatype match = <*> of pattern * abt
 
   infix $ $# $@ \ <*>
-  structure Valence = Operator.Ar.Vl
-  structure Spine = Valence.Spine
-  structure Sort = Valence.Sort
+  structure Vl = Operator.Ar.Vl
+  structure Sp = Vl.Sp and Sort = Vl.Sort
   structure SymCtx = Symbol.Ctx and MetaCtx = Metavariable.Ctx
 
   fun matchOperator (ptheta, theta) =

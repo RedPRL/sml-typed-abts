@@ -24,7 +24,7 @@ signature UNISORTED_ABT_ARITY =
 sig
   include ABT_ARITY
     where type Vl.Sort.t = unit
-    where type 'a Vl.Spine.t = 'a list
+    where type 'a Vl.Sp.t = 'a list
 
   val make : (int * int) list -> t
 end

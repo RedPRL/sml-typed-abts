@@ -16,7 +16,7 @@ struct
     end
 
 
-    structure Vl = AbtValence (structure Sort = Sort and Spine = ListSpine)
+    structure Vl = AbtValence (structure Sort = Sort and Sp = ListSpine)
     structure Ar = AbtArity (Vl)
 
     datatype 'i t =

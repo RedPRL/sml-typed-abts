@@ -2,7 +2,7 @@ signature LCS_DYNAMICS_BASIS =
 sig
   structure O : LCS_OPERATOR
   structure M : LCS_MACHINE
-    where type 'a Cl.Abt.Operator.Ar.Vl.Spine.t = 'a list
+    where type 'a Cl.Abt.Operator.Ar.Vl.Sp.t = 'a list
 
   structure Sig : LCS_SIGNATURE
     where type valence = O.L.V.Ar.Vl.t

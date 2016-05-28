@@ -6,10 +6,10 @@ struct
   type variable = string
   type metavariable = Metavariable.t
 
-  structure Spine = Operator.Ar.Vl.Spine
+  structure Sp = Operator.Ar.Vl.Sp
 
   type 'i operator = 'i Operator.t
-  type 'a spine = 'a Spine.t
+  type 'a spine = 'a Sp.t
 
   datatype ast =
       ` of variable
@@ -22,28 +22,28 @@ struct
   val rec toString =
     fn `x => x
      | theta $ es =>
-         if Spine.isEmpty es then
+         if Sp.isEmpty es then
            Operator.toString (fn x => x) theta
          else
            Operator.toString (fn x => x) theta
-              ^ "(" ^ Spine.pretty toStringB "; " es ^ ")"
+              ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
      | mv $# (us, es) =>
          let
-           val us' = Spine.pretty (fn x => x) "," us
-           val es' = Spine.pretty toString "," es
+           val us' = Sp.pretty (fn x => x) "," us
+           val es' = Sp.pretty toString "," es
          in
            "#" ^ Metavariable.toString mv
-               ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
-               ^ (if Spine.isEmpty es then "" else "[" ^ es' ^ "]")
+               ^ (if Sp.isEmpty us then "" else "{" ^ us' ^ "}")
+               ^ (if Sp.isEmpty es then "" else "[" ^ es' ^ "]")
          end
 
   and toStringB =
     fn ((us, xs) \ M) =>
       let
-        val symEmpty = Spine.isEmpty us
-        val varEmpty = Spine.isEmpty xs
-        val us' = Spine.pretty (fn x => x) "," us
-        val xs' = Spine.pretty (fn x => x) "," xs
+        val symEmpty = Sp.isEmpty us
+        val varEmpty = Sp.isEmpty xs
+        val us' = Sp.pretty (fn x => x) "," us
+        val xs' = Sp.pretty (fn x => x) "," xs
       in
         (if symEmpty then "" else "{" ^ us' ^ "}")
           ^ (if varEmpty then "" else "[" ^ xs' ^ "]")
@@ -56,7 +56,7 @@ functor AstToAbt (X : AST_ABT) : AST_TO_ABT =
 struct
   open X
 
-  structure Spine = Abt.Operator.Ar.Vl.Spine
+  structure Sp = Abt.Operator.Ar.Vl.Sp
 
   structure NameEnv = SplayDict (structure Key = StringOrdered)
 
@@ -77,15 +77,15 @@ struct
           let
             val (vls, _) = Abt.Operator.arity theta
             val theta' = Abt.Operator.map (symbol snames) theta
-            val es' = Spine.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
+            val es' = Sp.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
           in
             Abt.check (Abt.$ (theta', es'), tau)
           end
        | Ast.$# (mv, (us, ms)) =>
            let
              val ((ssorts, vsorts), _) = Abt.Metavariable.Ctx.lookup psi mv
-             val us' = Spine.Pair.zipEq (Spine.map (symbol snames) us, ssorts)
-             val ms' = Spine.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
+             val us' = Sp.Pair.zipEq (Sp.map (symbol snames) us, ssorts)
+             val ms' = Sp.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
            in
              Abt.check (Abt.$# (mv, (us', ms')), tau)
            end
@@ -93,10 +93,10 @@ struct
   and convertOpenAbs psi (snames, vnames) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
     let
       val ((ssorts, vsorts), tau) = vl
-      val us' = Spine.map Abt.Symbol.named us
-      val xs' = Spine.map Abt.Variable.named xs
-      val snames' = Spine.foldr (fn ((u, u'), snames') => NameEnv.insert snames' u u') snames (Spine.Pair.zipEq (us, us'))
-      val vnames' = Spine.foldr (fn ((x, x'), vnames') => NameEnv.insert vnames' x x') vnames (Spine.Pair.zipEq (xs, xs'))
+      val us' = Sp.map Abt.Symbol.named us
+      val xs' = Sp.map Abt.Variable.named xs
+      val snames' = Sp.foldr (fn ((u, u'), snames') => NameEnv.insert snames' u u') snames (Sp.Pair.zipEq (us, us'))
+      val vnames' = Sp.foldr (fn ((x, x'), vnames') => NameEnv.insert vnames' x x') vnames (Sp.Pair.zipEq (xs, xs'))
     in
       Abt.\ ((us', xs'), convertOpen psi (snames', vnames') (m, tau))
     end

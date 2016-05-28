@@ -1,20 +1,20 @@
-functor AbtValence (structure Sort : ABT_SORT and Spine : SPINE) : ABT_VALENCE =
+functor AbtValence (structure Sort : ABT_SORT and Sp : SPINE) : ABT_VALENCE =
 struct
-  structure Sort = Sort and Spine = Spine
+  structure Sort = Sort and Sp = Sp
   type sort = Sort.t
-  type 'a spine = 'a Spine.t
+  type 'a spine = 'a Sp.t
   type bindings = sort spine * sort spine
   type t = bindings * sort
 
   fun eq (((symbolSorts, variableSorts), sigma), ((symbolSorts', variableSorts'), sigma')) =
-    Spine.Pair.allEq Sort.eq (symbolSorts, symbolSorts')
-      andalso Spine.Pair.allEq Sort.eq (variableSorts, variableSorts')
+    Sp.Pair.allEq Sort.eq (symbolSorts, symbolSorts')
+      andalso Sp.Pair.allEq Sort.eq (variableSorts, variableSorts')
       andalso Sort.eq (sigma, sigma')
 
   fun toString ((symbolSorts,variableSorts), sigma) =
     let
-      val symbols' = Spine.pretty Sort.toString ", " symbolSorts
-      val variables' = Spine.pretty Sort.toString ", " variableSorts
+      val symbols' = Sp.pretty Sort.toString ", " symbolSorts
+      val variables' = Sp.pretty Sort.toString ", " variableSorts
       val sigma' = Sort.toString sigma
     in
       "{" ^ symbols' ^ "}(" ^ variables' ^ ")." ^ sigma'
@@ -31,7 +31,7 @@ struct
       fun toString _ = "_"
     end
 
-    structure Valence = AbtValence (structure Sort = Sort and Spine = ListSpine)
+    structure Valence = AbtValence (structure Sort = Sort and Sp = ListSpine)
   in
     open Valence
   end

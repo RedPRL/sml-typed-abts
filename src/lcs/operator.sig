@@ -19,6 +19,6 @@ sig
 
   include ABT_OPERATOR
     where type 'i t = 'i operator
-    where type 'a Ar.Vl.Spine.t = 'a list
+    where type 'a Ar.Vl.Sp.t = 'a list
     where type Ar.Vl.Sort.t = Sort.t
 end

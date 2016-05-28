@@ -23,7 +23,7 @@ sig
 
   sharing type Ast.operator = Abt.Operator.t
   sharing type Ast.metavariable = Abt.Metavariable.t
-  sharing type Ast.spine = Abt.Operator.Ar.Vl.Spine.t
+  sharing type Ast.spine = Abt.Operator.Ar.Vl.Sp.t
 end
 
 signature AST_TO_ABT =
