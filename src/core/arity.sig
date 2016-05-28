@@ -9,10 +9,11 @@
  *)
 signature ABT_ARITY =
 sig
-  structure Valence : ABT_VALENCE
-  type valence = Valence.t
-  type sort = Valence.sort
-  type 'a spine = 'a Valence.spine
+  structure Vl : ABT_VALENCE
+
+  type valence = Vl.t
+  type sort = Vl.sort
+  type 'a spine = 'a Vl.spine
 
   type t = valence spine * sort
   val toString : t -> string
@@ -22,8 +23,8 @@ end
 signature UNISORTED_ABT_ARITY =
 sig
   include ABT_ARITY
-    where type Valence.Sort.t = unit
-    where type 'a Valence.Spine.t = 'a list
+    where type Vl.S.t = unit
+    where type 'a Vl.Sp.t = 'a list
 
   val make : (int * int) list -> t
 end

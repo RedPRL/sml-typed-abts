@@ -3,23 +3,23 @@ struct
   structure L = L
   open L
 
-  structure Sort = LcsSort (structure AtomicSort = V.Arity.Valence.Sort val opidSort = opidSort)
-  type sort = Sort.t
+  structure S = LcsSort (structure AtomicSort = V.Ar.Vl.S val opidSort = opidSort)
+  type sort = S.t
   type valence = (sort list * sort list) * sort
   type arity = valence list * sort
 
   datatype 'i operator =
      V of 'i V.t
    | K of 'i K.t
-   | RET of Sort.atomic
-   | CUT of Sort.atomic * Sort.atomic
-   | CUSTOM of 'i * ('i * Sort.atomic) list * L.V.Arity.t
+   | RET of S.atomic
+   | CUT of S.atomic * S.atomic
+   | CUSTOM of 'i * ('i * S.atomic) list * L.V.Ar.t
 
-  structure Sort = Sort and V = V and K = K
-  structure Arity = ListAbtArity (Sort)
+  structure V = V and K = K
+  structure Ar = ListAbtArity (S)
 
   type 'i t = 'i operator
-  type sort = Sort.t
+  type sort = S.t
 
   fun mapValence f ((sigmas, taus), tau) =
     ((List.map f sigmas, List.map f taus), f tau)
@@ -29,26 +29,26 @@ struct
          let
            val (vls, sigma) = V.arity theta
          in
-           (List.map (mapValence Sort.EXP) vls, Sort.VAL sigma)
+           (List.map (mapValence S.EXP) vls, S.VAL sigma)
          end
      | K theta =>
          let
            val sigma = input theta
            val (vls, tau) = K.arity theta
          in
-           (List.map (mapValence Sort.EXP) vls, Sort.CONT (sigma, tau))
+           (List.map (mapValence S.EXP) vls, S.CONT (sigma, tau))
          end
-     | RET sigma => ([(([],[]), Sort.VAL sigma)], Sort.EXP sigma)
+     | RET sigma => ([(([],[]), S.VAL sigma)], S.EXP sigma)
      | CUT (sigma, tau) =>
-         ([(([],[]), Sort.CONT (sigma, tau)),
-           (([],[]), Sort.EXP sigma)],
-          Sort.EXP tau)
+         ([(([],[]), S.CONT (sigma, tau)),
+           (([],[]), S.EXP sigma)],
+          S.EXP tau)
      | CUSTOM (_, _, (vls, sigma)) =>
-         (List.map (mapValence Sort.EXP) vls, Sort.EXP sigma)
+         (List.map (mapValence S.EXP) vls, S.EXP sigma)
 
   val support =
-    fn V theta => List.map (fn (u, sigma) => (u, Sort.VAL sigma)) (V.support theta)
-     | K theta => List.map (fn (u, sigma) => (u, Sort.VAL sigma)) (K.support theta)
+    fn V theta => List.map (fn (u, sigma) => (u, S.VAL sigma)) (V.support theta)
+     | K theta => List.map (fn (u, sigma) => (u, S.VAL sigma)) (K.support theta)
      | CUSTOM (opid, params, _) =>
          (case L.opidSort of
              NONE => raise Fail "You forgot to implement opidSort"
@@ -56,7 +56,7 @@ struct
                let
                  val supp = (opid, sigma) :: params
                in
-                 List.map (fn (u, tau) => (u, Sort.EXP tau)) supp
+                 List.map (fn (u, tau) => (u, S.EXP tau)) supp
                end)
      | _ => []
 
@@ -64,14 +64,14 @@ struct
     fn (V theta1, V theta2) => V.eq f (theta1, theta2)
      | (K theta1, K theta2) => K.eq f (theta1, theta2)
      | (CUT (sigma1, tau1), CUT (sigma2, tau2)) =>
-         Sort.AtomicSort.eq (sigma1, sigma2)
-           andalso Sort.AtomicSort.eq (tau1, tau2)
+         S.AtomicSort.eq (sigma1, sigma2)
+           andalso S.AtomicSort.eq (tau1, tau2)
      | (RET sigma1, RET sigma2) =>
-        Sort.AtomicSort.eq (sigma1, sigma2)
+        S.AtomicSort.eq (sigma1, sigma2)
      | (CUSTOM (opid1, supp1, arity1), CUSTOM (opid2, supp2, arity2)) =>
         f (opid1, opid2)
-          andalso ListPair.allEq (fn ((u, sigma), (v, tau)) => f (u, v) andalso Sort.AtomicSort.eq (sigma, tau)) (supp1, supp2)
-          andalso V.Arity.eq (arity1, arity2)
+          andalso ListPair.allEq (fn ((u, sigma), (v, tau)) => f (u, v) andalso S.AtomicSort.eq (sigma, tau)) (supp1, supp2)
+          andalso V.Ar.eq (arity1, arity2)
      | _ => false
 
   fun toString f =
@@ -79,7 +79,7 @@ struct
      | K theta => K.toString f theta
      | RET _ => "ret"
      | CUT _ => "cut"
-     | CUSTOM (opid, supp : ('i * Sort.atomic) list, _) =>
+     | CUSTOM (opid, supp : ('i * S.atomic) list, _) =>
          let
            fun params [] = ""
              | params xs = "[" ^ ListSpine.pretty (fn (u, _) => f u) "," xs ^ "]"

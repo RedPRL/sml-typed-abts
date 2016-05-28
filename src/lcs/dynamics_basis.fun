@@ -1,6 +1,7 @@
 functor LcsDynamicsBasisKit (L : LCS_LANGUAGE) =
 struct
-  structure O = LcsOperator (L)
+  structure LcsO = LcsOperator (L)
+  structure O = LcsO
   structure Abt = SimpleAbt (O)
   structure Cl = LcsClosure (Abt)
 
@@ -11,7 +12,7 @@ struct
      open Abt infix $
      fun isFinal m =
        case out m of
-          O.RET _ $ _ => true
+          LcsO.RET _ $ _ => true
         | _ => false)
 
   datatype 'o pat = `$ of 'o * M.expr M.Cl.Abt.bview list

@@ -1,9 +1,9 @@
 functor Pattern (Abt : LIST_ABT) : PATTERN =
 struct
   open Abt
-  structure Arity = Operator.Arity
-  structure Valence = Arity.Valence
-  structure Sort = Valence.Sort
+  structure Ar = O.Ar
+  structure Vl = Ar.Vl
+  structure S = Vl.S
 
   datatype 'a argument =
       MVAR of metavariable
@@ -23,8 +23,8 @@ struct
 
   exception InvalidPattern of Error.t
 
-  structure MetaCtx = Metavariable.Ctx and VarCtx = Variable.Ctx
-  structure CtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
+  structure MetaCtx = Metavar.Ctx and VarCtx = Var.Ctx
+  structure CtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Vl)
 
   fun extend psi (mv, vl) =
     CtxUtil.extend psi (mv, vl)
@@ -36,15 +36,15 @@ struct
 
   fun into (theta $@ args) =
     let
-      val (vls, tau) = Operator.arity theta
+      val (vls, tau) = O.arity theta
       fun go [] [] = MetaCtx.empty
         | go (MVAR mv :: args) (vl :: vls) = extend (go args vls) (mv, vl)
         | go (PAT p :: args) ((([], []), tau) :: vls) =
             let
               val (theta' $@ args', psi) = out p
-              val (_, tau') = Operator.arity theta'
+              val (_, tau') = O.arity theta'
               val _ =
-                if Sort.eq (tau, tau') then () else
+                if S.eq (tau, tau') then () else
                   raise InvalidPattern Error.OTHER
             in
               concat (go args vls, psi)

@@ -1,5 +1,5 @@
 signature LIST_ABT =
-  ABT where type 'a Operator.Arity.Valence.Spine.t = 'a list
+  ABT where type 'a O.Ar.Vl.Sp.t = 'a list
 
 functor UnparseAbt
   (structure Abt : LIST_ABT
@@ -11,8 +11,8 @@ struct
   open Abt Unparse
   infix 5 $ $# \
 
-  structure O = Operator and V = Variable and S = Symbol and M = Metavariable
-  structure Spine = O.Arity.Valence.Spine
+  structure V = Var and S = Sym and M = Metavar
+  structure Sp = O.Ar.Vl.Sp
 
   type unparser = Abt.abt -> string Unparse.part
 
@@ -30,28 +30,28 @@ struct
              `x => atom @@ V.toString x
            | theta $ es =>
                let
-                 val es' = Spine.pretty (parens o done o goB) ";" es
+                 val es' = Sp.pretty (parens o done o goB) ";" es
                in
                  atom
                    @@ O.toString S.toString theta
-                    ^ (if Spine.isEmpty es then "" else "(" ^ es' ^ ")")
+                    ^ (if Sp.isEmpty es then "" else "(" ^ es' ^ ")")
                end
            | x $# (us, ms) =>
                let
-                 val us' = Spine.pretty (S.toString o #1) "," us
-                 val ms' = Spine.pretty (parens o done o outer) "," ms
+                 val us' = Sp.pretty (S.toString o #1) "," us
+                 val ms' = Sp.pretty (parens o done o outer) "," ms
                in
                  atom
                    @@ "#" ^ M.toString x
-                    ^ (if Spine.isEmpty us then "" else "{" ^ us' ^ "}")
-                    ^ (if Spine.isEmpty ms then "" else "[" ^ ms' ^ "]")
+                    ^ (if Sp.isEmpty us then "" else "{" ^ us' ^ "}")
+                    ^ (if Sp.isEmpty ms then "" else "[" ^ ms' ^ "]")
                end
       and goB ((us, xs) \ m) =
         let
-          val symEmpty = Spine.isEmpty us
-          val varEmpty = Spine.isEmpty xs
-          val us' = Spine.pretty S.toString "," us
-          val xs' = Spine.pretty V.toString "," xs
+          val symEmpty = Sp.isEmpty us
+          val varEmpty = Sp.isEmpty xs
+          val us' = Sp.pretty S.toString "," us
+          val xs' = Sp.pretty V.toString "," xs
         in
           atom
             @@ (if symEmpty then "" else "{" ^ us' ^ "}")
@@ -63,4 +63,3 @@ struct
       outer
     end
 end
-

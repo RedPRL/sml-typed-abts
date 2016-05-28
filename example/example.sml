@@ -6,7 +6,7 @@ struct
 
   structure O =
   struct
-    structure Sort =
+    structure S =
     struct
       datatype t = EXP | VAL | NAT
       val eq : t * t -> bool = op=
@@ -16,8 +16,8 @@ struct
     end
 
 
-    structure Valence = AbtValence (structure Sort = Sort and Spine = ListSpine)
-    structure Arity = AbtArity (Valence)
+    structure Vl = AbtValence (structure S = S and Sp = ListSpine)
+    structure Ar = AbtArity (Vl)
 
     datatype 'i t =
         LAM | AP | NUM | LIT of int | RET
@@ -43,7 +43,7 @@ struct
       | toString f (SET i) = "set[" ^ f i ^ "]"
 
     local
-      open Sort
+      open S
       fun replicate i x = List.tabulate (i, fn _ => x)
       fun mkValence p q s = ((p, q), s)
     in
@@ -119,14 +119,14 @@ struct
         || string "set" >> squares identifier wth SET
   end
 
-  structure Ast = Ast (structure Operator = O and Metavariable = M)
-  structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavariable = M and CharSet = GreekCharSet)
+  structure Ast = Ast (structure Operator = O and Metavar = M)
+  structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavar = M and CharSet = GreekCharSet)
 
-  structure Abt = Abt (structure Operator = O and Metavariable = M and Variable = V and Symbol = I)
+  structure Abt = Abt (structure O = O and Metavar = M and Var = V and Sym = I)
   structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
 
   structure ShowAbt = DebugShowAbt (Abt)
-  open O O.Sort Abt
+  open O O.S Abt
 
   local
     open ParserCombinators CharParser
@@ -159,7 +159,7 @@ struct
                         Sum.INR ast => ast
                       | Sum.INL err => raise Fail err
                  val (_, tau) = O.arity theta
-                 val abt = AstToAbt.convert Metavariable.Ctx.empty (ast, tau)
+                 val abt = AstToAbt.convert Metavar.Ctx.empty (ast, tau)
                in
                  print (ShowAbt.toString abt ^ "\n\n")
                end

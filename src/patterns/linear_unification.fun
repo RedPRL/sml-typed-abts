@@ -8,18 +8,17 @@ struct
   datatype match = <*> of pattern * abt
 
   infix $ $# $@ \ <*>
-  structure Valence = Operator.Arity.Valence
-  structure Spine = Valence.Spine
-  structure Sort = Valence.Sort
-  structure SymCtx = Symbol.Ctx and MetaCtx = Metavariable.Ctx
+  structure Vl = O.Ar.Vl
+  structure Sp = Vl.Sp and S = Vl.S
+  structure SymCtx = Sym.Ctx and MetaCtx = Metavar.Ctx
 
   fun matchOperator (ptheta, theta) =
     (* compare if they are the "same" operator modulo parameters *)
-    if Operator.eq (fn _ => true) (ptheta, theta) then
+    if O.eq (fn _ => true) (ptheta, theta) then
       let
         (* therefore, the operators should have compatible supports *)
-        val us = Operator.support ptheta
-        val vs = Operator.support theta
+        val us = O.support ptheta
+        val vs = O.support theta
       in
         ListPair.foldlEq (fn ((u, _), (v, _), rho) => SymCtx.insert rho u v) SymCtx.empty (us, vs)
       end
@@ -27,12 +26,12 @@ struct
       raise UnificationFailure
 
   fun matchSort (sigma, tau) =
-    if Sort.eq (sigma, tau) then
+    if S.eq (sigma, tau) then
       ()
     else
       raise UnificationFailure
 
-  structure SymEnvUtil = ContextUtil (structure Ctx = SymCtx and Elem = Symbol)
+  structure SymEnvUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sym)
 
   fun extendEnv rho (mv, e) =
     MetaCtx.insertMerge rho mv e (fn _ => raise UnificationFailure)
@@ -53,7 +52,7 @@ struct
     let
       val (ptheta $@ pargs, psi) = Pattern.out pat
       val (theta, es) = asApp m
-      val (vls, _) = Abt.Operator.arity theta
+      val (vls, _) = Abt.O.arity theta
       fun go [] ([], []) (rho, env) = (rho, env)
         | go (MVAR mv :: pargs) (e :: es, vl :: vls) (rho, env) =
             let

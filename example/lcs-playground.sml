@@ -6,15 +6,15 @@ end
 
 structure LambdaV : ABT_SIMPLE_OPERATOR =
 struct
-  structure Arity = UnisortedAbtArity
+  structure Ar = UnisortedAbtArity
 
   open Lambda
   type t = Lambda.value
 
   val arity =
-    fn LAM => Arity.make [(0,1)]
-     | PAIR => Arity.make [(0,0), (0,0)]
-     | AX => Arity.make []
+    fn LAM => Ar.make [(0,1)]
+     | PAIR => Ar.make [(0,0), (0,0)]
+     | AX => Ar.make []
 
   fun eq (x : t, y) = x = y
 
@@ -26,14 +26,14 @@ end
 
 structure LambdaK : ABT_SIMPLE_OPERATOR =
 struct
-  structure Arity = UnisortedAbtArity
+  structure Ar = UnisortedAbtArity
 
   open Lambda
   type t = Lambda.cont
 
   val arity =
-    fn AP => Arity.make [(0,0)]
-     | SPREAD => Arity.make [(0,2)]
+    fn AP => Ar.make [(0,0)]
+     | SPREAD => Ar.make [(0,2)]
 
   val eq =
     fn (AP, AP) => true
@@ -57,8 +57,10 @@ structure LambdaKit = LcsDynamicsBasisKit (LambdaLang)
 
 structure LambdaBasis : LCS_DYNAMICS_BASIS =
 struct
-  open Lambda LambdaKit
-  open Abt M M.Cl
+  open Lambda
+  open LambdaKit.Abt
+  open LambdaKit
+  open M M.Cl
 
   infix 1 ||
   infix 2 <:
@@ -66,7 +68,7 @@ struct
   infix 2 \
 
   fun pushV (cl : abt closure, x) (mrho, srho, vrho) =
-    (mrho, srho, Variable.Ctx.insert vrho x cl)
+    (mrho, srho, Var.Ctx.insert vrho x cl)
 
   fun plug sign ((v, k) <: env || st) =
     case (v, k) of
@@ -91,7 +93,7 @@ structure Test =
 struct
   open LambdaKit LambdaDynamics
   open Lambda LambdaV LambdaK
-  open O O.Sort Abt
+  open O O.S Abt
 
   infix 2 $ $$
   infix 1 \
@@ -112,7 +114,7 @@ struct
 
   fun id a =
     let
-      val x = Variable.named a
+      val x = Var.named a
     in
       lam (x, check (`x, EXP ()))
     end

@@ -21,9 +21,9 @@ sig
   structure Abt : ABT
   structure Ast : AST
 
-  sharing type Ast.operator = Abt.Operator.t
-  sharing type Ast.metavariable = Abt.Metavariable.t
-  sharing type Ast.spine = Abt.Operator.Arity.Valence.Spine.t
+  sharing type Ast.operator = Abt.O.t
+  sharing type Ast.metavariable = Abt.Metavar.t
+  sharing type Ast.spine = Abt.O.Ar.Vl.Sp.t
 end
 
 signature AST_TO_ABT =

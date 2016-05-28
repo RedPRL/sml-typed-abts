@@ -1,36 +1,31 @@
 functor Abt
-  (structure Symbol : ABT_SYMBOL
-   structure Variable : ABT_SYMBOL
-   structure Metavariable : ABT_SYMBOL
-   structure Operator : ABT_OPERATOR) : ABT =
+  (structure Sym : ABT_SYMBOL
+   structure Var : ABT_SYMBOL
+   structure Metavar : ABT_SYMBOL
+   structure O : ABT_OPERATOR) : ABT =
 struct
-  structure Symbol = Symbol
-    and Variable = Variable
-    and Metavariable = Metavariable
-    and Operator = Operator
-    and Arity = Operator.Arity
+  structure Sym = Sym and Var = Var and Metavar = Metavar and O = O and Ar = O.Ar
+  structure S = Ar.Vl.S and Valence = Ar.Vl
+  structure Sp = Valence.Sp
 
-  structure Sort = Arity.Valence.Sort and Valence = Arity.Valence
-  structure Spine = Valence.Spine
+  structure MetaCtx = Metavar.Ctx
+  structure VarCtx = Var.Ctx
+  structure SymCtx = Sym.Ctx
 
-  structure MetaCtx = Metavariable.Ctx
-  structure VarCtx = Variable.Ctx
-  structure SymCtx = Symbol.Ctx
-
-  type sort = Sort.t
+  type sort = S.t
   type valence = Valence.t
   type coord = LnCoord.t
-  type symbol = Symbol.t
-  type variable = Variable.t
-  type metavariable = Metavariable.t
-  type operator = symbol Operator.t
-  type 'a spine = 'a Spine.t
+  type symbol = Sym.t
+  type variable = Var.t
+  type metavariable = Metavar.t
+  type operator = symbol O.t
+  type 'a spine = 'a Sp.t
 
   structure LN =
   struct
     local structure S = LocallyNameless (LnCoord) in open S end
     type symbol = symbol t
-    type operator = symbol Operator.t
+    type operator = symbol O.t
     type variable = variable t
   end
 
@@ -41,8 +36,8 @@ struct
   structure Ctx =
   struct
     structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
-    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = Sort)
-    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sort)
+    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = S)
+    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = S)
 
     type ctx = metactx Susp.susp * symctx Susp.susp * varctx Susp.susp
 
@@ -86,17 +81,17 @@ struct
   and abs = ABS of (string * sort) spine * (string * sort) spine * abt
 
   val rec primToString =
-    fn V (v, _) => LN.toString Variable.toString v
+    fn V (v, _) => LN.toString Var.toString v
      | APP (theta, es <: _) =>
-         Operator.toString (LN.toString Symbol.toString) theta
+         O.toString (LN.toString Sym.toString) theta
            ^ "("
-           ^ Spine.pretty primToStringAbs ";" es
+           ^ Sp.pretty primToStringAbs ";" es
            ^ ")"
      | META_APP _ => "meta"
   and primToStringAbs =
     fn ABS (upsilon, gamma, m) =>
-      (if Spine.isEmpty upsilon then "" else "{" ^ Spine.pretty (Sort.toString o #2) "," upsilon ^ "}")
-      ^ (if Spine.isEmpty upsilon then "" else "[" ^ Spine.pretty (Sort.toString o #2) "," gamma ^ "]")
+      (if Sp.isEmpty upsilon then "" else "{" ^ Sp.pretty (S.toString o #2) "," upsilon ^ "}")
+      ^ (if Sp.isEmpty upsilon then "" else "[" ^ Sp.pretty (S.toString o #2) "," gamma ^ "]")
       ^ "." ^ primToString m
 
   type metaenv = abs MetaCtx.dict
@@ -104,7 +99,7 @@ struct
   type symenv = symbol SymCtx.dict
 
   fun abtToAbs m =
-    ABS (Spine.empty (), Spine.empty (), m)
+    ABS (Sp.empty (), Sp.empty (), m)
 
   (* Patterns for abstract binding trees. *)
   datatype 'a view =
@@ -126,8 +121,8 @@ struct
 
   fun assertSortEq (sigma, tau) =
     assert
-      ("expected " ^ Sort.toString sigma ^ " == " ^ Sort.toString tau)
-      (Sort.eq (sigma, tau))
+      ("expected " ^ S.toString sigma ^ " == " ^ S.toString tau)
+      (S.eq (sigma, tau))
 
   fun assertValenceEq (v1, v2) =
     assert
@@ -149,7 +144,7 @@ struct
 
   val sort =
     fn V (_, tau) => tau
-     | APP (theta, _) => #2 (Operator.arity theta)
+     | APP (theta, _) => #2 (O.arity theta)
      | META_APP ((_, tau), _, _) => tau
 
   val metactx =
@@ -157,7 +152,7 @@ struct
      | APP (theta, es <: (mctx, _, _)) => Susp.force mctx
      | META_APP ((mv, tau), us, ms <: (mctx, _, _)) =>
          let
-           val vl = ((Spine.map #2 us, Spine.map sort ms), tau)
+           val vl = ((Sp.map #2 us, Sp.map sort ms), tau)
          in
            Ctx.MetaCtxUtil.extend (Susp.force mctx) (mv, vl)
          end
@@ -169,9 +164,9 @@ struct
            (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
              | (_, memo) => memo)
            (Susp.force sctx)
-           (Operator.support theta)
+           (O.support theta)
      | META_APP (_, us, ms <: (_, sctx, _)) =>
-         Spine.foldr
+         Sp.foldr
            (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
              | (_, memo) => memo)
            (Susp.force sctx)
@@ -196,14 +191,14 @@ struct
 
   fun annotateApp theta es =
     let
-      val ctx = Spine.foldr (fn (ABS (_, _, m), ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty es
+      val ctx = Sp.foldr (fn (ABS (_, _, m), ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty es
     in
       APP (theta, es <: ctx)
     end
 
   fun annotateMetaApp (mv, tau) us ms =
     let
-      val ctx = Spine.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms
+      val ctx = Sp.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms
     in
       META_APP ((mv, tau), us, ms <: ctx)
     end
@@ -218,38 +213,38 @@ struct
    *)
   fun imprisonVariable (v, tau) coord =
     fn m as V (LN.FREE v', sigma) =>
-         if Variable.eq (v, v') then
+         if Var.eq (v, v') then
            (assertSortEq (sigma, tau);
             V (LN.BOUND coord, sigma))
          else
            m
      | V v => V v
      | APP (theta, es <: ctx) =>
-         annotateApp theta (Spine.map (liftTraverseAbs (imprisonVariable (v, tau)) coord) es)
+         annotateApp theta (Sp.map (liftTraverseAbs (imprisonVariable (v, tau)) coord) es)
      | META_APP (mv, us, ms <: ctx) =>
-         annotateMetaApp mv us (Spine.map (imprisonVariable (v, tau) coord) ms)
+         annotateMetaApp mv us (Sp.map (imprisonVariable (v, tau) coord) ms)
 
   fun imprisonSymbol (v, tau) coord =
     fn V v => V v
      | APP (theta, es <: ctx) =>
          let
-           fun rho v' = if Symbol.eq (v, v') then LN.BOUND coord else LN.FREE v'
-           fun chk (LN.FREE v', tau') = if Symbol.eq (v, v') then assertSortEq (tau, tau') else ()
+           fun rho v' = if Sym.eq (v, v') then LN.BOUND coord else LN.FREE v'
+           fun chk (LN.FREE v', tau') = if Sym.eq (v, v') then assertSortEq (tau, tau') else ()
              | chk _ = ()
-           val _ = List.app chk (Operator.support theta)
-           val theta' = Operator.map (LN.bind rho) theta
+           val _ = List.app chk (O.support theta)
+           val theta' = O.map (LN.bind rho) theta
            val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
          in
-           APP (theta', Spine.map (liftTraverseAbs (imprisonSymbol (v,tau)) coord) es <: ctx')
+           APP (theta', Sp.map (liftTraverseAbs (imprisonSymbol (v,tau)) coord) es <: ctx')
          end
      | META_APP (m, us, Ms <: ctx) =>
          let
-           fun rho v' = if Symbol.eq (v, v') then LN.BOUND coord else LN.FREE v'
+           fun rho v' = if Sym.eq (v, v') then LN.BOUND coord else LN.FREE v'
            fun rho' (l, s) = (LN.bind rho l, s)
-           val vs = Spine.map rho' us
+           val vs = Sp.map rho' us
            val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
          in
-           META_APP (m, vs, Spine.map (imprisonSymbol (v, tau) coord) Ms <: ctx')
+           META_APP (m, vs, Sp.map (imprisonSymbol (v, tau) coord) Ms <: ctx')
          end
 
   (* This is the reverse of the above, given a position we hunt around for
@@ -260,9 +255,9 @@ struct
      | e as V (LN.BOUND coord', sigma) =>
          if LnCoord.eq (coord, coord') then V (LN.FREE v, sigma) else e
      | APP (theta, es <: ctx) =>
-         annotateApp theta (Spine.map (liftTraverseAbs (liberateVariable (v, sigma)) coord) es)
+         annotateApp theta (Sp.map (liftTraverseAbs (liberateVariable (v, sigma)) coord) es)
      | META_APP ((x, tau), us, ms <: ctx) =>
-         annotateMetaApp (x, tau) us (Spine.map (liberateVariable (v, sigma) coord) ms)
+         annotateMetaApp (x, tau) us (Sp.map (liberateVariable (v, sigma) coord) ms)
 
   fun liberateSymbol (u, sigma) coord =
     let
@@ -272,15 +267,15 @@ struct
       fn e as V _ => e
        | APP (theta, es <: ctx) =>
            let
-             val theta' = Operator.map rho theta
-             val fs = Spine.map (liftTraverseAbs (liberateSymbol (u, sigma)) coord) es
+             val theta' = O.map rho theta
+             val fs = Sp.map (liftTraverseAbs (liberateSymbol (u, sigma)) coord) es
            in
              annotateApp theta' fs
            end
        | META_APP ((x, tau), us, ms <: ctx) =>
            let
-             val vs = Spine.map (fn (l,s) => (rho l, s)) us
-             val ns = Spine.map (liberateSymbol (u, sigma) coord) ms
+             val vs = Sp.map (fn (l,s) => (rho l, s)) us
+             val ns = Sp.map (liberateSymbol (u, sigma) coord) ms
              val ctx' = Ctx.modifySyms (fn sctx => SymCtx.insert sctx u sigma) ctx
            in
              annotateMetaApp (x, tau) vs ns
@@ -303,7 +298,7 @@ struct
     structure ShiftFoldMap =
       CategoryFoldMap
         (structure C = ShiftFunCat
-         structure F = Spine)
+         structure F = Sp)
 
     fun foldStar f xs t =
       ShiftFoldMap.foldMap
@@ -311,13 +306,13 @@ struct
         xs
         (LnCoord.origin, t)
   in
-    val imprisonVariables = foldStar imprisonVariable o Spine.Pair.zipEq
-    val imprisonSymbols = foldStar imprisonSymbol o Spine.Pair.zipEq
+    val imprisonVariables = foldStar imprisonVariable o Sp.Pair.zipEq
+    val imprisonSymbols = foldStar imprisonSymbol o Sp.Pair.zipEq
 
-    val liberateVariables : (variable * sort) Spine.t -> abt -> abt =
+    val liberateVariables : (variable * sort) Sp.t -> abt -> abt =
       foldStar liberateVariable
 
-    val liberateSymbols : (symbol * sort) Spine.t -> abt -> abt =
+    val liberateSymbols : (symbol * sort) Sp.t -> abt -> abt =
       foldStar liberateSymbol
   end
 
@@ -328,8 +323,8 @@ struct
       val () = assertSortEq (sigma, tau)
     in
       ABS
-        (Spine.Pair.zipEq (Spine.map Symbol.toString us, ssorts),
-         Spine.Pair.zipEq (Spine.map Variable.toString xs, vsorts),
+        (Sp.Pair.zipEq (Sp.map Sym.toString us, ssorts),
+         Sp.Pair.zipEq (Sp.map Var.toString xs, vsorts),
          imprisonSymbols (us, ssorts) (imprisonVariables (xs, vsorts) m))
     end
 
@@ -338,15 +333,15 @@ struct
          V (x, tau) => (` (LN.getFree x), tau)
        | APP (theta, Es <: _) =>
          let
-           val (_, tau) = Operator.arity theta
-           val theta' = Operator.map LN.getFree theta
-           val Es' = Spine.map (#1 o inferb) Es
+           val (_, tau) = O.arity theta
+           val theta' = O.map LN.getFree theta
+           val Es' = Sp.map (#1 o inferb) Es
          in
            (theta' $ Es', tau)
          end
        | META_APP ((mv, tau), us, Ms <: _) =>
          let
-           val us' = Spine.map (fn (u, sigma) => (LN.getFree u, sigma)) us
+           val us' = Sp.map (fn (u, sigma) => (LN.getFree u, sigma)) us
          in
            (mv $# (us', Ms), tau)
          end
@@ -356,13 +351,13 @@ struct
       val syms = symctx m
       val vars = varctx m
 
-      val us = Spine.map (fn (u, tau) => (Symbol.fresh syms u, tau)) upsilon
-      val xs = Spine.map (fn (x, tau) => (Variable.fresh vars x, tau)) gamma
+      val us = Sp.map (fn (u, tau) => (Sym.fresh syms u, tau)) upsilon
+      val xs = Sp.map (fn (x, tau) => (Var.fresh vars x, tau)) gamma
       val m' = liberateSymbols us (liberateVariables xs m)
       val (_, tau) = infer m'
-      val valence = ((Spine.map #2 upsilon, Spine.map #2 gamma), tau)
+      val valence = ((Sp.map #2 upsilon, Sp.map #2 gamma), tau)
     in
-      ((Spine.map #1 us, Spine.map #1 xs) \ m',
+      ((Sp.map #1 us, Sp.map #1 xs) \ m',
        valence)
     end
 
@@ -375,30 +370,30 @@ struct
          `x => V (LN.FREE x, sigma)
        | theta $ es =>
            let
-             val (valences, tau)  = Operator.arity theta
+             val (valences, tau)  = O.arity theta
              val () = assertSortEq (sigma, tau)
-             val theta' = Operator.map LN.FREE theta
-             val es' = Spine.Pair.mapEq checkb (es, valences)
+             val theta' = O.map LN.FREE theta
+             val es' = Sp.Pair.mapEq checkb (es, valences)
            in
              annotateApp theta' es'
            end
        | x $# (us, ms) =>
            let
-             val ssorts = Spine.map #2 us
-             val vsorts = Spine.map sort ms
+             val ssorts = Sp.map #2 us
+             val vsorts = Sp.map sort ms
 
-             val us' = Spine.map (fn (u, tau) => (LN.FREE u, tau)) us
+             val us' = Sp.map (fn (u, tau) => (LN.FREE u, tau)) us
              fun chkInf (m, tau) =
                (assertSortEq (tau, sort m); m)
-             val ms' = Spine.Pair.mapEq chkInf (ms, vsorts)
-             val ctx = Spine.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms'
+             val ms' = Sp.Pair.mapEq chkInf (ms, vsorts)
+             val ctx = Sp.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms'
            in
              annotateMetaApp (x, sigma) us' ms'
            end
 
   fun $$ (theta, es) =
     let
-      val (_, tau) = Operator.arity theta
+      val (_, tau) = O.arity theta
     in
       check (theta $ es, tau)
     end
@@ -416,23 +411,23 @@ struct
   fun map f =
     fn `x => `x
      | theta $ es =>
-         theta $ Spine.map (mapb f) es
+         theta $ Sp.map (mapb f) es
      | mv $# (us, ms) =>
-         mv $# (us, Spine.map f ms)
+         mv $# (us, Sp.map f ms)
 
   local
-    structure OpLnEq = struct val eq = Operator.eq (LN.eq Symbol.eq) end
+    structure OpLnEq = struct val eq = O.eq (LN.eq Sym.eq) end
   in
     (* While this looks simple by using locally nameless representations this
      * implements alpha equivalence (and is very efficient!)
      *)
-    fun eq (V (v, _), V (v', _)) = LN.eq Variable.eq (v, v')
+    fun eq (V (v, _), V (v', _)) = LN.eq Var.eq (v, v')
       | eq (APP (theta, es <: _), APP (theta', es' <: _)) =
-          OpLnEq.eq (theta, theta') andalso Spine.Pair.allEq eqAbs (es, es')
+          OpLnEq.eq (theta, theta') andalso Sp.Pair.allEq eqAbs (es, es')
       | eq (META_APP ((mv, _), us, ms <: _), META_APP ((mv', _), us', ms' <: _)) =
-          Metavariable.eq (mv, mv')
-            andalso Spine.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Symbol.eq (x,y)) (us, us')
-            andalso Spine.Pair.allEq eq (ms, ms')
+          Metavar.eq (mv, mv')
+            andalso Sp.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Sym.eq (x,y)) (us, us')
+            andalso Sp.Pair.allEq eq (ms, ms')
       | eq _ = false
     and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
   end
@@ -444,10 +439,10 @@ struct
       case view of
            `x => m
          | theta $ es =>
-             check (theta $ Spine.map (mapb (metasubstEnv rho)) es, tau)
+             check (theta $ Sp.map (mapb (metasubstEnv rho)) es, tau)
          | mv $# (us, ms) =>
              let
-               val ms' = Spine.map (metasubstEnv rho) ms
+               val ms' = Sp.map (metasubstEnv rho) ms
              in
                case MetaCtx.find rho mv of
                     NONE =>
@@ -456,15 +451,15 @@ struct
                       let
                         val (vs, xs) \ m = outb abs
                         val srho =
-                          Spine.foldr
+                          Sp.foldr
                             (fn (((u, _), v), r) => SymCtx.insert r u v)
                             SymCtx.empty
-                            (Spine.Pair.zipEq (us, vs))
+                            (Sp.Pair.zipEq (us, vs))
                         val rho' =
-                          Spine.foldr
+                          Sp.foldr
                             (fn ((x,m), rho) => VarCtx.insert rho x m)
                             VarCtx.empty
-                            (Spine.Pair.zipEq (xs, ms'))
+                            (Sp.Pair.zipEq (xs, ms'))
                       in
                         substEnv rho' (renameEnv srho m)
                       end
@@ -474,39 +469,39 @@ struct
   and substEnv rho =
     fn m as V (LN.FREE x, sigma) => getOpt (VarCtx.find rho x, m)
      | m as V _ => m
-     | APP (theta, es <: _) => annotateApp theta (Spine.map (mapAbs_ (substEnv rho)) es)
-     | META_APP (mv, us, ms <: _) => annotateMetaApp mv us (Spine.map (substEnv rho) ms)
+     | APP (theta, es <: _) => annotateApp theta (Sp.map (mapAbs_ (substEnv rho)) es)
+     | META_APP (mv, us, ms <: _) => annotateMetaApp mv us (Sp.map (substEnv rho) ms)
 
   and renameEnv rho =
     fn m as V _ => m
      | APP (theta, es <: _) =>
          let
            fun ren u = getOpt (SymCtx.find rho u, u)
-           val theta' = Operator.map (LN.map ren) theta
+           val theta' = O.map (LN.map ren) theta
          in
-           annotateApp theta' (Spine.map (mapAbs_ (renameEnv rho)) es)
+           annotateApp theta' (Sp.map (mapAbs_ (renameEnv rho)) es)
          end
      | META_APP (mv, us, ms <: _) =>
          let
            fun ren u = getOpt (SymCtx.find rho u, u)
            fun ren' (l,s) = (LN.map ren l, s)
          in
-           annotateMetaApp mv (Spine.map ren' us) (Spine.map (renameEnv rho) ms)
+           annotateMetaApp mv (Sp.map ren' us) (Sp.map (renameEnv rho) ms)
          end
 
   fun unbind abs us ms =
     let
       val (vs, xs) \ m = outb abs
       val srho =
-        Spine.foldr
+        Sp.foldr
           (fn ((v,u), rho) => SymCtx.insert rho v u)
           SymCtx.empty
-          (Spine.Pair.zipEq (vs, us))
+          (Sp.Pair.zipEq (vs, us))
       val vrho =
-        Spine.foldr
+        Sp.foldr
           (fn ((x,m), rho) => VarCtx.insert rho x m)
           VarCtx.empty
-          (Spine.Pair.zipEq (xs, ms))
+          (Sp.Pair.zipEq (xs, ms))
     in
       substEnv vrho (renameEnv srho m)
     end
@@ -535,12 +530,12 @@ struct
 
     exception UnificationFailed
 
-    structure MetaRenUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Metavariable)
-    structure SymRenUtil = ContextUtil (structure Ctx = SymCtx and Elem = Symbol)
-    structure VarRenUtil = ContextUtil (structure Ctx = VarCtx and Elem = Variable)
+    structure MetaRenUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Metavar)
+    structure SymRenUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sym)
+    structure VarRenUtil = ContextUtil (structure Ctx = VarCtx and Elem = Var)
 
     fun unifySymbols ((u, sigma), (v, tau), rho) =
-      if Sort.eq (sigma, tau) then
+      if S.eq (sigma, tau) then
         case (u, v) of
             (LN.FREE u', LN.FREE v') =>
               SymRenUtil.extend rho (u', v')
@@ -554,10 +549,10 @@ struct
         raise UnificationFailed
 
     fun unifyOperator rho (theta1 : LN.operator, theta2 : LN.operator) : symbol SymCtx.dict =
-      if Operator.eq (fn _ => true) (theta1, theta2) then
+      if O.eq (fn _ => true) (theta1, theta2) then
         let
-          val us = Operator.support theta1
-          val vs = Operator.support theta2
+          val us = O.support theta1
+          val vs = O.support theta2
         in
           ListPair.foldlEq unifySymbols rho (us, vs)
         end
@@ -567,7 +562,7 @@ struct
     local
       fun go (mrho, srho, vrho) =
         fn (V (LN.FREE x, sigma), V (LN.FREE y, tau)) =>
-             if Sort.eq (sigma, tau) then
+             if S.eq (sigma, tau) then
                (mrho, srho, VarRenUtil.extend vrho (x, y))
              else
                raise UnificationFailed
@@ -580,26 +575,26 @@ struct
              let
                val srho' = unifyOperator srho (theta1, theta2)
              in
-               Spine.foldr
+               Sp.foldr
                  (fn ((ABS (_, _, m1), ABS (_, _, m2)), acc) => go acc (m1, m2))
                  (mrho, srho', vrho)
-                 (Spine.Pair.zipEq (es1, es2))
+                 (Sp.Pair.zipEq (es1, es2))
              end
          | (META_APP ((x1, tau1), us1, ms1 <: _), META_APP ((x2, tau2), us2, ms2 <: _)) =>
              let
-               val _ = if Sort.eq (tau1, tau2) then () else raise UnificationFailed
+               val _ = if S.eq (tau1, tau2) then () else raise UnificationFailed
                val mrho' =
                  MetaRenUtil.extend mrho (x1, x2)
                val srho' =
-                 Spine.foldr
+                 Sp.foldr
                    (fn ((u, v), rho) => unifySymbols (u, v, rho))
                    srho
-                   (Spine.Pair.zipEq (us1, us2))
+                   (Sp.Pair.zipEq (us1, us2))
              in
-               Spine.foldr
+               Sp.foldr
                  (fn ((m1, m2), acc) => go acc (m1, m2))
                  (mrho', srho', vrho)
-                 (Spine.Pair.zipEq (ms1, ms2))
+                 (Sp.Pair.zipEq (ms1, ms2))
              end
          | _ => raise UnificationFailed
     in
@@ -619,7 +614,7 @@ struct
 end
 
 functor SimpleAbt (O : ABT_OPERATOR) =
-  Abt (structure Symbol = AbtSymbol ()
-       structure Variable = AbtSymbol ()
-       structure Metavariable = AbtSymbol ()
-       structure Operator = O)
+  Abt (structure Sym = AbtSymbol ()
+       structure Var = AbtSymbol ()
+       structure Metavar = AbtSymbol ()
+       structure O = O)

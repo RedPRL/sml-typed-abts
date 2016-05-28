@@ -3,9 +3,9 @@ functor ParseAst
     where type 'a spine = 'a list
    structure CharSet : CHARSET
    structure ParseOperator : PARSE_ABT_OPERATOR
-   structure Metavariable : ABT_SYMBOL
+   structure Metavar : ABT_SYMBOL
    sharing type Ast.operator = ParseOperator.Operator.t
-   sharing type Ast.metavariable = Metavariable.t) : PARSE_AST =
+   sharing type Ast.metavariable = Metavar.t) : PARSE_AST =
 struct
   structure Ast = Ast
   structure ParseOperator = ParseOperator

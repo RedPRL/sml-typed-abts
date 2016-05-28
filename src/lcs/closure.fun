@@ -17,9 +17,9 @@ struct
 
   structure Abt = Abt
 
-  type 'a metaenv = 'a Abt.Metavariable.Ctx.dict
-  type 'a varenv = 'a Abt.Variable.Ctx.dict
-  type symenv = Abt.symbol Abt.Symbol.Ctx.dict
+  type 'a metaenv = 'a Abt.Metavar.Ctx.dict
+  type 'a varenv = 'a Abt.Var.Ctx.dict
+  type symenv = Abt.symbol Abt.Sym.Ctx.dict
 
   datatype 'a closure =
     <: of 'a * env
@@ -31,8 +31,8 @@ struct
 
   fun force (m <: (mrho, srho, rho)) =
     let
-      val mrho' = Abt.Metavariable.Ctx.map forceB mrho
-      val rho' = Abt.Variable.Ctx.map force rho
+      val mrho' = Abt.Metavar.Ctx.map forceB mrho
+      val rho' = Abt.Var.Ctx.map force rho
     in
       Abt.renameEnv srho (Abt.substEnv rho' (Abt.metasubstEnv mrho' m))
     end
@@ -40,9 +40,9 @@ struct
     Abt.mapAbs (fn m => force (m <: env)) e
 
   structure ShowAbt = PlainShowAbt (Abt)
-  structure ShowMetaEnv = ShowEnv (Abt.Metavariable)
-  structure ShowSymEnv = ShowEnv (Abt.Symbol)
-  structure ShowVarEnv = ShowEnv (Abt.Variable)
+  structure ShowMetaEnv = ShowEnv (Abt.Metavar)
+  structure ShowSymEnv = ShowEnv (Abt.Sym)
+  structure ShowVarEnv = ShowEnv (Abt.Var)
 
   fun toStringAbt (m <: env : Abt.abt closure) : string =
     ShowAbt.toString m ^ " <: " ^ envToString env
@@ -54,7 +54,7 @@ struct
     "("
       ^ ShowMetaEnv.toString toStringAbs mrho
       ^ ", "
-      ^ ShowSymEnv.toString Abt.Symbol.toString srho
+      ^ ShowSymEnv.toString Abt.Sym.toString srho
       ^ ", "
       ^ ShowVarEnv.toString toStringAbt vrho
       ^ ")"
@@ -66,28 +66,28 @@ struct
     open Abt
   in
     val emptyEnv =
-      (Metavariable.Ctx.empty,
-       Symbol.Ctx.empty,
-       Variable.Ctx.empty)
+      (Metavar.Ctx.empty,
+       Sym.Ctx.empty,
+       Var.Ctx.empty)
 
     fun mergeEnv ((mrho1, srho1, vrho1), (mrho2, srho2, vrho2)) =
       let
         val mrho3 =
-          Metavariable.Ctx.union mrho1 mrho2 (fn (k, e1 <: env1, e2 <: env2) =>
+          Metavar.Ctx.union mrho1 mrho2 (fn (k, e1 <: env1, e2 <: env2) =>
             if Abt.eqAbs (e1, e2) then
               e1 <: mergeEnv (env1, env2)
             else
               raise Fail ("Environment merge failure: " ^ ShowAbt.toStringAbs e1 ^ " vs " ^ ShowAbt.toStringAbs e2))
 
         val srho3 =
-          Symbol.Ctx.union srho1 srho2 (fn (k, u, v) =>
-            if Symbol.eq (u, v) then
+          Sym.Ctx.union srho1 srho2 (fn (k, u, v) =>
+            if Sym.eq (u, v) then
               u
             else
               raise Fail "Environment merge failure")
 
         val vrho3 =
-          Variable.Ctx.union vrho1 vrho2 (fn (k, m1 <: env1, m2 <: env2) =>
+          Var.Ctx.union vrho1 vrho2 (fn (k, m1 <: env1, m2 <: env2) =>
             if Abt.eq (m1, m2) then
               m1 <: mergeEnv (env1, env2)
             else
