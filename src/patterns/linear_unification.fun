@@ -43,10 +43,16 @@ struct
     SymEnvUtil.union (rho, rho')
       handle _ => raise UnificationFailure
 
+  fun asApp m =
+    case Abt.out m of
+       theta $ es => (theta, es)
+     | _ => raise Fail "Expected application"
+
+
   fun unify (pat <*> m) : symenv * metaenv =
     let
       val (ptheta $@ pargs, psi) = Pattern.out pat
-      val (theta $ es, tau) = Abt.infer m
+      val (theta, es) = asApp m
       val (vls, _) = Abt.Operator.arity theta
       fun go [] ([], []) (rho, env) = (rho, env)
         | go (MVAR mv :: pargs) (e :: es, vl :: vls) (rho, env) =
