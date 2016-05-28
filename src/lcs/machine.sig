@@ -8,6 +8,11 @@ sig
 
   type stack = cont Cl.closure list
 
+  (* Our stack machine has two phases of execution. In [c <| S], we are trying
+     to run the control term [c] down to a final form. When [c |> S], we know
+     that [c] is final; if the stack is S ≡ [], we are done; if S ≡ k ∷ S', then
+     we plug [c] into [k], and proceed. *)
+
   datatype 'a state =
       <| of 'a Cl.closure * stack
     | |> of 'a Cl.closure * stack
