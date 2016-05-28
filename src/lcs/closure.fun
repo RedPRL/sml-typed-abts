@@ -1,17 +1,3 @@
-functor ShowEnv (S : ABT_SYMBOL) =
-struct
-  fun toString (f : 'a -> string) (rho : 'a S.Ctx.dict) =
-    let
-      val xs = S.Ctx.toList rho
-      fun f' (x, e) =
-        S.toString x
-          ^ " ~> "
-          ^ f e
-    in
-      "[" ^ ListSpine.pretty f' ", " xs ^ "]"
-    end
-end
-
 functor LcsClosure (Abt : ABT) : LCS_CLOSURE =
 struct
 
@@ -40,27 +26,6 @@ struct
     Abt.mapAbs (fn m => force (m <: env)) e
 
   structure ShowAbt = PlainShowAbt (Abt)
-  structure ShowMetaEnv = ShowEnv (Abt.Metavar)
-  structure ShowSymEnv = ShowEnv (Abt.Sym)
-  structure ShowVarEnv = ShowEnv (Abt.Var)
-
-  fun toStringAbt (m <: env : Abt.abt closure) : string =
-    ShowAbt.toString m ^ " <: " ^ envToString env
-
-  and toStringAbs (e <: env : Abt.abs closure) : string =
-    ShowAbt.toStringAbs e ^ " <: " ^ envToString env
-
-  and envToString (mrho, srho, vrho) =
-    "("
-      ^ ShowMetaEnv.toString toStringAbs mrho
-      ^ ", "
-      ^ ShowSymEnv.toString Abt.Sym.toString srho
-      ^ ", "
-      ^ ShowVarEnv.toString toStringAbt vrho
-      ^ ")"
-
-  val toString =
-    toStringAbt
 
   local
     open Abt
@@ -70,32 +35,40 @@ struct
        Sym.Ctx.empty,
        Var.Ctx.empty)
 
-    fun mergeEnv ((mrho1, srho1, vrho1), (mrho2, srho2, vrho2)) =
-      let
-        val mrho3 =
-          Metavar.Ctx.union mrho1 mrho2 (fn (k, e1 <: env1, e2 <: env2) =>
-            if Abt.eqAbs (e1, e2) then
-              e1 <: mergeEnv (env1, env2)
-            else
-              raise Fail ("Environment merge failure: " ^ ShowAbt.toStringAbs e1 ^ " vs " ^ ShowAbt.toStringAbs e2))
-
-        val srho3 =
-          Sym.Ctx.union srho1 srho2 (fn (k, u, v) =>
-            if Sym.eq (u, v) then
-              u
-            else
-              raise Fail "Environment merge failure")
-
-        val vrho3 =
-          Var.Ctx.union vrho1 vrho2 (fn (k, m1 <: env1, m2 <: env2) =>
-            if Abt.eq (m1, m2) then
-              m1 <: mergeEnv (env1, env2)
-            else
-              raise Fail ("Environment merge failure: " ^ ShowAbt.toString m1 ^ " vs " ^ ShowAbt.toString m2))
-      in
-        (mrho3, srho3, vrho3)
-      end
+    fun envIsEmpty (mrho, srho, vrho) =
+      Metavar.Ctx.isEmpty mrho
+        andalso Sym.Ctx.isEmpty srho
+        andalso Var.Ctx.isEmpty vrho
   end
+
+  fun toStringAbt (m <: env : Abt.abt closure) : string =
+    ShowAbt.toString m
+      ^ (if envIsEmpty env then "" else " <: " ^ envToString env)
+
+  and toStringAbs (e <: env : Abt.abs closure) : string =
+    ShowAbt.toStringAbs e
+      ^ (if envIsEmpty env then "" else " <: " ^ envToString env)
+
+  and envToString (mrho, srho, vrho) =
+    let
+      open Abt
+      fun showMetaVarAssign (x, e) =
+        Metavar.toString x ^ " ~> " ^ toStringAbs e
+      fun showSymAssign (u, v) =
+        Sym.toString u ^ " ~> " ^ Sym.toString v
+      fun showVarAssign (x, m) =
+        Var.toString x ^ " ~> " ^ toStringAbt m
+
+      val slots =
+        List.map showMetaVarAssign (Metavar.Ctx.toList mrho)
+          @ List.map showSymAssign (Sym.Ctx.toList srho)
+          @ List.map showVarAssign (Var.Ctx.toList vrho)
+    in
+      "{" ^ ListSpine.pretty (fn x => x) "," slots ^ "}"
+    end
+
+  val toString =
+    toStringAbt
 
   fun new x =
     x <: emptyEnv

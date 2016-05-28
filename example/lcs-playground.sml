@@ -166,8 +166,14 @@ struct
 
   val tm1 = ap (id "c") (suc (suc (ap (id "a") (ap (id "b") (suc ze)))))
 
+  val x = Abt.Var.named "x"
+  val xtm = Abt.check (Abt.` x, O.S.EXP ())
+
   structure Show = DebugShowAbt (Abt)
-  val _ = print "\n\n"
-  val _ = debugTrace Sig.empty (pair (tm1, suc tm1))
-  val _ = print "\n\n"
+  val _ =
+    (print "\n\n";
+     debugTrace Sig.empty (pair (xtm, xtm));
+     print "\n\n";
+     debugTrace Sig.empty (pair (tm1, suc tm1));
+     print "\n\n\n\n")
 end
