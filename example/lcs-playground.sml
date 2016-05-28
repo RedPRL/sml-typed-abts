@@ -70,7 +70,7 @@ struct
   open LambdaKit
   open M M.Cl
 
-  infix 1 ||
+  infix 1 <| |>
   infix 2 <:
   infix 3 $ $$ `$
   infix 2 \
@@ -81,39 +81,39 @@ struct
   fun ret m =
     O.RET () $$ [([],[]) \ m]
 
-  fun plug sign ((v, k) <: env || st) =
+  fun plug sign ((v, k) <: env) st =
     case (v, k) of
        (LAM `$ [(_, [x]) \ mx], AP `$ [_ \ n]) =>
          let
            val env' = pushV (n <: env, x) env
          in
-           mx <: env'|| st
+           mx <: env' <| st
          end
      | (PAIR `$ [_ \ m1, _ \ m2], SPREAD `$ [(_, [x,y]) \ nxy]) =>
          let
            val env' = pushV (m1 <: env, x) (pushV (m2 <: env, y) env)
          in
-           nxy <: env' || st
+           nxy <: env' <| st
          end
      | (theta `$ es, KPAIR P1 `$ [_ \ n]) =>
          let
            val m0 = ret (O.V theta $$ es)
            val k = O.K (KPAIR P2) $$ [([],[]) \ m0] <: env
          in
-           n <: env || k :: st
+           n <: env <| k :: st
          end
      | (theta `$ es, KPAIR P2 `$ [_ \ m0]) =>
          let
            val n0 = ret (O.V theta $$ es)
            val p = ret (O.V PAIR $$ [([],[]) \ m0, ([],[]) \ n0])
          in
-           p <: env || st
+           p <: env <| st
          end
      | (NUM i `$ _, SUC `$ _) =>
          let
            val n = ret (O.V (NUM (i + 1)) $$ [])
          in
-           n <: env || st
+           n <: env <| st
          end
      | _ => raise Fail "Invalid computation"
 end

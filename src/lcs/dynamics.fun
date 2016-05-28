@@ -5,7 +5,7 @@ struct
   open O O.L Abt M M.Cl
 
   infix 3 $ $$ $# `$ \ <:
-  infix 1 ||
+  infix 1 <| |>
 
   fun @@ (f, x) = f x
   infix 0 @@
@@ -14,14 +14,24 @@ struct
   (* To take an intermediate state and turn it into a term *)
   fun run (s : expr state) : expr =
     case s of
-       cl || [] => force cl
-     | m <: env || ((k <: env') :: stack) =>
+       cl |> [] => force cl
+     | cl <| [] => force cl
+     | m <: env <| ((k <: env') :: stack) =>
          (case sort k of
              B.O.S.CONT (sigma, tau) =>
                let
                  val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
                in
-                 run @@ m' <: env' || stack
+                 run @@ m' <: env' <| stack
+               end
+           | _ => raise Fail "Expected continuation sort")
+     | m <: env |> ((k <: env') :: stack) =>
+         (case sort k of
+             B.O.S.CONT (sigma, tau) =>
+               let
+                 val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
+               in
+                 run @@ m' <: env' |> stack
                end
            | _ => raise Fail "Expected continuation sort")
 
@@ -50,40 +60,52 @@ struct
        B.O.V theta $ es => theta `$ es
      | _ => raise Fail "Expected value"
 
-  fun step sign (m <: (env as (mrho, srho, vrho)) || stack) : expr state =
-    case out m of
-       `x => Var.Ctx.lookup vrho x || stack
-     | x $# (us, ms) =>
-         let
-           val e <: (mrho', srho', vrho') = Metavar.Ctx.lookup mrho x
-           val (vs', xs) \ m = outb e
-           val srho'' = ListPair.foldlEq  (fn (v,(u, _),r) => Sym.Ctx.insert r v u) srho' (vs', us)
-           val vrho'' = ListPair.foldlEq (fn (x,m,r) => Var.Ctx.insert r x (m <: (mrho', srho', vrho'))) vrho' (xs, ms)
-         in
-           m <: (mrho', srho'', vrho'') || stack
-         end
-     | B.O.RET sigma $ [_ \ n] =>
-         (case stack of
-             (k <: env') :: stack' => B.plug sign @@ (quoteV n, quoteK k) <: env' || stack'
-           | [] => m <: env || [])
-     | B.O.CUT (sigma, tau) $ [_ \ k, _ \ e] =>
-         e <: env || (k <: env) :: stack
-     | B.O.CUSTOM (opid, params, ar) $ _ =>
-         let
-           open Unify infix <*>
-           val def as {definiens, ...} = Sig.lookup sign opid
-           val pat = patternFromDef (opid, ar) def
+  fun step sign (m <: env <| stack) =
+    let
+      val (mrho, srho, vrho) = env
+    in
+      case out m of
+         `x => (Var.Ctx.lookup vrho x <| stack handle _ => m <: env |> stack)
+       | x $# (us, ms) =>
+           let
+             val e <: (mrho', srho', vrho') = Metavar.Ctx.lookup mrho x
+             val (vs', xs) \ m = outb e
+             val srho'' = ListPair.foldlEq  (fn (v,(u, _),r) => Sym.Ctx.insert r v u) srho' (vs', us)
+             val vrho'' = ListPair.foldlEq (fn (x,m,r) => Var.Ctx.insert r x (m <: (mrho', srho', vrho'))) vrho' (xs, ms)
+           in
+             m <: (mrho', srho'', vrho'') <| stack
+           end
+       | B.O.RET sigma $ [_ \ n] => m <: env |> stack
+       | B.O.CUT (sigma, tau) $ [_ \ k, _ \ e] =>
+           e <: env <| (k <: env) :: stack
+       | B.O.CUSTOM (opid, params, ar) $ _ =>
+           let
+             open Unify infix <*>
+             val def as {definiens, ...} = Sig.lookup sign opid
+             val pat = patternFromDef (opid, ar) def
 
-           val (srho', mrho') = unify (pat <*> m)
-           val srho'' = SymEnvUtil.union (srho, srho)
-           val mrho'' =
-             Metavar.Ctx.union mrho
-               (Metavar.Ctx.map (fn e => e <: (mrho, srho, vrho)) mrho')
-               (fn _ => raise Fail "Stuck")
-         in
-           definiens <: (mrho'', srho'', vrho) || stack
-         end
-     | _ => raise Fail "Expected expression"
+             val (srho', mrho') = unify (pat <*> m)
+             val srho'' = SymEnvUtil.union (srho, srho)
+             val mrho'' =
+               Metavar.Ctx.union mrho
+                 (Metavar.Ctx.map (fn e => e <: (mrho, srho, vrho)) mrho')
+                 (fn _ => raise Fail "Stuck")
+           in
+             definiens <: (mrho'', srho'', vrho) <| stack
+           end
+       | _ => raise Fail "Expected expression"
+    end
+    | step sign (m <: env |> []) = m <: env |> []
+    | step sign (m <: env |> (k <: env') :: stack) =
+        (case out m of
+            B.O.RET sigma $ [_ \ n] =>
+              B.plug sign ((quoteV n, quoteK k) <: env') stack
+          | _ =>
+            let
+              val B.O.S.CONT (sigma, tau) = sort k
+            in
+              B.O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ m] <: env' |> stack
+            end)
 
   fun eval sign =
     run

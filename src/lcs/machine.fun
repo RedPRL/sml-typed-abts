@@ -1,6 +1,6 @@
 functor LcsMachine
   (structure Cl : LCS_CLOSURE
-   val isFinal : Cl.Abt.abt -> bool) : LCS_MACHINE =
+   val isFinal : Cl.Abt.abt Cl.closure -> bool) : LCS_MACHINE =
 struct
   structure Cl = Cl
 
@@ -10,17 +10,20 @@ struct
   type expr = Abt.abt
 
   type stack = cont Cl.closure list
-  datatype 'a state = || of 'a Cl.closure * stack
 
-  infix 1 ||
+  datatype 'a state =
+      <| of 'a Cl.closure * stack
+    | |> of 'a Cl.closure * stack
+
+  infix 1 <| |>
   infix 2 <:
 
   fun start m =
-    new m || []
+    new m <| []
 
-  val exprIsFinal = isFinal
+  val closureIsFinal = isFinal
 
-  fun isFinal (m <: _ || []) = exprIsFinal m
+  fun isFinal (cl |> []) = closureIsFinal cl
     | isFinal _ = false
 
   fun star step st =
@@ -29,15 +32,15 @@ struct
     else
       star step (step st)
 
-  fun map f (cl || st) =
-    Cl.map f cl || st
+  fun map f =
+    fn cl <| st => Cl.map f cl <| st
+     | cl |> st => Cl.map f cl |> st
 
   val rec stackToString =
     fn [] => "[]"
      | x :: xs => Cl.toString x ^ " :: " ^ stackToString xs
 
-  fun toString (cl || st) =
-    Cl.toString cl
-      ^ " || "
-      ^ stackToString st
+  val toString =
+    fn cl <| st => Cl.toString cl ^ " <| " ^ stackToString st
+     | cl |> st => Cl.toString cl ^ " |> " ^ stackToString st
 end

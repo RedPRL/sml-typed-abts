@@ -9,11 +9,19 @@ struct
 
   structure M = LcsMachine
     (structure Cl = Cl
-     open Abt infix $
-     fun isFinal m =
+     open Cl Abt infix $ $# \ <:
+
+     fun isNeutral (r <: (env as (mrho, srho, vrho))) =
+       case out r of
+          `x => not (Abt.Var.Ctx.member vrho x)
+        | x $# _ => not (Abt.Metavar.Ctx.member mrho x)
+        | LcsO.CUT _ $ [_, _ \ r'] => isNeutral (r' <: env)
+        | _ => false
+
+     fun isFinal (m <: env) =
        case out m of
           LcsO.RET _ $ _ => true
-        | _ => false)
+        | _ => isNeutral (m <: env))
 
   datatype 'o pat = `$ of 'o * M.expr M.Cl.Abt.bview list
 

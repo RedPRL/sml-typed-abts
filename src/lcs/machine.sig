@@ -7,7 +7,10 @@ sig
   type expr = Cl.Abt.abt
 
   type stack = cont Cl.closure list
-  datatype 'a state = || of 'a Cl.closure * stack
+
+  datatype 'a state =
+      <| of 'a Cl.closure * stack
+    | |> of 'a Cl.closure * stack
 
   val start : 'a -> 'a state
   val isFinal : expr state -> bool

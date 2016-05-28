@@ -19,5 +19,5 @@ sig
   type vpat = M.Cl.Abt.symbol O.L.V.t pat
   type kpat = M.Cl.Abt.symbol O.L.K.t pat
 
-  val plug : Sig.t -> (vpat * kpat) M.state -> M.expr M.state
+  val plug : Sig.t -> (vpat * kpat) M.Cl.closure -> M.stack -> M.expr M.state
 end
