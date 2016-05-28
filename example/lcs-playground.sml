@@ -128,45 +128,51 @@ end
 
 structure LambdaDynamics = LcsDynamics (LambdaBasis)
 
+structure Notation =
+struct
+  open LambdaKit Lambda LambdaV LambdaK
+
+  local
+    open O O.S Abt
+    infix 2 $ $$
+    infix 1 \
+  in
+    fun ret m =
+      RET () $$ [([],[]) \ m]
+
+    fun cut k e =
+      CUT ((), ()) $$ [([],[]) \ k, ([],[]) \ e]
+
+    fun ap e1 e2 =
+      cut (K AP $$ [([],[]) \ e2]) e1
+
+    fun lam (x, m) =
+      ret (V LAM $$ [([],[x]) \ m])
+
+    val ax = ret (V AX $$ [])
+
+    val ze = ret (V (NUM 0) $$ [])
+
+    fun suc m =
+      cut (K SUC $$ []) m
+
+    fun pair (m, n) =
+      cut (K (KPAIR P0) $$ [([],[]) \ m, ([],[]) \ n]) ax
+
+    fun id a =
+      let
+        val x = Var.named a
+      in
+        lam (x, check (`x, EXP ()))
+      end
+  end
+end
+
 structure Test =
 struct
-  open LambdaKit LambdaDynamics
-  open Lambda LambdaV LambdaK
-  open O O.S Abt
+  open LambdaKit LambdaDynamics Notation
 
-  infix 2 $ $$
-  infix 1 \
-
-  fun ret m =
-    RET () $$ [([],[]) \ m]
-
-  fun cut k e =
-    CUT ((), ()) $$ [([],[]) \ k, ([],[]) \ e]
-
-  fun ap e1 e2 =
-    cut (K AP $$ [([],[]) \ e2]) e1
-
-  fun lam (x, m) =
-    ret (V LAM $$ [([],[x]) \ m])
-
-  val ax = ret (V AX $$ [])
-
-  val ze = ret (V (NUM 0) $$ [])
-
-  fun suc m =
-    cut (K SUC $$ []) m
-
-  fun pair (m, n) =
-    cut (K (KPAIR P0) $$ [([],[]) \ m, ([],[]) \ n]) ax
-
-  fun id a =
-    let
-      val x = Var.named a
-    in
-      lam (x, check (`x, EXP ()))
-    end
-
-  val tm1 = suc (suc (ap (id "a") (ap (id "b") (suc ze))))
+  val tm1 = ap (id "c") (suc (suc (ap (id "a") (ap (id "b") (suc ze)))))
 
   structure Show = DebugShowAbt (Abt)
   val _ = print "\n\n"
