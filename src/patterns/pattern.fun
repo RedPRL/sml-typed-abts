@@ -3,7 +3,7 @@ struct
   open Abt
   structure Ar = O.Ar
   structure Vl = Ar.Vl
-  structure Sort = Vl.Sort
+  structure S = Vl.S
 
   datatype 'a argument =
       MVAR of metavariable
@@ -44,7 +44,7 @@ struct
               val (theta' $@ args', psi) = out p
               val (_, tau') = O.arity theta'
               val _ =
-                if Sort.eq (tau, tau') then () else
+                if S.eq (tau, tau') then () else
                   raise InvalidPattern Error.OTHER
             in
               concat (go args vls, psi)

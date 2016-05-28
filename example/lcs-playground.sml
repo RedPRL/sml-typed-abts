@@ -93,7 +93,7 @@ structure Test =
 struct
   open LambdaKit LambdaDynamics
   open Lambda LambdaV LambdaK
-  open O O.Sort Abt
+  open O O.S Abt
 
   infix 2 $ $$
   infix 1 \

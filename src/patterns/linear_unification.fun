@@ -9,7 +9,7 @@ struct
 
   infix $ $# $@ \ <*>
   structure Vl = O.Ar.Vl
-  structure Sp = Vl.Sp and Sort = Vl.Sort
+  structure Sp = Vl.Sp and S = Vl.S
   structure SymCtx = Sym.Ctx and MetaCtx = Metavar.Ctx
 
   fun matchOperator (ptheta, theta) =
@@ -26,7 +26,7 @@ struct
       raise UnificationFailure
 
   fun matchSort (sigma, tau) =
-    if Sort.eq (sigma, tau) then
+    if S.eq (sigma, tau) then
       ()
     else
       raise UnificationFailure

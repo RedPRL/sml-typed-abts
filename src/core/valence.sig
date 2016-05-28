@@ -8,10 +8,10 @@
  *)
 signature ABT_VALENCE =
 sig
-  structure Sort : ABT_SORT
+  structure S : ABT_SORT
   structure Sp : SPINE
 
-  type sort = Sort.t
+  type sort = S.t
   type 'a spine = 'a Sp.t
 
   (* bindings are spines of symbol sorts and variable sorts respectively *)
@@ -25,7 +25,7 @@ end
 signature UNISORTED_ABT_VALENCE =
 sig
   include ABT_VALENCE
-    where type Sort.t = unit
+    where type S.t = unit
     where type 'a Sp.t = 'a list
 
   val make : int * int -> t

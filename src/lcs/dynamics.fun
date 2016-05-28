@@ -17,7 +17,7 @@ struct
        cl || [] => force cl
      | m <: env || ((k <: env') :: stack) =>
          (case sort k of
-             B.O.Sort.CONT (sigma, tau) =>
+             B.O.S.CONT (sigma, tau) =>
                let
                  val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
                in

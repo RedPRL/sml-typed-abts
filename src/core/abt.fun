@@ -5,14 +5,14 @@ functor Abt
    structure O : ABT_OPERATOR) : ABT =
 struct
   structure Sym = Sym and Var = Var and Metavar = Metavar and O = O and Ar = O.Ar
-  structure Sort = Ar.Vl.Sort and Valence = Ar.Vl
+  structure S = Ar.Vl.S and Valence = Ar.Vl
   structure Sp = Valence.Sp
 
   structure MetaCtx = Metavar.Ctx
   structure VarCtx = Var.Ctx
   structure SymCtx = Sym.Ctx
 
-  type sort = Sort.t
+  type sort = S.t
   type valence = Valence.t
   type coord = LnCoord.t
   type symbol = Sym.t
@@ -36,8 +36,8 @@ struct
   structure Ctx =
   struct
     structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
-    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = Sort)
-    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sort)
+    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = S)
+    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = S)
 
     type ctx = metactx Susp.susp * symctx Susp.susp * varctx Susp.susp
 
@@ -90,8 +90,8 @@ struct
      | META_APP _ => "meta"
   and primToStringAbs =
     fn ABS (upsilon, gamma, m) =>
-      (if Sp.isEmpty upsilon then "" else "{" ^ Sp.pretty (Sort.toString o #2) "," upsilon ^ "}")
-      ^ (if Sp.isEmpty upsilon then "" else "[" ^ Sp.pretty (Sort.toString o #2) "," gamma ^ "]")
+      (if Sp.isEmpty upsilon then "" else "{" ^ Sp.pretty (S.toString o #2) "," upsilon ^ "}")
+      ^ (if Sp.isEmpty upsilon then "" else "[" ^ Sp.pretty (S.toString o #2) "," gamma ^ "]")
       ^ "." ^ primToString m
 
   type metaenv = abs MetaCtx.dict
@@ -121,8 +121,8 @@ struct
 
   fun assertSortEq (sigma, tau) =
     assert
-      ("expected " ^ Sort.toString sigma ^ " == " ^ Sort.toString tau)
-      (Sort.eq (sigma, tau))
+      ("expected " ^ S.toString sigma ^ " == " ^ S.toString tau)
+      (S.eq (sigma, tau))
 
   fun assertValenceEq (v1, v2) =
     assert
@@ -535,7 +535,7 @@ struct
     structure VarRenUtil = ContextUtil (structure Ctx = VarCtx and Elem = Var)
 
     fun unifySymbols ((u, sigma), (v, tau), rho) =
-      if Sort.eq (sigma, tau) then
+      if S.eq (sigma, tau) then
         case (u, v) of
             (LN.FREE u', LN.FREE v') =>
               SymRenUtil.extend rho (u', v')
@@ -562,7 +562,7 @@ struct
     local
       fun go (mrho, srho, vrho) =
         fn (V (LN.FREE x, sigma), V (LN.FREE y, tau)) =>
-             if Sort.eq (sigma, tau) then
+             if S.eq (sigma, tau) then
                (mrho, srho, VarRenUtil.extend vrho (x, y))
              else
                raise UnificationFailed
@@ -582,7 +582,7 @@ struct
              end
          | (META_APP ((x1, tau1), us1, ms1 <: _), META_APP ((x2, tau2), us2, ms2 <: _)) =>
              let
-               val _ = if Sort.eq (tau1, tau2) then () else raise UnificationFailed
+               val _ = if S.eq (tau1, tau2) then () else raise UnificationFailed
                val mrho' =
                  MetaRenUtil.extend mrho (x1, x2)
                val srho' =

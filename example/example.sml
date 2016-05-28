@@ -6,7 +6,7 @@ struct
 
   structure O =
   struct
-    structure Sort =
+    structure S =
     struct
       datatype t = EXP | VAL | NAT
       val eq : t * t -> bool = op=
@@ -16,7 +16,7 @@ struct
     end
 
 
-    structure Vl = AbtValence (structure Sort = Sort and Sp = ListSpine)
+    structure Vl = AbtValence (structure S = S and Sp = ListSpine)
     structure Ar = AbtArity (Vl)
 
     datatype 'i t =
@@ -43,7 +43,7 @@ struct
       | toString f (SET i) = "set[" ^ f i ^ "]"
 
     local
-      open Sort
+      open S
       fun replicate i x = List.tabulate (i, fn _ => x)
       fun mkValence p q s = ((p, q), s)
     in
@@ -126,7 +126,7 @@ struct
   structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
 
   structure ShowAbt = DebugShowAbt (Abt)
-  open O O.Sort Abt
+  open O O.S Abt
 
   local
     open ParserCombinators CharParser
