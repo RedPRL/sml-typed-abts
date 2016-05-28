@@ -1,6 +1,6 @@
 functor Ast
-  (structure Operator : OPERATOR
-   structure Metavariable : SYMBOL) : AST =
+  (structure Operator : ABT_OPERATOR
+   structure Metavariable : ABT_SYMBOL) : AST =
 struct
   type symbol = string
   type variable = string

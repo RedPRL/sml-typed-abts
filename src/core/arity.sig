@@ -7,9 +7,9 @@
  *
  * An operator is fully determined by its name + arity
  *)
-signature ARITY =
+signature ABT_ARITY =
 sig
-  structure Valence : VALENCE
+  structure Valence : ABT_VALENCE
   type valence = Valence.t
   type sort = Valence.sort
   type 'a spine = 'a Valence.spine
@@ -19,9 +19,9 @@ sig
   val eq : t * t -> bool
 end
 
-signature UNISORTED_ARITY =
+signature UNISORTED_ABT_ARITY =
 sig
-  include ARITY
+  include ABT_ARITY
     where type Valence.Sort.t = unit
     where type 'a Valence.Spine.t = 'a list
 

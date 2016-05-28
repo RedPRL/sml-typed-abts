@@ -1,6 +1,6 @@
 Library
-  signature COORD
-  structure Coord
+  signature LN_COORD
+  structure LnCoord
 
   signature LOCALLY_NAMELESS
   functor LocallyNameless

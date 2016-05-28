@@ -1,26 +1,26 @@
 Library
   signature ABT
   signature AST
-  signature OPERATOR
-  signature SIMPLE_OPERATOR
-  signature SYMBOL
-  signature IMPERATIVE_SYMBOL
-  signature VALENCE
-  signature UNISORTED_VALENCE
-  signature SORT
+  signature ABT_OPERATOR
+  signature ABT_SIMPLE_OPERATOR
+  signature ABT_SYMBOL
+  signature ABT_IMPERATIVE_SYMBOL
+  signature ABT_VALENCE
+  signature UNISORTED_ABT_VALENCE
+  signature ABT_SORT
   signature SPINE
-  signature ARITY
-  signature UNISORTED_ARITY
+  signature ABT_ARITY
+  signature UNISORTED_ABT_ARITY
   signature CONTEXT_UTIL
 
-  functor Symbol
-  structure StringSymbol
+  functor AbtSymbol
+  structure StringAbtSymbol
   structure ListSpine
-  functor Valence
-  structure UnisortedValence
-  functor Arity
-  functor ListArity
-  structure UnisortedArity
+  functor AbtValence
+  structure UnisortedAbtValence
+  functor AbtArity
+  functor ListAbtArity
+  structure UnisortedAbtArity
   functor ContextUtil
   functor Abt
   functor SimpleAbt
@@ -28,7 +28,7 @@ Library
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
-  functor SimpleOperator
+  functor AbtSimpleOperator
 
   signature AST_TO_ABT
   functor AstToAbt

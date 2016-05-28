@@ -17,7 +17,7 @@ sig
    | CUT of Sort.atomic * Sort.atomic
    | CUSTOM of 'i * ('i * Sort.atomic) list * L.V.Arity.t
 
-  include OPERATOR
+  include ABT_OPERATOR
     where type 'i t = 'i operator
     where type 'a Arity.Valence.Spine.t = 'a list
     where type Arity.Valence.Sort.t = Sort.t

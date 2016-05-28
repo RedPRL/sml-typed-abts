@@ -5,7 +5,7 @@
  * In our usage the x coordinate tells us where the abstraction is and the y
  * coordinate tells us which item in the abstraction we're using.
  *)
-signature COORD =
+signature LN_COORD =
 sig
   type t
   val origin : t

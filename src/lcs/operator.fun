@@ -16,7 +16,7 @@ struct
    | CUSTOM of 'i * ('i * Sort.atomic) list * L.V.Arity.t
 
   structure Sort = Sort and V = V and K = K
-  structure Arity = ListArity (Sort)
+  structure Arity = ListAbtArity (Sort)
 
   type 'i t = 'i operator
   type sort = Sort.t

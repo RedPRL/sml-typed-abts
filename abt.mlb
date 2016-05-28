@@ -25,36 +25,36 @@ local
   src/core/ast.fun
 
 in
-  signature OPERATOR
-  signature SIMPLE_OPERATOR
+  signature ABT_OPERATOR
+  signature ABT_SIMPLE_OPERATOR
   signature ABT
   signature AST
   signature AST_TO_ABT
-  signature SYMBOL
-  signature IMPERATIVE_SYMBOL
-  signature SORT
+  signature ABT_SYMBOL
+  signature ABT_IMPERATIVE_SYMBOL
+  signature ABT_SORT
   signature SPINE
-  signature VALENCE
-  signature UNISORTED_VALENCE
-  signature ARITY
-  signature UNISORTED_ARITY
+  signature ABT_VALENCE
+  signature UNISORTED_ABT_VALENCE
+  signature ABT_ARITY
+  signature UNISORTED_ABT_ARITY
   signature CONTEXT_UTIL
 
-  functor Symbol
-  structure StringSymbol
+  functor AbtSymbol
+  structure StringAbtSymbol
   structure ListSpine
-  functor Valence
-  structure UnisortedValence
-  functor Arity
-  functor ListArity
-  structure UnisortedArity
+  functor AbtValence
+  structure UnisortedAbtValence
+  functor AbtArity
+  functor ListAbtArity
+  structure UnisortedAbtArity
   functor ContextUtil
   functor Abt
   functor SimpleAbt
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
-  functor SimpleOperator
+  functor AbtSimpleOperator
   functor Ast
   functor AstToAbt
 end

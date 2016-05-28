@@ -4,23 +4,23 @@
 
 signature ABT =
 sig
-  structure Variable : SYMBOL
+  structure Variable : ABT_SYMBOL
 
   (* Symbols are not variables; they parameterize operators and do not appear as
    * terms in the syntax of abstract binding trees. Therefore, they are subject
    * to apartness-preserving (injective) renamings, and not substitution. *)
-  structure Symbol : SYMBOL
+  structure Symbol : ABT_SYMBOL
 
   (* Just as variables can be used to stand in for an abt, metavariables can be
    * used to stand in for an abstraction/binder of any valence. Metavariables
    * are also sometimes called "second-order variables". *)
-  structure Metavariable : SYMBOL
+  structure Metavariable : ABT_SYMBOL
 
   (* Operators are the primitive building blocks of a language; the [Operator]
    * allows the ABT framework to be deployed at an arbitrary signature of
    * operators. In older texts on universal algebra, sometimes operators are
    * often referred to as "function symbols". *)
-  structure Operator : OPERATOR
+  structure Operator : ABT_OPERATOR
 
   (* Convienent shorthands for the types found in the above structures *)
   type symbol = Symbol.t

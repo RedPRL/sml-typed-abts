@@ -1,4 +1,4 @@
-functor Symbol () :> IMPERATIVE_SYMBOL =
+functor AbtSymbol () :> ABT_IMPERATIVE_SYMBOL =
 struct
   type t = int * string
   val counter = ref 0
@@ -46,7 +46,7 @@ struct
   end
 end
 
-structure StringSymbol : SYMBOL =
+structure StringAbtSymbol : ABT_SYMBOL =
 struct
   type t = string
 

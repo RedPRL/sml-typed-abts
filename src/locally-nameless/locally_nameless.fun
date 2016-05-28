@@ -1,4 +1,4 @@
-functor LocallyNameless (Coord : COORD) : LOCALLY_NAMELESS =
+functor LocallyNameless (Coord : LN_COORD) : LOCALLY_NAMELESS =
 struct
   structure Coord = Coord
 

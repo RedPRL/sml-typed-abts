@@ -6,8 +6,8 @@ local
   src/locally-nameless/locally_nameless.sig
   src/locally-nameless/locally_nameless.fun
 in
-  signature COORD
-  structure Coord
+  signature LN_COORD
+  structure LnCoord
 
   signature LOCALLY_NAMELESS
   functor LocallyNameless

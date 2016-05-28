@@ -1,4 +1,4 @@
-structure Coord :> COORD =
+structure LnCoord :> LN_COORD =
 struct
   type t = int * int
   val origin = (0,0)
@@ -10,4 +10,3 @@ struct
   fun toString (i,j) =
     "<" ^ Int.toString i ^ "," ^ Int.toString j ^ ">"
 end
-

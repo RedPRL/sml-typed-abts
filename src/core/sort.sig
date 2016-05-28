@@ -11,7 +11,7 @@
  * that it's not necessary to lump types + expressions + whatever else into the same
  * collection of objects with anything distinguishing them.
  *)
-signature SORT =
+signature ABT_SORT =
 sig
   type t
   val eq : t * t -> bool

@@ -1,6 +1,6 @@
 signature LCS_SORT =
 sig
-  structure AtomicSort : SORT
+  structure AtomicSort : ABT_SORT
 
   type atomic = AtomicSort.t
 

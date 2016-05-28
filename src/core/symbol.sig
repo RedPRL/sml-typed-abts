@@ -1,4 +1,4 @@
-signature SYMBOL =
+signature ABT_SYMBOL =
 sig
   type t
 
@@ -25,9 +25,9 @@ sig
   structure DebugShow : SHOW where type t = t
 end
 
-signature IMPERATIVE_SYMBOL =
+signature ABT_IMPERATIVE_SYMBOL =
 sig
-  include SYMBOL
+  include ABT_SYMBOL
 
   val new : unit -> t
 end
