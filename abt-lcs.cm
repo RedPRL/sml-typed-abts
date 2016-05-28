@@ -1,22 +1,20 @@
 Library
   signature LCS_SORT
-  signature LCS_PATTERN
   signature LCS_LANGUAGE
   signature LCS_OPERATOR
   signature LCS_CLOSURE
   signature LCS_MACHINE
   signature LCS_SIGNATURE
+  signature LCS_DYNAMICS_BASIS
   signature LCS_DYNAMICS
-  signature LCS_FRAMEWORK
 
   functor LcsSort
   functor LcsOperator
-  structure LcsPattern
   functor LcsClosure
   functor LcsMachine
   functor LcsDynamics
   functor LcsSignature
-  functor LcsFramework
+  functor LcsDynamicsBasisKit
 is
   $/basis.cm
   abt.cm
@@ -24,19 +22,17 @@ is
 
   src/lcs/sort.sig
   src/lcs/operator.sig
-  src/lcs/pattern.sig
   src/lcs/signature.sig
   src/lcs/language.sig
   src/lcs/closure.sig
   src/lcs/machine.sig
+  src/lcs/dynamics_basis.sig
   src/lcs/dynamics.sig
-  src/lcs/framework.sig
 
   src/lcs/sort.fun
   src/lcs/operator.fun
-  src/lcs/pattern.sml
   src/lcs/closure.fun
   src/lcs/machine.fun
   src/lcs/dynamics.fun
+  src/lcs/dynamics_basis.fun
   src/lcs/signature.fun
-  src/lcs/framework.fun

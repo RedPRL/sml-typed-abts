@@ -48,39 +48,50 @@ end
 
 structure LambdaLang : LCS_LANGUAGE =
 struct
-  structure V = SimpleOperator (LambdaV) and K = SimpleOperator (LambdaK) and P = LcsPattern
-  open Lambda LambdaV LambdaK P
-
-  type sign = unit
-
-  type ('s, 'v, 't) value = ('s, 'v, 's V.t, 't) P.pat
-  type ('s, 'v, 't) cont = ('s, 'v, 's K.t, 't) P.pat
-
-  infix $ \
-
-  nonfix ^
-  val ^ = RETURN
-
+  structure V = SimpleOperator (LambdaV) and K = SimpleOperator (LambdaK)
   fun input _ = ()
-
-  val opidSort =
-    NONE
-
-  fun plug (AP $ [_ \ n]) (LAM $ [(_, [x]) \ mx]) =
-       SUBST ((x, ^ n), ^ mx)
-    | plug (SPREAD $ [(_, [x,y]) \ nxy]) (PAIR $ [_ \ m1, _ \ m2])  =
-       SUBST ((x, ^ m1), SUBST ((y, ^ m2), ^ nxy))
-    | plug (theta1 $ _) (theta2 $ _) =
-        raise Fail (LambdaV.toString theta2)
+  val opidSort = NONE
 end
 
-structure LambdaFramework = LcsFramework (LambdaLang)
+structure LambdaKit = LcsDynamicsBasisKit (LambdaLang)
+
+structure LambdaBasis : LCS_DYNAMICS_BASIS =
+struct
+  open Lambda LambdaKit
+  open Abt M M.Cl
+
+  infix 1 ||
+  infix 2 <:
+  infix 3 $ $$ `$
+  infix 2 \
+
+  fun pushV (cl : abt closure, x) (mrho, srho, vrho) =
+    (mrho, srho, Variable.Ctx.insert vrho x cl)
+
+  fun plug sign ((v, k) <: env || st) =
+    case (v, k) of
+       (LAM `$ [ (_, [x]) \ mx ], AP `$ [ _ \ n ]) =>
+         let
+           val env' = pushV (n <: env, x) env
+         in
+           mx <: env'|| st
+         end
+     | (PAIR `$ [ _ \ m1, _ \ m2 ], SPREAD `$ [ (_, [x,y]) \ nxy ]) =>
+         let
+           val env' = pushV (m1 <: env, x) (pushV (m2 <: env, y) env)
+         in
+           nxy <: env'|| st
+         end
+     | _ => raise Fail "Invalid computation"
+end
+
+structure LambdaDynamics = LcsDynamics (LambdaBasis)
 
 structure Test =
 struct
-  open LambdaFramework
-  open Lambda LambdaV LambdaK Dynamics
-  open Operator Sort Abt
+  open LambdaKit LambdaDynamics
+  open Lambda LambdaV LambdaK
+  open O O.Sort Abt
 
   infix 2 $ $$
   infix 1 \

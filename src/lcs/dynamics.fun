@@ -1,73 +1,15 @@
-functor Instructions (structure P : LCS_PATTERN and Cl : LCS_CLOSURE) =
+functor LcsDynamics (B : LCS_DYNAMICS_BASIS) : LCS_DYNAMICS =
 struct
-  open Cl
-  open Abt
+  open B
+  structure Abt = M.Cl.Abt and Sig = Sig
+  open O O.L Abt M M.Cl
 
-  infix <:
-
-  fun interpret (env as (mrho, srho, vrho)) =
-    fn P.RETURN x => x <: env
-     | P.SUBST ((x, p), p') =>
-         let
-           val vrho' = Variable.Ctx.insert vrho x (interpret env p)
-         in
-           interpret (mrho, srho, vrho') p'
-         end
-     | P.REN ((u, v), p) =>
-         let
-           val srho' = Symbol.Ctx.insert srho u v
-         in
-           interpret (mrho, srho', vrho) p
-         end
-end
-
-functor LcsDynamics
-  (structure O : LCS_OPERATOR
-   structure Abt : ABT
-     where type 'a Operator.t = 'a O.operator
-     where type 'a Operator.Arity.Valence.Spine.t = 'a list
-     where type Operator.Arity.Valence.Sort.t = O.Sort.t
-   structure Sig : LCS_SIGNATURE where type valence = O.L.V.Arity.Valence.t
-   sharing type Sig.symbol = Abt.Symbol.t
-   sharing type Sig.metavariable = Abt.Metavariable.t
-   sharing type Sig.sort = O.Sort.AtomicSort.t
-   sharing type Sig.term = Abt.abt) : LCS_DYNAMICS =
-struct
-  open O
-  structure L = L and Abt = Abt and Sig = Sig
-
-  open L Abt
-  infix 3 <:
-  infix 3 $ $$ $# \
+  infix 3 $ $$ $# `$ \ <:
+  infix 1 ||
 
   fun @@ (f, x) = f x
   infix 0 @@
 
-  fun quoteB ((us, vs) \ m) =
-    P.\ ((us, vs), m)
-
-  fun quoteVal m =
-    case out m of
-       O.V theta $ es => P.$ (theta, List.map quoteB es)
-     | _ => raise Fail "Expected value"
-
-  fun quoteCont k =
-    case out k of
-       O.K theta $ es => P.$ (theta, List.map quoteB es)
-     | _ => raise Fail "Expected continuation"
-
-  structure Cl = LcsClosure (Abt)
-  structure M =
-    LcsMachine
-      (structure Cl = Cl
-       fun isFinal m =
-         case out m of
-            O.RET _ $ _ => true
-          | _ => false)
-
-  structure I = Instructions (structure P = P and Cl = Cl)
-  open Cl M
-  infix 1 ||
 
   (* To take an intermediate state and turn it into a term *)
   fun run (s : expr state) : expr =
@@ -98,6 +40,16 @@ struct
     end
 
 
+  fun quoteK k =
+    case out k of
+       O.K theta $ es => theta `$ es
+     | _ => raise Fail "Expected continuation"
+
+  fun quoteV k =
+    case out k of
+       O.V theta $ es => theta `$ es
+     | _ => raise Fail "Expected value"
+
   fun step sign (m <: (env as (mrho, srho, vrho)) || stack) : expr state =
     case out m of
        `x => Variable.Ctx.lookup vrho x || stack
@@ -112,7 +64,7 @@ struct
          end
      | O.RET sigma $ [_ \ n] =>
          (case stack of
-             (k <: env') :: stack' => I.interpret env' (plug (quoteCont k) (quoteVal n)) || stack'
+             (k <: env') :: stack' => B.plug sign @@ (quoteV n, quoteK k) <: env' || stack'
            | [] => m <: env || [])
      | O.CUT (sigma, tau) $ [_ \ k, _ \ e] =>
          e <: env || (k <: env) :: stack
