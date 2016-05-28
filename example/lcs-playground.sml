@@ -1,9 +1,9 @@
 structure Lambda =
 struct
-  (* As an example, we give a lambda calculus with strict naturals numbers and strict pairs. *)
+  (* As an example, we give a lambda calculus with eager naturals numbers and eager pairs. *)
   datatype value = LAM | AX | PAIR | NUM of int
 
-  datatype pair_hole = P0 | P1 | P2
+  datatype pair_hole = P1 | P2
   datatype cont = AP | SPREAD | KPAIR of pair_hole | SUC
 end
 
@@ -39,7 +39,6 @@ struct
   val arity =
     fn AP => Ar.make [(0,0)]
      | SPREAD => Ar.make [(0,2)]
-     | KPAIR P0 => Ar.make [(0,0), (0,0)]
      | KPAIR P1 => Ar.make [(0,0)]
      | KPAIR P2 => Ar.make [(0,0)]
      | SUC => Ar.make []
@@ -49,9 +48,8 @@ struct
   val toString =
     fn AP => "ap"
      | SPREAD => "spread"
-     | KPAIR P0 => "pair([_],[_])"
-     | KPAIR P1 => "pair(-,[_])"
-     | KPAIR P2 => "pair([_],-)"
+     | KPAIR P1 => "pair([_],-)"
+     | KPAIR P2 => "pair(-,[_])"
      | SUC => "S[-]"
 end
 
@@ -96,12 +94,6 @@ struct
            val env' = pushV (m1 <: env, x) (pushV (m2 <: env, y) env)
          in
            nxy <: env' || st
-         end
-     | (_, KPAIR P0 `$ [_ \ m, _ \ n]) =>
-         let
-           val k = O.K (KPAIR P1) $$ [([],[]) \ n] <: env
-         in
-           m <: env || k :: st
          end
      | (theta `$ es, KPAIR P1 `$ [_ \ n]) =>
          let
@@ -157,7 +149,7 @@ struct
       cut (K SUC $$ []) m
 
     fun pair (m, n) =
-      cut (K (KPAIR P0) $$ [([],[]) \ m, ([],[]) \ n]) ax
+      cut (K (KPAIR P1) $$ [([],[]) \ n]) m
 
     fun id a =
       let
@@ -176,6 +168,6 @@ struct
 
   structure Show = DebugShowAbt (Abt)
   val _ = print "\n\n"
-  val _ = debugTrace Sig.empty (pair (tm1, tm1))
+  val _ = debugTrace Sig.empty (pair (tm1, suc tm1))
   val _ = print "\n\n"
 end
