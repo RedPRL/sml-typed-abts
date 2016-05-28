@@ -36,9 +36,8 @@ struct
     fn cl <| st => Cl.map f cl <| st
      | cl |> st => Cl.map f cl |> st
 
-  val rec stackToString =
-    fn [] => "[]"
-     | x :: xs => Cl.toString x ^ " :: " ^ stackToString xs
+  fun stackToString ks =
+    "[" ^ ListSpine.pretty Cl.toString ", " ks ^ "]"
 
   val toString =
     fn cl <| st => Cl.toString cl ^ " <| " ^ stackToString st

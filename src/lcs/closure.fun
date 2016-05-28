@@ -64,7 +64,7 @@ struct
           @ List.map showSymAssign (Sym.Ctx.toList srho)
           @ List.map showVarAssign (Var.Ctx.toList vrho)
     in
-      "{" ^ ListSpine.pretty (fn x => x) "," slots ^ "}"
+      "{" ^ ListSpine.pretty (fn x => x) ", " slots ^ "}"
     end
 
   val toString =
