@@ -1,9 +1,9 @@
 signature LCS_PATTERN =
 sig
-  datatype ('s, 'v, 'a) closure =
+  datatype ('s, 'v, 'a) instr =
      RETURN of 'a
-   | SUBST of ('v * ('s, 'v, 'a) closure) * ('s, 'v, 'a) closure
-   | REN of ('s * 's) * ('s, 'v, 'a) closure
+   | SUBST of ('v * ('s, 'v, 'a) instr) * ('s, 'v, 'a) instr
+   | REN of ('s * 's) * ('s, 'v, 'a) instr
 
   (* A term pattern is an operator and a spine of abstractions *)
   datatype ('s, 'v, 'o, 't) pat = $ of 'o * ('s, 'v, 't) bpat list

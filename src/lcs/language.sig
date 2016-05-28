@@ -12,5 +12,5 @@ sig
   type ('s, 'v, 't) value = ('s, 'v, 's V.t, 't) P.pat
   type ('s, 'v, 't) cont = ('s, 'v, 's K.t, 't) P.pat
 
-  val plug : ('s, 'v, 't) cont -> ('s, 'v, 't) value -> ('s, 'v, 't) P.closure
+  val plug : ('s, 'v, 't) cont -> ('s, 'v, 't) value -> ('s, 'v, 't) P.instr
 end
