@@ -2,8 +2,8 @@ functor LcsSignature (structure L : LCS_LANGUAGE and Abt : ABT) : LCS_SIGNATURE 
 struct
   open Abt
   type term = abt
-  type sort = L.V.Arity.sort
-  type valence = L.V.Arity.valence
+  type sort = L.V.Ar.sort
+  type valence = L.V.Ar.valence
 
   structure Dict = Symbol.Ctx
 
@@ -20,7 +20,7 @@ struct
 
 
   val empty = Dict.empty
-  
+
   fun define sign opid def =
     Dict.insert sign opid def
 

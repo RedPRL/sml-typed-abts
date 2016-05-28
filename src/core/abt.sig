@@ -27,9 +27,9 @@ sig
   type variable = Variable.t
   type metavariable = Metavariable.t
   type operator = symbol Operator.t
-  type sort = Operator.Arity.sort
-  type valence = Operator.Arity.valence
-  type 'a spine = 'a Operator.Arity.spine
+  type sort = Operator.Ar.sort
+  type valence = Operator.Ar.valence
+  type 'a spine = 'a Operator.Ar.spine
 
   (* The core type of the signature. This is the type of the ABTs that
    * can be built from the given [operator]s, [variable]s, [symbol]s and

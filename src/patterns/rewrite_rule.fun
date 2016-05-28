@@ -15,7 +15,7 @@ struct
 
   exception InvalidRule
 
-  structure MetaCtxUtil = ContextUtil (structure Ctx = Abt.Metavariable.Ctx and Elem = Abt.Operator.Arity.Valence)
+  structure MetaCtxUtil = ContextUtil (structure Ctx = Abt.Metavariable.Ctx and Elem = Abt.Operator.Ar.Vl)
 
   (* a rewrite rule is valid in case the definiens is well-formed under
    * metavariable context induced by the definiendum *)

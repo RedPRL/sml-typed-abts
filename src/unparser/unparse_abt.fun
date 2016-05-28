@@ -1,5 +1,5 @@
 signature LIST_ABT =
-  ABT where type 'a Operator.Arity.Valence.Spine.t = 'a list
+  ABT where type 'a Operator.Ar.Vl.Spine.t = 'a list
 
 functor UnparseAbt
   (structure Abt : LIST_ABT
@@ -12,7 +12,7 @@ struct
   infix 5 $ $# \
 
   structure O = Operator and V = Variable and S = Symbol and M = Metavariable
-  structure Spine = O.Arity.Valence.Spine
+  structure Spine = O.Ar.Vl.Spine
 
   type unparser = Abt.abt -> string Unparse.part
 
@@ -63,4 +63,3 @@ struct
       outer
     end
 end
-

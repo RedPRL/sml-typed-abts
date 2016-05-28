@@ -1,6 +1,6 @@
 functor AbtSimpleOperator (O : ABT_SIMPLE_OPERATOR) : ABT_OPERATOR =
 struct
-  structure Arity = O.Arity
+  structure Ar = O.Ar
 
   type 'i t = O.t
   val arity = O.arity

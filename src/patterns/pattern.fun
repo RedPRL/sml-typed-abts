@@ -1,9 +1,9 @@
 functor Pattern (Abt : LIST_ABT) : PATTERN =
 struct
   open Abt
-  structure Arity = Operator.Arity
-  structure Valence = Arity.Valence
-  structure Sort = Valence.Sort
+  structure Ar = Operator.Ar
+  structure Vl = Ar.Vl
+  structure Sort = Vl.Sort
 
   datatype 'a argument =
       MVAR of metavariable
@@ -24,7 +24,7 @@ struct
   exception InvalidPattern of Error.t
 
   structure MetaCtx = Metavariable.Ctx and VarCtx = Variable.Ctx
-  structure CtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
+  structure CtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Vl)
 
   fun extend psi (mv, vl) =
     CtxUtil.extend psi (mv, vl)

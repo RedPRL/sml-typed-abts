@@ -6,7 +6,7 @@ struct
   type variable = string
   type metavariable = Metavariable.t
 
-  structure Spine = Operator.Arity.Valence.Spine
+  structure Spine = Operator.Ar.Vl.Spine
 
   type 'i operator = 'i Operator.t
   type 'a spine = 'a Spine.t
@@ -56,7 +56,7 @@ functor AstToAbt (X : AST_ABT) : AST_TO_ABT =
 struct
   open X
 
-  structure Spine = Abt.Operator.Arity.Valence.Spine
+  structure Spine = Abt.Operator.Ar.Vl.Spine
 
   structure NameEnv = SplayDict (structure Key = StringOrdered)
 

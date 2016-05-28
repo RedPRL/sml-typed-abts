@@ -16,8 +16,8 @@ struct
     end
 
 
-    structure Valence = AbtValence (structure Sort = Sort and Spine = ListSpine)
-    structure Arity = AbtArity (Valence)
+    structure Vl = AbtValence (structure Sort = Sort and Spine = ListSpine)
+    structure Ar = AbtArity (Vl)
 
     datatype 'i t =
         LAM | AP | NUM | LIT of int | RET

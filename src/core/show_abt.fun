@@ -10,7 +10,7 @@ struct
   open Abt infix $ $# infixr \
   type t = abt
 
-  structure Spine = Abt.Operator.Arity.Valence.Spine
+  structure Spine = Abt.Operator.Ar.Vl.Spine
 
   fun toString M =
     case #1 (infer M) of

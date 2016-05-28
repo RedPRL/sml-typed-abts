@@ -45,7 +45,7 @@ sig
 end
 
 signature LIST_ABT =
-  ABT where type 'a Operator.Arity.Valence.Spine.t = 'a list
+  ABT where type 'a Operator.Ar.Vl.Spine.t = 'a list
 
 (* ABT_PATTERN is just the pairing of an implementation of
  * normal abts with an implementation of patterns on them

@@ -8,9 +8,9 @@ struct
     and Variable = Variable
     and Metavariable = Metavariable
     and Operator = Operator
-    and Arity = Operator.Arity
+    and Arity = Operator.Ar
 
-  structure Sort = Arity.Valence.Sort and Valence = Arity.Valence
+  structure Sort = Arity.Vl.Sort and Valence = Arity.Vl
   structure Spine = Valence.Spine
 
   structure MetaCtx = Metavariable.Ctx

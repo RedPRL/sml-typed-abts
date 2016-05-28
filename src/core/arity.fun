@@ -1,9 +1,9 @@
 functor AbtArity (V : ABT_VALENCE) : ABT_ARITY =
 struct
-  structure Valence = V and Sort = V.Sort
+  structure Vl = V and Sort = V.Sort
 
-  type valence = Valence.t
-  type sort = Valence.sort
+  type valence = V.t
+  type sort =   V.sort
   type 'a spine = 'a V.spine
   type t = valence spine * sort
 
@@ -32,9 +32,8 @@ struct
     structure V = UnisortedAbtValence
     structure A = AbtArity (V)
   in
-    open A
-
     fun make vls =
       (List.map V.make vls, ())
+    open A
   end
 end

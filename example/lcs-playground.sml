@@ -6,15 +6,15 @@ end
 
 structure LambdaV : ABT_SIMPLE_OPERATOR =
 struct
-  structure Arity = UnisortedAbtArity
+  structure Ar = UnisortedAbtArity
 
   open Lambda
   type t = Lambda.value
 
   val arity =
-    fn LAM => Arity.make [(0,1)]
-     | PAIR => Arity.make [(0,0), (0,0)]
-     | AX => Arity.make []
+    fn LAM => Ar.make [(0,1)]
+     | PAIR => Ar.make [(0,0), (0,0)]
+     | AX => Ar.make []
 
   fun eq (x : t, y) = x = y
 
@@ -26,14 +26,14 @@ end
 
 structure LambdaK : ABT_SIMPLE_OPERATOR =
 struct
-  structure Arity = UnisortedAbtArity
+  structure Ar = UnisortedAbtArity
 
   open Lambda
   type t = Lambda.cont
 
   val arity =
-    fn AP => Arity.make [(0,0)]
-     | SPREAD => Arity.make [(0,2)]
+    fn AP => Ar.make [(0,0)]
+     | SPREAD => Ar.make [(0,2)]
 
   val eq =
     fn (AP, AP) => true

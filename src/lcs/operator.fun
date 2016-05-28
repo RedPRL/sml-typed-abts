@@ -3,7 +3,7 @@ struct
   structure L = L
   open L
 
-  structure Sort = LcsSort (structure AtomicSort = V.Arity.Valence.Sort val opidSort = opidSort)
+  structure Sort = LcsSort (structure AtomicSort = V.Ar.Vl.Sort val opidSort = opidSort)
   type sort = Sort.t
   type valence = (sort list * sort list) * sort
   type arity = valence list * sort
@@ -13,10 +13,10 @@ struct
    | K of 'i K.t
    | RET of Sort.atomic
    | CUT of Sort.atomic * Sort.atomic
-   | CUSTOM of 'i * ('i * Sort.atomic) list * L.V.Arity.t
+   | CUSTOM of 'i * ('i * Sort.atomic) list * L.V.Ar.t
 
   structure Sort = Sort and V = V and K = K
-  structure Arity = ListAbtArity (Sort)
+  structure Ar = ListAbtArity (Sort)
 
   type 'i t = 'i operator
   type sort = Sort.t
@@ -71,7 +71,7 @@ struct
      | (CUSTOM (opid1, supp1, arity1), CUSTOM (opid2, supp2, arity2)) =>
         f (opid1, opid2)
           andalso ListPair.allEq (fn ((u, sigma), (v, tau)) => f (u, v) andalso Sort.AtomicSort.eq (sigma, tau)) (supp1, supp2)
-          andalso V.Arity.eq (arity1, arity2)
+          andalso V.Ar.eq (arity1, arity2)
      | _ => false
 
   fun toString f =
