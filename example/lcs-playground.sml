@@ -49,7 +49,7 @@ end
 structure LambdaLang : LCS_LANGUAGE =
 struct
   structure V = SimpleOperator (LambdaV) and K = SimpleOperator (LambdaK) and P = LcsPattern
-  open LambdaV LambdaK P
+  open Lambda LambdaV LambdaK P
 
   type sign = unit
 
