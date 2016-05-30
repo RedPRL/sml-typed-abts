@@ -1,7 +1,6 @@
 functor LcsDynamicsBasisKit (L : LCS_LANGUAGE) =
 struct
-  structure LcsO = LcsOperator (L)
-  structure O = LcsO
+  structure O = LcsOperator (L)
   structure Abt = SimpleAbt (O)
   structure Cl = LcsClosure (Abt)
 
@@ -9,22 +8,33 @@ struct
 
   structure M = LcsMachine
     (structure Cl = Cl
-     open Cl Abt infix $ $# \ <:
+     open O Cl Abt infix $ $# \ <:
 
      fun isNeutral (r <: (env as (mrho, srho, vrho))) =
        case out r of
           `x => not (Abt.Var.Ctx.member vrho x)
         | x $# _ => not (Abt.Metavar.Ctx.member mrho x)
-        | LcsO.CUT _ $ [_, _ \ r'] => isNeutral (r' <: env)
+        | CUT _ $ [_, _ \ r'] => isNeutral (r' <: env)
         | _ => false
 
      fun isFinal (m <: env) =
        case out m of
-          LcsO.RET _ $ _ => true
+          RET _ $ _ => true
         | _ => isNeutral (m <: env))
 
   datatype 'o pat = `$ of 'o * M.expr M.Cl.Abt.bview list
 
   type vpat = M.Cl.Abt.symbol O.L.V.t pat
   type kpat = M.Cl.Abt.symbol O.L.K.t pat
+
+  local
+    infix `$ $$ \
+    open O Abt
+  in
+    fun unquoteV (theta `$ es) =
+      V theta $$ es
+
+    fun unquoteK (theta `$ es) =
+      K theta $$ es
+  end
 end

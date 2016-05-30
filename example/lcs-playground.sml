@@ -1,6 +1,6 @@
 structure Lambda =
 struct
-  (* As an example, we give a lambda calculus with eager naturals numbers and eager pairs. *)
+  (* As an example, we give a lambda calculus with eager natural numbers and eager pairs. *)
   datatype value = LAM | AX | PAIR | NUM of int
 
   datatype pair_hole = P1 | P2
@@ -70,6 +70,9 @@ struct
   open LambdaKit
   open M M.Cl
 
+  fun @@ (f, x) = f x
+
+  infix @@
   infix 1 <| |>
   infix 2 <:
   infix 3 $ $$ `$
@@ -91,27 +94,27 @@ struct
          end
      | (PAIR `$ [_ \ m1, _ \ m2], SPREAD `$ [(_, [x,y]) \ nxy]) =>
          let
-           val env' = pushV (m1 <: env, x) (pushV (m2 <: env, y) env)
+           val env' = pushV (m1 <: env, x) @@ pushV (m2 <: env, y) env
          in
            nxy <: env' <| st
          end
-     | (theta `$ es, KPAIR P1 `$ [_ \ n]) =>
+     | (pat, KPAIR P1 `$ [_ \ n]) =>
          let
-           val m0 = ret (O.V theta $$ es)
+           val m0 = ret (unquoteV pat)
            val k = O.K (KPAIR P2) $$ [([],[]) \ m0] <: env
          in
            n <: env <| k :: st
          end
-     | (theta `$ es, KPAIR P2 `$ [_ \ m0]) =>
+     | (pat, KPAIR P2 `$ [_ \ m0]) =>
          let
-           val n0 = ret (O.V theta $$ es)
-           val p = ret (O.V PAIR $$ [([],[]) \ m0, ([],[]) \ n0])
+           val n0 = ret @@ unquoteV pat
+           val p = ret @@ O.V PAIR $$ [([],[]) \ m0, ([],[]) \ n0]
          in
            p <: env <| st
          end
      | (NUM i `$ _, SUC `$ _) =>
          let
-           val n = ret (O.V (NUM (i + 1)) $$ [])
+           val n = ret @@ O.V (NUM (i + 1)) $$ []
          in
            n <: env <| st
          end
