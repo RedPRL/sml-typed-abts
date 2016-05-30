@@ -84,6 +84,9 @@ struct
   fun ret m =
     O.RET () $$ [([],[]) \ m]
 
+  fun delta sign _ =
+    raise Fail "Impossible"
+
   fun plug sign ((v, k) <: env) st =
     case (v, k) of
        (LAM `$ [(_, [x]) \ mx], AP `$ [_ \ n]) =>

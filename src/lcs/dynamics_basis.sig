@@ -18,6 +18,10 @@ sig
 
   type vpat = M.Cl.Abt.symbol O.L.V.t pat
   type kpat = M.Cl.Abt.symbol O.L.K.t pat
+  type dpat = M.Cl.Abt.symbol O.L.D.t pat
 
   val plug : Sig.t -> (vpat * kpat) M.Cl.closure -> M.stack -> M.expr M.state
+
+  (* Delta expansion / expansion of definitional extensions *)
+  val delta : Sig.t -> dpat M.Cl.closure -> M.expr M.Cl.closure
 end

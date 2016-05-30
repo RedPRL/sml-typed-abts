@@ -76,6 +76,8 @@ struct
              m <: (mrho', srho'', vrho'') <| stack
            end
        | B.O.RET sigma $ [_ \ n] => m <: env |> stack
+       | B.O.D theta $ es =>
+           B.delta sign (theta `$ es <: env) <| stack
        | B.O.CUT (sigma, tau) $ [_ \ k, _ \ e] =>
            e <: env <| (k <: env) :: stack
        | B.O.CUSTOM (opid, params, ar) $ _ =>
