@@ -29,6 +29,7 @@ Library
   functor PlainShowAbt
   functor DebugShowAbt
   functor AbtSimpleOperator
+  functor AbtEmptyOperator
 
   signature AST_TO_ABT
   functor AstToAbt

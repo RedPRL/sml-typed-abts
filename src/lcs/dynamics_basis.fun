@@ -26,6 +26,7 @@ struct
 
   type vpat = M.Cl.Abt.symbol O.L.V.t pat
   type kpat = M.Cl.Abt.symbol O.L.K.t pat
+  type dpat = M.Cl.Abt.symbol O.L.D.t pat
 
   local
     infix `$ $$ \

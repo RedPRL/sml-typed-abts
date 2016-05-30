@@ -11,8 +11,9 @@ sig
   type arity = valence list * sort
 
   datatype 'i operator =
-     V of 'i L.V.t
-   | K of 'i L.K.t
+     V of 'i L.V.t (* values *)
+   | K of 'i L.K.t (* continuations *)
+   | D of 'i L.D.t (* definitional extensions *)
    | RET of S.atomic
    | CUT of S.atomic * S.atomic
    | CUSTOM of 'i * ('i * S.atomic) list * L.V.Ar.t
