@@ -56,7 +56,7 @@ end
 
 structure LambdaLang : LCS_LANGUAGE =
 struct
-  structure V = AbtSimpleOperator (LambdaV) and K = AbtSimpleOperator (LambdaK)
+  structure V = AbtSimpleOperator (LambdaV) and K = AbtSimpleOperator (LambdaK) and D = AbtEmptyOperator (UnisortedAbtArity)
   fun input _ = ()
   val opidSort = NONE
 end
