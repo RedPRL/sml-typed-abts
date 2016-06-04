@@ -122,6 +122,14 @@ struct
       o star (step sign)
       o start
 
+  fun stepN sign i =
+    let
+      fun go 0 m = m
+        | go i m = go (i - 1) (step sign m)
+    in
+      run o go i o start
+    end
+
   fun debugTrace sign m =
     let
       fun debugStep s =
