@@ -3,6 +3,7 @@ sig
   structure O : LCS_OPERATOR
   structure M : LCS_MACHINE
     where type 'a Cl.Abt.O.Ar.Vl.Sp.t = 'a list
+    where type 'a K.t = 'a O.L.K.t
 
   structure Sig : LCS_SIGNATURE
     where type valence = O.L.V.Ar.Vl.t
@@ -14,13 +15,11 @@ sig
   sharing type M.Cl.Abt.O.Ar.Vl.S.t = O.S.t
   sharing type O.operator = M.Cl.Abt.O.t
 
-  datatype 'o pat = `$ of 'o * M.expr M.Cl.Abt.bview list
+  type vpat = (M.Cl.Abt.symbol O.L.V.t, M.expr) M.pat
+  type kpat = (M.Cl.Abt.symbol O.L.K.t, M.expr M.Cl.closure) M.pat
+  type dpat = (M.Cl.Abt.symbol O.L.D.t, M.expr) M.pat
 
-  type vpat = M.Cl.Abt.symbol O.L.V.t pat
-  type kpat = M.Cl.Abt.symbol O.L.K.t pat
-  type dpat = M.Cl.Abt.symbol O.L.D.t pat
-
-  val plug : Sig.t -> (vpat * kpat) M.Cl.closure -> M.stack -> M.expr M.state
+  val plug : Sig.t -> vpat M.Cl.closure * kpat -> M.stack -> M.expr M.state
 
   (* Delta expansion / expansion of definitional extensions *)
   val delta : Sig.t -> dpat M.Cl.closure -> M.expr M.Cl.closure

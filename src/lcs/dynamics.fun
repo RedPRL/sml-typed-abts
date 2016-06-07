@@ -10,30 +10,53 @@ struct
   fun @@ (f, x) = f x
   infix 0 @@
 
+  fun unquote (theta `$ cls) =
+    theta $$ List.map (fn bs \ cl => bs \ force cl) cls
+
+  fun unquoteK ((theta `$ cls) : cont) =
+    B.O.K theta $$ List.map (fn bs \ cl => bs \ force cl) cls
+
+  fun quoteK k =
+    case out k of
+       B.O.K theta $ es => theta `$ es
+     | _ => raise Fail "Expected continuation"
+
+  fun quoteV k =
+    case out k of
+       B.O.V theta $ es => theta `$ es
+     | _ => raise Fail "Expected value"
 
   (* To take an intermediate state and turn it into a term *)
   fun run (s : expr state) : expr =
     case s of
        cl |> [] => force cl
      | cl <| [] => force cl
-     | m <: env <| ((k <: env') :: stack) =>
-         (case sort k of
-             B.O.S.CONT (sigma, tau) =>
-               let
-                 val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
-               in
-                 run @@ m' <: env' <| stack
-               end
-           | _ => raise Fail "Expected continuation sort")
-     | m <: env |> ((k <: env') :: stack) =>
-         (case sort k of
-             B.O.S.CONT (sigma, tau) =>
-               let
-                 val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ force (m <: env)]
-               in
-                 run @@ m' <: env' |> stack
-               end
-           | _ => raise Fail "Expected continuation sort")
+     | m <: env <| (k :: stack) =>
+         let
+           val k' = unquoteK k
+         in
+           case sort k' of
+              B.O.S.CONT (sigma, tau) =>
+                let
+                  val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ unquoteK k, ([],[]) \ force (m <: env)]
+                in
+                  run @@ m' <: env <| stack
+                end
+            | _ => raise Fail "Expected continuation sort"
+         end
+     | m <: env |> (k :: stack) =>
+         let
+           val k' = unquoteK k
+         in
+           case sort k' of
+              B.O.S.CONT (sigma, tau) =>
+                let
+                  val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ unquoteK k, ([],[]) \ force (m <: env)]
+                in
+                  run @@ m' <: env |> stack
+                end
+            | _ => raise Fail "Expected continuation sort"
+         end
 
   structure Pattern = Pattern (Abt)
   structure Unify = AbtLinearUnification (structure Abt = Abt and Pattern = Pattern)
@@ -50,18 +73,9 @@ struct
     end
 
 
-  fun quoteK k =
-    case out k of
-       B.O.K theta $ es => theta `$ es
-     | _ => raise Fail "Expected continuation"
-
-  fun quoteV k =
-    case out k of
-       B.O.V theta $ es => theta `$ es
-     | _ => raise Fail "Expected value"
-
-  fun step sign (m <: env <| stack) =
+  fun step sign (st as (m <: env <| stack)) =
     let
+      val _ = print @@ M.toString st ^ "\n"
       val (mrho, srho, vrho) = env
     in
       case out m of
@@ -79,7 +93,12 @@ struct
        | B.O.D theta $ es =>
            B.delta sign (theta `$ es <: env) <| stack
        | B.O.CUT (sigma, tau) $ [_ \ k, _ \ e] =>
-           e <: env <| (k <: env) :: stack
+           let
+             val theta `$ es = quoteK k
+             val k' = theta `$ List.map (fn bs \ m => bs \ (m <: env)) es
+           in
+             e <: env <| k' :: stack
+           end
        | B.O.CUSTOM (opid, params, ar) $ _ =>
            let
              open Unify infix <*>
@@ -97,8 +116,13 @@ struct
            end
        | _ => raise Fail "Expected expression"
     end
-    | step sign (m <: env |> []) = m <: env |> []
-    | step sign (m <: env |> (k <: env') :: stack) =
+    | step sign (st as (m <: env |> [])) =
+      let
+        val _ = print @@ M.toString st ^ "\n"
+      in
+        m <: env |> []
+      end
+    | step sign (st as (m <: env |> k :: stack)) =
         let
           (* If we are in |> mode, then we may assume that we have got either
              a value or a neutral term. If the former, then [tryPlug] will use the
@@ -108,13 +132,18 @@ struct
              working our way through the stack. *)
           fun tryPlug () =
             case out m of
-               B.O.RET sigma $ [_ \ n] => B.plug sign ((quoteV n, quoteK k) <: env') stack
+               B.O.RET sigma $ [_ \ n] => B.plug sign (quoteV n <: env, k) stack
              | _ => raise Fail "Expected value"
         in
-          tryPlug () handle _ =>
-            (case sort k of
-                B.O.S.CONT (sigma, tau) => B.O.CUT (sigma, tau) $$ [([],[]) \ k, ([],[]) \ m] <: env' |> stack
-              | _ => raise Fail "Expected continuation sort")
+          tryPlug ()
+          handle _ =>
+            let
+              val k' = unquoteK k
+            in
+              (case sort k' of
+                  B.O.S.CONT (sigma, tau) => B.O.CUT (sigma, tau) $$ [([],[]) \ k', ([],[]) \ m] <: env |> stack
+                | _ => raise Fail "Expected continuation sort")
+            end
         end
 
   fun eval sign =

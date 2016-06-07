@@ -74,7 +74,7 @@ struct
 
   infix @@
   infix 1 <| |>
-  infix 2 <:
+  infix 3 <:
   infix 3 $ $$ `$
   infix 2 \
 
@@ -87,29 +87,30 @@ struct
   fun delta sign _ =
     raise Fail "Impossible"
 
-  fun plug sign ((v, k) <: env) st =
+  fun plug sign (v <: env, k) st =
     case (v, k) of
        (LAM `$ [(_, [x]) \ mx], AP `$ [_ \ n]) =>
          let
-           val env' = pushV (n <: env, x) env
+           val env' = pushV (n, x) env
          in
            mx <: env' <| st
          end
-     | (PAIR `$ [_ \ m1, _ \ m2], SPREAD `$ [(_, [x,y]) \ nxy]) =>
+     | (PAIR `$ [_ \ m1, _ \ m2], SPREAD `$ [(_, [x,y]) \ nxy <: env']) =>
          let
-           val env' = pushV (m1 <: env, x) @@ pushV (m2 <: env, y) env
+           val env'' = pushV (m1 <: env, x) @@ pushV (m2 <: env, y) env'
          in
-           nxy <: env' <| st
+           nxy <: env'' <| st
          end
-     | (pat, KPAIR P1 `$ [_ \ n]) =>
+     | (pat, KPAIR P1 `$ [_ \ n <: envN]) =>
          let
            val m0 = ret (unquoteV pat)
-           val k = O.K (KPAIR P2) $$ [([],[]) \ m0] <: env
+           val k = KPAIR P2 `$ [([],[]) \ m0 <: env]
          in
-           n <: env <| k :: st
+           n <: envN <| k :: st
          end
-     | (pat, KPAIR P2 `$ [_ \ m0]) =>
+     | (pat, KPAIR P2 `$ [_ \ m0 <: envM0]) =>
          let
+           (* TODO: what to do with envM0? *)
            val n0 = ret @@ unquoteV pat
            val p = ret @@ O.V PAIR $$ [([],[]) \ m0, ([],[]) \ n0]
          in
