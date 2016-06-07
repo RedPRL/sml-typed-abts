@@ -11,5 +11,7 @@ sig
   val eval : Sig.t -> M.expr -> M.expr
   val stepN : Sig.t -> int -> M.expr -> M.expr
 
+  val forceExplicitSubst : M.expr -> M.expr
+
   val debugTrace : Sig.t -> M.expr -> unit
 end

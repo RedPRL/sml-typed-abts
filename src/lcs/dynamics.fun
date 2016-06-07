@@ -26,37 +26,40 @@ struct
        B.O.V theta $ es => theta `$ es
      | _ => raise Fail "Expected value"
 
-  (* To take an intermediate state and turn it into a term *)
-  fun run (s : expr state) : expr =
-    case s of
-       cl |> [] => force cl
-     | cl <| [] => force cl
-     | m <: env <| (k :: stack) =>
+  fun forceExplicitSubst m =
+    case Abt.out m of
+       B.O.ESUBST (syms, _, _) $ ((us, xs) \ m') :: ns =>
          let
-           val k' = unquoteK k
+           val vs = List.map #1 syms
+           val vrho = ListPair.foldlEq (fn (x, _ \ n, r) => Abt.Var.Ctx.insert r x (forceExplicitSubst n)) Abt.Var.Ctx.empty (xs, ns)
+           val srho = ListPair.foldlEq (fn (u, v, r) => Abt.Sym.Ctx.insert r u v) Abt.Sym.Ctx.empty (us, vs)
          in
-           case sort k' of
-              B.O.S.CONT (sigma, tau) =>
-                let
-                  val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ unquoteK k, ([],[]) \ force (m <: env)]
-                in
-                  run @@ m' <: env <| stack
-                end
-            | _ => raise Fail "Expected continuation sort"
+           Abt.renameEnv srho (Abt.substEnv vrho m')
          end
-     | m <: env |> (k :: stack) =>
-         let
-           val k' = unquoteK k
-         in
-           case sort k' of
-              B.O.S.CONT (sigma, tau) =>
-                let
-                  val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ unquoteK k, ([],[]) \ force (m <: env)]
-                in
-                  run @@ m' <: env |> stack
-                end
-            | _ => raise Fail "Expected continuation sort"
-         end
+     | _ => m
+
+  local
+    val rec unload =
+      fn (cl, []) => forceExplicitSubst (force cl)
+       | (m <: env, k :: stack) =>
+           let
+             val k' = unquoteK k
+           in
+             case sort k' of
+                B.O.S.CONT (sigma, tau) =>
+                  let
+                    val m' = B.O.CUT (sigma, tau) $$ [([],[]) \ unquoteK k, ([],[]) \ force (m <: env)]
+                  in
+                    unload (m' <: env, stack)
+                  end
+              | _ => raise Fail "Expected continuation sort"
+           end
+  in
+    (* To take an intermediate state and turn it into a term *)
+    val run =
+      fn cl |> stack => unload (cl, stack)
+       | cl <| stack => unload (cl, stack)
+  end
 
   structure Pattern = Pattern (Abt)
   structure Unify = AbtLinearUnification (structure Abt = Abt and Pattern = Pattern)
@@ -72,14 +75,15 @@ struct
       into @@ theta $@ List.map (fn (x,_) => MVAR x) arguments
     end
 
-
+  structure ShowAbt = DebugShowAbt (Abt)
   fun step sign (st as (m <: env <| stack)) =
     let
       val _ = print @@ M.toString st ^ "\n"
+      val m' = forceExplicitSubst m
       val (mrho, srho, vrho) = env
     in
-      case out m of
-         `x => (Var.Ctx.lookup vrho x <| stack handle _ => m <: env |> stack)
+      case out m' of
+         `x => (Var.Ctx.lookup vrho x <| stack handle _ => m' <: env |> stack)
        | x $# (us, ms) =>
            let
              val e <: (mrho', srho', vrho') = Metavar.Ctx.lookup mrho x
@@ -89,7 +93,7 @@ struct
            in
              m <: (mrho', srho'', vrho'') <| stack
            end
-       | B.O.RET sigma $ [_ \ n] => m <: env |> stack
+       | B.O.RET sigma $ [_ \ n] => m' <: env |> stack
        | B.O.D theta $ es =>
            B.delta sign (theta `$ es <: env) <| stack
        | B.O.CUT (sigma, tau) $ [_ \ k, _ \ e] =>
@@ -105,7 +109,7 @@ struct
              val def as {definiens, ...} = Sig.lookup sign opid
              val pat = patternFromDef (opid, ar) def
 
-             val (srho', mrho') = unify (pat <*> m)
+             val (srho', mrho') = unify (pat <*> m')
              val srho'' = SymEnvUtil.union (srho, srho)
              val mrho'' =
                Metavar.Ctx.union mrho
@@ -114,13 +118,13 @@ struct
            in
              definiens <: (mrho'', srho'', vrho) <| stack
            end
-       | _ => raise Fail "Expected expression"
+       | _ => raise Fail @@ "Expected expression, but got: " ^ ShowAbt.toString m'
     end
     | step sign (st as (m <: env |> [])) =
       let
         val _ = print @@ M.toString st ^ "\n"
       in
-        m <: env |> []
+        forceExplicitSubst m <: env |> []
       end
     | step sign (st as (m <: env |> k :: stack)) =
         let
@@ -131,7 +135,7 @@ struct
              either neutral or stuck, we will re-wrap it in the continuation and continue
              working our way through the stack. *)
           fun tryPlug () =
-            case out m of
+            case out (forceExplicitSubst m) of
                B.O.RET sigma $ [_ \ n] => B.plug sign (quoteV n <: env, k) stack
              | _ => raise Fail "Expected value"
         in
