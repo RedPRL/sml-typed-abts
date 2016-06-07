@@ -14,6 +14,7 @@ struct
    | D of 'i D.t
    | RET of S.atomic
    | CUT of S.atomic * S.atomic
+   | ESUBST of ('i * S.atomic) list * S.atomic list * S.atomic
    | CUSTOM of 'i * ('i * S.atomic) list * L.V.Ar.t
 
   structure V = V and K = K
@@ -50,6 +51,13 @@ struct
          ([(([],[]), S.CONT (sigma, tau)),
            (([],[]), S.EXP sigma)],
           S.EXP tau)
+     | ESUBST (us, taus, tau) =>
+        let
+          val vl = ((List.map #2 us, taus), tau)
+          val args = List.map (fn tau => (([],[]), S.EXP tau)) taus
+        in
+          ([mapValence S.EXP vl] @ args, S.EXP tau)
+        end
      | CUSTOM (_, _, (vls, sigma)) =>
          (List.map (mapValence S.EXP) vls, S.EXP sigma)
 
@@ -81,6 +89,14 @@ struct
         f (opid1, opid2)
           andalso ListPair.allEq (fn ((u, sigma), (v, tau)) => f (u, v) andalso S.AtomicSort.eq (sigma, tau)) (supp1, supp2)
           andalso V.Ar.eq (arity1, arity2)
+     | (ESUBST (us1, taus1, tau1), ESUBST (us2, taus2, tau2)) =>
+         let
+           val vl1 = ((List.map #2 us1, taus1), tau1)
+           val vl2 = ((List.map #2 us2, taus2), tau2)
+         in
+           ListPair.allEq (fn ((u, _), (v, _)) => f (u, v)) (us1, us2)
+             andalso V.Ar.Vl.eq (vl1, vl2)
+         end
      | _ => false
 
   fun toString f =
@@ -89,6 +105,7 @@ struct
      | D theta => D.toString f theta
      | RET _ => "ret"
      | CUT _ => "cut"
+     | ESUBST _ => "subst"
      | CUSTOM (opid, supp : ('i * S.atomic) list, _) =>
          let
            fun params [] = ""
@@ -103,5 +120,6 @@ struct
      | D theta => D (D.map f theta)
      | RET sigma => RET sigma
      | CUT (sigma, tau) => CUT (sigma, tau)
+     | ESUBST (us, taus, tau) => ESUBST (List.map (fn (u, sigma) => (f u, sigma)) us, taus, tau)
      | CUSTOM (opid, supp, arity) => CUSTOM (f opid, List.map (fn (u, tau) => (f u, tau)) supp, arity)
 end

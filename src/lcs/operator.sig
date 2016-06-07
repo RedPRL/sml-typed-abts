@@ -14,8 +14,9 @@ sig
      V of 'i L.V.t (* values *)
    | K of 'i L.K.t (* continuations *)
    | D of 'i L.D.t (* definitional extensions *)
-   | RET of S.atomic
-   | CUT of S.atomic * S.atomic
+   | RET of S.atomic (* canonical express *)
+   | CUT of S.atomic * S.atomic (* cut expression / application of a continuation *)
+   | ESUBST of ('i * S.atomic) list * S.atomic list * S.atomic (* explicit substitution of variables & renaming symbols *)
    | CUSTOM of 'i * ('i * S.atomic) list * L.V.Ar.t
 
   include ABT_OPERATOR
