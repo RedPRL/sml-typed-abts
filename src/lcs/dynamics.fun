@@ -78,7 +78,6 @@ struct
   structure ShowAbt = DebugShowAbt (Abt)
   fun step sign (st as (m <: env <| stack)) =
     let
-      val _ = print @@ M.toString st ^ "\n"
       val m' = forceExplicitSubst m
       val (mrho, srho, vrho) = env
     in
@@ -120,12 +119,7 @@ struct
            end
        | _ => raise Fail @@ "Expected expression, but got: " ^ ShowAbt.toString m'
     end
-    | step sign (st as (m <: env |> [])) =
-      let
-        val _ = print @@ M.toString st ^ "\n"
-      in
-        forceExplicitSubst m <: env |> []
-      end
+    | step sign (st as (m <: env |> [])) = forceExplicitSubst m <: env |> []
     | step sign (st as (m <: env |> k :: stack)) =
         let
           (* If we are in |> mode, then we may assume that we have got either
