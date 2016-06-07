@@ -2,11 +2,14 @@
 signature LCS_MACHINE =
 sig
   structure Cl : LCS_CLOSURE
+  structure K : ABT_OPERATOR
 
-  type cont = Cl.Abt.abt
+  datatype ('o, 'a) pat = `$ of 'o * 'a Cl.Abt.bview list
+
   type expr = Cl.Abt.abt
 
-  type stack = cont Cl.closure list
+  type cont = (Cl.Abt.symbol K.t, expr Cl.closure) pat
+  type stack = cont list
 
   (* Our stack machine has two phases of execution. In [c <| S], we are trying
      to run the control term [c] down to a final form. When [c |> S], we know

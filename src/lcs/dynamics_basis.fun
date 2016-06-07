@@ -7,7 +7,7 @@ struct
   structure Sig = LcsSignature (structure L = L and Abt = Abt)
 
   structure M = LcsMachine
-    (structure Cl = Cl
+    (structure Cl = Cl and K = L.K
      open O Cl Abt infix $ $# \ <:
 
      fun isNeutral (r <: (env as (mrho, srho, vrho))) =
@@ -22,15 +22,13 @@ struct
           RET _ $ _ => true
         | _ => isNeutral (m <: env))
 
-  datatype 'o pat = `$ of 'o * M.expr M.Cl.Abt.bview list
-
-  type vpat = M.Cl.Abt.symbol O.L.V.t pat
-  type kpat = M.Cl.Abt.symbol O.L.K.t pat
-  type dpat = M.Cl.Abt.symbol O.L.D.t pat
+  type vpat = (M.Cl.Abt.symbol O.L.V.t, M.expr) M.pat
+  type kpat = (M.Cl.Abt.symbol O.L.K.t, M.expr Cl.closure) M.pat
+  type dpat = (M.Cl.Abt.symbol O.L.D.t, M.expr) M.pat
 
   local
     infix `$ $$ \
-    open O Abt
+    open O Abt M
   in
     fun unquoteV (theta `$ es) =
       V theta $$ es
