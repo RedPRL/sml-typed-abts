@@ -17,17 +17,23 @@ struct
 
   structure MetaCtxUtil = ContextUtil (structure Ctx = Abt.Metavar.Ctx and Elem = Abt.O.Ar.Vl)
 
+  fun subctx psi1 psi2 =
+    Abt.Metavar.Ctx.foldl
+      (fn (x, vl, r) =>
+         Abt.O.Ar.Vl.eq (vl, Abt.Metavar.Ctx.lookup psi2 x)
+           handle _ => false)
+      true
+      psi1
+
   (* a rewrite rule is valid in case the definiens is well-formed under
    * metavariable context induced by the definiendum *)
   fun into (p ~> m) =
     let
       val (_, psi) = Pattern.out p
       val psi' = Abt.metactx m
-      (* Ensure that the metacontexts are compatible *)
-      val psi'' = MetaCtxUtil.union (psi, psi')
       val gamma = Abt.varctx m
     in
-      if Abt.Var.Ctx.isEmpty gamma then
+      if Abt.Var.Ctx.isEmpty gamma andalso subctx psi' psi then
         RULE (p ~> m)
       else
         raise InvalidRule
