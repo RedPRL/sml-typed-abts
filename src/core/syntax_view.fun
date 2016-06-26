@@ -11,12 +11,14 @@ struct
   val debugToString = DebugShow.toString
 end
 
-functor AstSyntaxView (Ast : AST where type 'a spine = 'a list) : ABT_SYNTAX_VIEW =
+functor AstSyntaxView
+  (structure Ast : AST where type 'a spine = 'a list
+   type sort) : ABT_SYNTAX_VIEW_INTO =
 struct
   type symbol = Ast.symbol
   type variable = Ast.variable
   type metavariable = Ast.metavariable
-  type sort = unit
+  type sort = sort
   type 'a operator = 'a Ast.operator
   type 'a spine = 'a Ast.spine
 
@@ -38,14 +40,6 @@ struct
 
   fun $$ (th, es) =
     check ($ (th, es), ())
-
-  val out =
-    fn Ast.`x => `x
-     | Ast.$ (th, es) => $ (th, List.map (fn Ast.\ ((us, xs), m) => \ ((us, xs), m)) es)
-     | Ast.$# (x, (us, ms)) => $# (x, (List.map (fn u => (u, ())) us, ms))
-
-  fun infer m =
-    (out m, ())
 
   val toString = Ast.toString
   val debugToString = Ast.toString

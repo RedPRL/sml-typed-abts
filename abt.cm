@@ -12,6 +12,7 @@ Library
   signature ABT_ARITY
   signature UNISORTED_ABT_ARITY
   signature CONTEXT_UTIL
+  signature ABT_SYNTAX_VIEW_INTO
   signature ABT_SYNTAX_VIEW
 
   functor AbtSymbol

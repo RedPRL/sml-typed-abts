@@ -1,4 +1,4 @@
-signature ABT_SYNTAX_VIEW =
+signature ABT_SYNTAX_VIEW_INTO =
 sig
   type symbol
   type variable
@@ -18,12 +18,17 @@ sig
    | $# of metavariable * ((symbol * sort) spine * 'a spine)
 
   val check : term view * sort -> term
-  val infer : term -> term view * sort
-  
-  val $$ : symbol operator * term bview spine -> term
 
-  val out : term -> term view
+  val $$ : symbol operator * term bview spine -> term
 
   val debugToString : term -> string
   val toString : term -> string
+end
+
+signature ABT_SYNTAX_VIEW =
+sig
+  include ABT_SYNTAX_VIEW_INTO
+
+  val infer : term -> term view * sort
+  val out : term -> term view
 end
