@@ -20,4 +20,7 @@ sig
   val check : term view * sort -> term
   val $$ : symbol operator * term bview spine -> term
   val out : term -> term view
+
+  val debugToString : term -> string
+  val toString : term -> string
 end
