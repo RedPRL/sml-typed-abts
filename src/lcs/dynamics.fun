@@ -5,7 +5,7 @@ struct
   open O O.L Abt M M.Cl
 
   infix 3 $ $$ $# `$ \ <:
-  infix 1 <| |>
+  infix 1 <| |> ?|>
 
   fun @@ (f, x) = f x
   infix 0 @@
@@ -58,6 +58,7 @@ struct
     (* To take an intermediate state and turn it into a term *)
     val run =
       fn cl |> stack => unload (cl, stack)
+       | cl ?|> stack => unload (cl, stack)
        | cl <| stack => unload (cl, stack)
   end
 
@@ -76,6 +77,7 @@ struct
     end
 
   structure ShowAbt = DebugShowAbt (Abt)
+
   fun step sign (st as (m <: env <| stack)) =
     let
       val m' = forceExplicitSubst m
@@ -140,6 +142,28 @@ struct
             in
               (case sort k' of
                   B.O.S.CONT (sigma, tau) => B.O.CUT (sigma, tau) $$ [([],[]) \ k', ([],[]) \ m] <: env |> stack
+                | _ => raise Fail "Expected continuation sort")
+            end
+        end
+    | step sign (st as (m <: env ?|> [])) =
+       forceExplicitSubst m <: env ?|> []
+    | step sign (st as (m <: env ?|> k :: stack)) =
+        let
+          fun tryCatch () =
+            case out (forceExplicitSubst m) of
+               B.O.RET sigma $ [_ \ n] =>
+                 (case B.catch sign (quoteV n <: env, k) stack of
+                     SOME result => result
+                   | NONE => m <: env ?|> stack)
+             | _ => raise Fail "Expected value"
+        in
+          tryCatch ()
+          handle _ =>
+            let
+              val k' = unquoteK k
+            in
+              (case sort k' of
+                  B.O.S.CONT (sigma, tau) => B.O.CUT (sigma, tau) $$ [([],[]) \ k', ([],[]) \ m] <: env ?|> stack
                 | _ => raise Fail "Expected continuation sort")
             end
         end

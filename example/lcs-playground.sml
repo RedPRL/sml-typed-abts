@@ -87,6 +87,9 @@ struct
   fun delta sign _ =
     raise Fail "Impossible"
 
+  fun catch _ _ _ =
+    NONE
+
   fun plug sign (v <: env, k) st =
     case (v, k) of
        (LAM `$ [(_, [x]) \ mx], AP `$ [_ \ n]) =>
