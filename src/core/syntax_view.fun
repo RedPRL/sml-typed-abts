@@ -44,6 +44,9 @@ struct
      | Ast.$ (th, es) => $ (th, List.map (fn Ast.\ ((us, xs), m) => \ ((us, xs), m)) es)
      | Ast.$# (x, (us, ms)) => $# (x, (List.map (fn u => (u, ())) us, ms))
 
+  fun infer m =
+    (out m, ())
+
   val toString = Ast.toString
   val debugToString = Ast.toString
 end

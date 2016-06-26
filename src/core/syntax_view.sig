@@ -18,7 +18,10 @@ sig
    | $# of metavariable * ((symbol * sort) spine * 'a spine)
 
   val check : term view * sort -> term
+  val infer : term -> term view * sort
+  
   val $$ : symbol operator * term bview spine -> term
+
   val out : term -> term view
 
   val debugToString : term -> string
