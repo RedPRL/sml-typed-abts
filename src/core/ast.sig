@@ -1,4 +1,4 @@
-  signature AST =
+signature AST =
 sig
   type 'i operator
   type 'a spine
