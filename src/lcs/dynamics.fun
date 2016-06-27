@@ -58,7 +58,7 @@ struct
     (* To take an intermediate state and turn it into a term *)
     val run =
       fn cl |> stack => unload (cl, stack)
-       | cl ?|> stack => unload (cl, stack)
+       | cl ?|> stack => unload (Cl.map B.throw cl, stack)
        | cl <| stack => unload (cl, stack)
   end
 
