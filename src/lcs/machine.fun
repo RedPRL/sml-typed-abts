@@ -17,8 +17,9 @@ struct
   datatype 'a state =
       <| of 'a Cl.closure * stack
     | |> of 'a Cl.closure * stack
+    | ?|> of 'a Cl.closure * stack
 
-  infix 1 <| |>
+  infix 1 <| |> ?|>
   infix 2 <:
   infix `$
 
@@ -28,6 +29,7 @@ struct
   val closureIsFinal = isFinal
 
   fun isFinal (cl |> []) = closureIsFinal cl
+    | isFinal (cl ?|> []) = closureIsFinal cl
     | isFinal _ = false
 
   fun star step st =
@@ -39,6 +41,7 @@ struct
   fun map f =
     fn cl <| st => Cl.map f cl <| st
      | cl |> st => Cl.map f cl |> st
+     | cl ?|> st => Cl.map f cl ?|> st
 
 
   local
@@ -61,4 +64,5 @@ struct
   val toString =
     fn cl <| st => Cl.toString cl ^ " <| " ^ stackToString st
      | cl |> st => Cl.toString cl ^ " |> " ^ stackToString st
+     | cl ?|> st => Cl.toString cl ^ " ?|> " ^ stackToString st
 end

@@ -21,6 +21,8 @@ sig
 
   val plug : Sig.t -> vpat M.Cl.closure * kpat -> M.stack -> M.expr M.state
 
+  val catch : Sig.t -> vpat M.Cl.closure * kpat -> M.stack -> M.expr M.state option
+
   (* Delta expansion / expansion of definitional extensions *)
   val delta : Sig.t -> dpat M.Cl.closure -> M.expr M.Cl.closure
 end
