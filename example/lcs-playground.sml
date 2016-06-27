@@ -90,6 +90,9 @@ struct
   fun catch _ _ _ =
     NONE
 
+  fun throw _ =
+    raise Fail "unimplemented"
+
   fun plug sign (v <: env, k) st =
     case (v, k) of
        (LAM `$ [(_, [x]) \ mx], AP `$ [_ \ n]) =>
