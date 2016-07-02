@@ -46,14 +46,19 @@ struct
 
   and decodeApp env ctx =
     fn J.Obj [("op", theta), ("args", args)] =>
-        (Option.valOf (decodeOperator theta), decodeArguments env ctx args)
+        let
+          val theta = Option.valOf (decodeOperator theta)
+          val (vls, _) = Abt.O.arity theta
+        in
+          (theta, decodeArguments env ctx vls args)
+        end
      | _ => raise DecodeAbt
 
   and encodeArguments es =
     J.Array (map encodeB es)
 
-  and decodeArguments env ctx =
-    fn J.Array es => map (decodeB env ctx) es
+  and decodeArguments env ctx vls =
+    fn J.Array es => ListPair.map (fn (e, vl) => decodeB env ctx vl e) (es, vls)
      | _ => raise DecodeAbt
 
   and encodeMetaApp (x, us, ms) =
@@ -75,9 +80,30 @@ struct
        ("vars", J.Array (map encodeVar xs)),
        ("body", encode m)]
 
-  and decodeB (env : env) (ctx : ctx) =
+  and decodeB (env : env) (ctx : ctx) valence =
     fn J.Obj [("syms", J.Array syms), ("vars", J.Array vars), ("body", body)] =>
-         Abt.\ ((map (decodeSym env) syms, map (decodeVar env) vars), decode env ctx body)
+         let
+           val getStr =
+             fn J.String a => a
+              | _ => raise DecodeAbt
+
+           val ((ssorts, vsorts), _) = valence
+           val us = map (Abt.Sym.named o getStr) syms
+           val xs = map (Abt.Var.named o getStr) vars
+
+           val (menv, senv, venv) = env
+           val senv' = foldl (fn (u, r) => NameEnv.insert r (Abt.Sym.toString u) u) senv us
+           val venv' = foldl (fn (x, r) => NameEnv.insert r (Abt.Var.toString x) x) venv xs
+           val env' = (menv, senv', venv')
+
+           val (mctx, sctx, vctx) = ctx
+           val sctx' = ListPair.foldl (fn (u, sigma, r) => Abt.Sym.Ctx.insert r u sigma) sctx (us, ssorts)
+           val vctx' = ListPair.foldl (fn (x, sigma, r) => Abt.Var.Ctx.insert r x sigma) vctx (xs, vsorts)
+
+           val ctx' = (mctx, sctx', vctx')
+         in
+           Abt.\ ((us, xs), decode env' ctx' body)
+         end
      | _ => raise DecodeAbt
 
   and encode m =
