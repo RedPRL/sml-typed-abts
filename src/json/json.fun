@@ -1,7 +1,7 @@
 functor AbtJson (Kit : ABT_JSON_KIT) : ABT_JSON =
 struct
   open Kit
-  exception DecodeAbt
+  exception DecodeAbt of string
 
   structure J = Json
   structure NameEnv = SplayDict (structure Key = StringOrdered)
@@ -19,16 +19,16 @@ struct
     J.String o Abt.Sym.toString
 
   fun decodeMetavar (rho, _, _) =
-    fn J.String u => NameEnv.lookup rho u
-     | _ => raise DecodeAbt
+    fn J.String u => (NameEnv.lookup rho u handle _ => raise DecodeAbt ("Metavar " ^ u ^ " not in environment"))
+     | m => raise DecodeAbt ("Metavar: expected String, but got " ^ J.toString m)
 
   fun decodeVar (_, _, rho) =
-    fn J.String u => NameEnv.lookup rho u
-     | _ => raise DecodeAbt
+    fn J.String u => (NameEnv.lookup rho u handle _ => raise DecodeAbt ("Var " ^ u ^ " not in environment"))
+     | m => raise DecodeAbt ("Var: expected String, but got " ^ J.toString m)
 
   fun decodeSym (_, rho, _) =
-    fn J.String u => NameEnv.lookup rho u
-     | _ => raise DecodeAbt
+    fn J.String u => (NameEnv.lookup rho u handle _ => raise DecodeAbt ("Sym " ^ u ^ " not in environment"))
+     | m => raise DecodeAbt ("Sym: expected String, but got " ^ J.toString m)
 
   fun encodeSymAnn (u, sigma) =
     J.Obj
@@ -36,8 +36,11 @@ struct
        ("sort", encodeSort sigma)]
 
   fun decodeSymAnn env =
-    fn J.Obj [("sym", u), ("sort", sigma)] => (decodeSym env u, Option.valOf (decodeSort u))
-     | _ => raise DecodeAbt
+    fn J.Obj [("sym", u), ("sort", sigma)] =>
+         (decodeSym env u,
+          Option.valOf (decodeSort u)
+            handle _ => raise DecodeAbt ("Failed to decode sort " ^ J.toString sigma))
+     | m => raise DecodeAbt ("SymAnn: failed to decode " ^ J.toString m)
 
   fun encodeApp (theta, es) =
     J.Obj
@@ -45,21 +48,20 @@ struct
        ("args", encodeArguments es)]
 
   and decodeApp env ctx =
-    fn J.Obj [("op", theta), ("args", args)] =>
+    fn J.Obj [("op", theta), ("args", J.Array args)] =>
         let
-          val theta = Option.valOf (decodeOperator theta)
+          val theta = Option.valOf (decodeOperator theta) handle _ => raise DecodeAbt ("Failed to decode operator " ^ J.toString theta)
           val (vls, _) = Abt.O.arity theta
         in
           (theta, decodeArguments env ctx vls args)
         end
-     | _ => raise DecodeAbt
+     | m => raise DecodeAbt ("App: failed to decode " ^ J.toString m)
 
   and encodeArguments es =
     J.Array (map encodeB es)
 
-  and decodeArguments env ctx vls =
-    fn J.Array es => ListPair.map (fn (e, vl) => decodeB env ctx vl e) (es, vls)
-     | _ => raise DecodeAbt
+  and decodeArguments env ctx vls es =
+    ListPair.map (fn (e, vl) => decodeB env ctx vl e) (es, vls)
 
   and encodeMetaApp (x, us, ms) =
     J.Obj
@@ -72,7 +74,7 @@ struct
          (decodeMetavar env metavar,
           map (decodeSymAnn env) syms,
           map (decode env ctx) args)
-     | _ => raise DecodeAbt
+     | m => raise DecodeAbt ("MetaApp: failed to decode " ^ J.toString m)
 
   and encodeB (Abt.\ ((us, xs), m)) =
     J.Obj
@@ -85,7 +87,7 @@ struct
          let
            val getStr =
              fn J.String a => a
-              | _ => raise DecodeAbt
+              | m => raise DecodeAbt ("Expected String but got " ^ J.toString m)
 
            val ((ssorts, vsorts), _) = valence
            val us = map (Abt.Sym.named o getStr) syms
@@ -104,7 +106,7 @@ struct
          in
            Abt.\ ((us, xs), decode env' ctx' body)
          end
-     | _ => raise DecodeAbt
+     | m => raise DecodeAbt ("Binding: failed to decode " ^ J.toString m)
 
   and encode m =
     case Abt.out m of
@@ -127,5 +129,5 @@ struct
          in
            Abt.check (Abt.$# (x, (us, ms)), tau)
          end
-     | _ => raise DecodeAbt
+     | m => raise DecodeAbt ("Abt: failed to decode " ^ J.toString m)
 end

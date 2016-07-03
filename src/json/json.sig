@@ -10,7 +10,7 @@ sig
   val encode : Abt.abt -> Json.json_value
   val decode : env -> ctx -> Json.json_value -> Abt.abt
 
-  exception DecodeAbt
+  exception DecodeAbt of string
 end
 
 signature ABT_JSON_KIT =
