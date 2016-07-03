@@ -1,4 +1,7 @@
-Group
+Library
+  signature ABT_JSON
+  signature ABT_JSON_KIT
+  functor AbtJson
 is
   abt.cm
   $libs/cmlib/cmlib.cm
