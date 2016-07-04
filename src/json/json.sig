@@ -20,6 +20,6 @@ sig
   val encodeSort : Abt.sort -> Json.json_value
   val decodeSort : Json.json_value -> Abt.sort option
 
-  val encodeOperator : Abt.operator -> Json.json_value
-  val decodeOperator : Json.json_value -> Abt.operator option
+  val encodeOperator : ('a -> Json.json_value) -> 'a Abt.O.t -> Json.json_value
+  val decodeOperator : (Json.json_value -> 'a option) -> Json.json_value -> 'a Abt.O.t option
 end

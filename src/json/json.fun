@@ -44,13 +44,13 @@ struct
 
   fun encodeApp (theta, es) =
     J.Obj
-      [("op", encodeOperator theta),
+      [("op", encodeOperator encodeSym theta),
        ("args", encodeArguments es)]
 
   and decodeApp env ctx =
     fn J.Obj [("op", theta), ("args", J.Array args)] =>
         let
-          val theta = Option.valOf (decodeOperator theta) handle _ => raise DecodeAbt ("Failed to decode operator " ^ J.toString theta)
+          val theta = Option.valOf (decodeOperator (SOME o decodeSym env) theta) handle _ => raise DecodeAbt ("Failed to decode operator " ^ J.toString theta)
           val (vls, _) = Abt.O.arity theta
         in
           (theta, decodeArguments env ctx vls args)
