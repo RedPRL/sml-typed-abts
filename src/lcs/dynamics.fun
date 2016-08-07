@@ -132,7 +132,7 @@ struct
              working our way through the stack. *)
           fun tryPlug () =
             case out (forceExplicitSubst m) of
-               B.O.RET sigma $ [_ \ n] => B.plug sign (quoteV n <: env, k) stack
+               B.O.RET sigma $ [(us, []) \ n] => B.plug sign ((us, quoteV n <: env), k) stack
              | _ => raise Fail "Expected value"
         in
           tryPlug ()

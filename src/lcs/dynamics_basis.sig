@@ -19,7 +19,7 @@ sig
   type kpat = (M.Cl.Abt.symbol O.L.K.t, M.expr M.Cl.closure) M.pat
   type dpat = (M.Cl.Abt.symbol O.L.D.t, M.expr) M.pat
 
-  val plug : Sig.t -> vpat M.Cl.closure * kpat -> M.stack -> M.expr M.state
+  val plug : Sig.t -> (M.Cl.Abt.symbol list * vpat M.Cl.closure) * kpat -> M.stack -> M.expr M.state
 
   val catch : Sig.t -> vpat M.Cl.closure * kpat -> M.stack -> M.expr M.state option
   val throw : M.expr -> M.expr
