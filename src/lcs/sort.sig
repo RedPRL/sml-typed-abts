@@ -6,7 +6,7 @@ sig
 
   datatype t =
       VAL of atomic
-    | CONT of atomic * atomic
+    | CONT of (atomic list * atomic) * atomic
     | EXP of atomic
 
   (* Select a sort with which to reflect user-defined operator id symbols *)
