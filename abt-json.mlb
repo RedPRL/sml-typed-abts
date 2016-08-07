@@ -1,0 +1,11 @@
+local
+  abt.mlb
+  $(LIBS)/cmlib/cmlib.mlb
+  $(LIBS)/sml-json/json.mlb
+  src/json/json.sig
+  src/json/json.fun
+in
+  signature ABT_JSON
+  signature ABT_JSON_KIT
+  functor AbtJson
+end
