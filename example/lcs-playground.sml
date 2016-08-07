@@ -57,7 +57,7 @@ end
 structure LambdaLang : LCS_LANGUAGE =
 struct
   structure V = AbtSimpleOperator (LambdaV) and K = AbtSimpleOperator (LambdaK) and D = AbtEmptyOperator (UnisortedAbtArity)
-  fun input _ = ()
+  fun input _ = ([], ())
   val opidSort = NONE
 end
 
@@ -146,7 +146,7 @@ struct
       RET () $$ [([],[]) \ m]
 
     fun cut k e =
-      CUT ((), ()) $$ [([],[]) \ k, ([],[]) \ e]
+      CUT (([],()), ()) $$ [([],[]) \ k, ([],[]) \ e]
 
     fun ap e1 e2 =
       cut (K AP $$ [([],[]) \ e2]) e1

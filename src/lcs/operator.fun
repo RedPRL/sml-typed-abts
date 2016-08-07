@@ -13,7 +13,7 @@ struct
    | K of 'i K.t
    | D of 'i D.t
    | RET of S.atomic
-   | CUT of S.atomic * S.atomic
+   | CUT of (S.atomic list * S.atomic) * S.atomic
    | ESUBST of ('i * S.atomic) list * S.atomic list * S.atomic
    | CUSTOM of 'i * ('i * S.atomic) list * L.V.Ar.t
 
@@ -47,9 +47,9 @@ struct
            (List.map (mapValence S.EXP) vls, S.EXP sigma)
          end
      | RET sigma => ([(([],[]), S.VAL sigma)], S.EXP sigma)
-     | CUT (sigma, tau) =>
-         ([(([],[]), S.CONT (sigma, tau)),
-           (([],[]), S.EXP sigma)],
+     | CUT ((sigmas, sigma), tau) =>
+         ([(([],[]), S.CONT ((sigmas, sigma), tau)),
+           ((List.map S.EXP sigmas, []), S.EXP sigma)],
           S.EXP tau)
      | ESUBST (us, taus, tau) =>
         let
@@ -80,8 +80,9 @@ struct
     fn (V theta1, V theta2) => V.eq f (theta1, theta2)
      | (K theta1, K theta2) => K.eq f (theta1, theta2)
      | (D theta1, D theta2) => D.eq f (theta1, theta2)
-     | (CUT (sigma1, tau1), CUT (sigma2, tau2)) =>
-         S.AtomicSort.eq (sigma1, sigma2)
+     | (CUT ((sigmas1, sigma1), tau1), CUT ((sigmas2, sigma2), tau2)) =>
+         ListPair.allEq S.AtomicSort.eq (sigmas1, sigmas2)
+           andalso S.AtomicSort.eq (sigma1, sigma2)
            andalso S.AtomicSort.eq (tau1, tau2)
      | (RET sigma1, RET sigma2) =>
         S.AtomicSort.eq (sigma1, sigma2)

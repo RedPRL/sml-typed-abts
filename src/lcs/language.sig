@@ -12,8 +12,10 @@ sig
   sharing type V.Ar.Vl.S.t = K.Ar.Vl.S.t
   sharing type V.Ar.Vl.S.t = D.Ar.Vl.S.t
 
-  (* The sort of the principal argument / input to a continuation *)
-  val input : 'i K.t -> V.Ar.sort
+  (* The valence sort of the principal argument / input to a continuation.
+     Should return a list of sorts of symbols to bind (which will in most
+     cases be empty), and an output sort. *)
+  val input : 'i K.t -> V.Ar.sort list * V.Ar.sort
 
   (* The sort of symbols that denote custom operator ids *)
   val opidSort : V.Ar.sort option
