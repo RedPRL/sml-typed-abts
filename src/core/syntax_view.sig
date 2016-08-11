@@ -6,6 +6,7 @@ sig
   type sort
   type 'a operator
   type 'a spine
+  type 'a param
 
   type term
 
@@ -14,12 +15,12 @@ sig
 
   datatype 'a view =
      ` of variable
-   | $ of symbol operator * 'a bview spine
-   | $# of metavariable * ((symbol * sort) spine * 'a spine)
+   | $ of symbol param operator * 'a bview spine
+   | $# of metavariable * ((symbol param * sort) spine * 'a spine)
 
   val check : term view * sort -> term
 
-  val $$ : symbol operator * term bview spine -> term
+  val $$ : symbol param operator * term bview spine -> term
 
   val debugToString : term -> string
   val toString : term -> string

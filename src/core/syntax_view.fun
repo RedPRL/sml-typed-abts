@@ -21,6 +21,7 @@ struct
   type sort = sort
   type 'a operator = 'a Ast.operator
   type 'a spine = 'a Ast.spine
+  type 'a param = 'a Ast.P.t
 
   type term = Ast.ast
 
@@ -29,14 +30,14 @@ struct
 
   datatype 'a view =
      ` of variable
-   | $ of symbol operator * 'a bview spine
-   | $# of metavariable * ((symbol * sort) spine * 'a spine)
+   | $ of symbol param operator * 'a bview spine
+   | $# of metavariable * ((symbol param * sort) spine * 'a spine)
 
   fun check (m, _) =
     case m of
        `x => Ast.` x
      | $ (th, es) => Ast.$ (th, List.map (fn \ ((us,xs), m) => Ast.\ ((us, xs), m)) es)
-     | $# (x, (us, ms)) => Ast.$# (x, (List.map #1 us, ms))
+     | $# (x, (ps, ms)) => Ast.$# (x, (List.map #1 ps, ms))
 
   fun $$ (th, es) =
     check ($ (th, es), ())
