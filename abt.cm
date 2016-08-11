@@ -36,10 +36,8 @@ Library
   functor AbtSyntaxView
   functor AstSyntaxView
 
-(*
   signature AST_TO_ABT
   functor AstToAbt
-  *)
 is
   $/basis.cm
   locally-nameless.cm
