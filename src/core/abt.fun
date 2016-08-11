@@ -437,12 +437,11 @@ struct
      *)
     fun eq (V (v, _), V (v', _)) = LN.eq Var.eq (v, v')
       | eq (APP (theta, es <: _), APP (theta', es' <: _)) =
-          OpLnEq.eq (theta, theta')
-          (*andalso Sp.Pair.allEq eqAbs (es, es')*)
-      (*| eq (META_APP ((mv, _), us, ms <: _), META_APP ((mv', _), us', ms' <: _)) =
+          OpLnEq.eq (theta, theta') andalso Sp.Pair.allEq eqAbs (es, es')
+      | eq (META_APP ((mv, _), ps, ms <: _), META_APP ((mv', _), ps', ms' <: _)) =
           Metavar.eq (mv, mv')
-            andalso Sp.Pair.allEq (fn ((x, _), (y, _)) => LN.eq Sym.eq (x,y)) (us, us')
-            andalso Sp.Pair.allEq eq (ms, ms')*)
+            andalso Sp.Pair.allEq (fn ((p, _), (q, _)) => P.eq (LN.eq Sym.eq) (p,q)) (ps, ps')
+            andalso Sp.Pair.allEq eq (ms, ms')
       | eq _ = false
     and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
   end
