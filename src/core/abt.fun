@@ -452,9 +452,9 @@ struct
                         val (vs, xs) \ m = outb abs
                         val srho =
                           Sp.foldr
-                            (fn (((u, _), v), r) => SymCtx.insert r u v)
+                            (fn ((v, (u, _)), r) => SymCtx.insert r v u)
                             SymCtx.empty
-                            (Sp.Pair.zipEq (us, vs))
+                            (Sp.Pair.zipEq (vs, us))
                         val rho' =
                           Sp.foldr
                             (fn ((x,m), rho) => VarCtx.insert rho x m)
