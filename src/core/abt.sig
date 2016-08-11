@@ -2,7 +2,7 @@
  * signature describes every operation generally needed to manipulate syntax.
  *)
 
-signature PARAM =
+signature ABT_PARAM =
 sig
   include MONAD
 
@@ -32,7 +32,7 @@ sig
   structure O : ABT_OPERATOR
 
   (* Symbolic parameter monad *)
-  structure P : PARAM
+  structure P : ABT_PARAM
 
   (* Convienent shorthands for the types found in the above structures *)
   type symbol = Sym.t

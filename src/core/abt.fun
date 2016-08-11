@@ -3,7 +3,7 @@ functor Abt
    structure Var : ABT_SYMBOL
    structure Metavar : ABT_SYMBOL
    structure O : ABT_OPERATOR
-   structure P : PARAM) : ABT =
+   structure P : ABT_PARAM) : ABT =
 struct
   structure Sym = Sym and Var = Var and Metavar = Metavar and O = O and Ar = O.Ar
   structure S = Ar.Vl.S and Valence = Ar.Vl

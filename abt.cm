@@ -28,9 +28,7 @@ Library
   functor ContextUtil
   functor Abt
   functor SimpleAbt
-  (*
   functor Ast
-  *)
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt

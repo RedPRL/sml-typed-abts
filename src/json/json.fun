@@ -89,7 +89,7 @@ struct
              fn J.String a => a
               | m => raise DecodeAbt ("Expected String but got " ^ J.toString m)
 
-           val ((ssorts, vsorts), _) = valence
+           val ((psorts, vsorts), _) = valence
            val us = map (Abt.Sym.named o getStr) syms
            val xs = map (Abt.Var.named o getStr) vars
 
@@ -99,7 +99,7 @@ struct
            val env' = (menv, senv', venv')
 
            val (mctx, sctx, vctx) = ctx
-           val sctx' = ListPair.foldl (fn (u, sigma, r) => Abt.Sym.Ctx.insert r u sigma) sctx (us, ssorts)
+           val sctx' = ListPair.foldl (fn (u, sigma, r) => Abt.Sym.Ctx.insert r u sigma) sctx (us, psorts)
            val vctx' = ListPair.foldl (fn (x, sigma, r) => Abt.Var.Ctx.insert r x sigma) vctx (xs, vsorts)
 
            val ctx' = (mctx, sctx', vctx')
