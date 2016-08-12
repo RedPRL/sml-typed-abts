@@ -2,8 +2,7 @@ functor Abt
   (structure Sym : ABT_SYMBOL
    structure Var : ABT_SYMBOL
    structure Metavar : ABT_SYMBOL
-   structure O : ABT_OPERATOR
-   structure P : ABT_PARAM) : ABT =
+   structure O : ABT_OPERATOR) : ABT =
 struct
   structure Sym = Sym and Var = Var and Metavar = Metavar and O = O and Ar = O.Ar
   structure S = Ar.Vl.S and Valence = Ar.Vl
@@ -11,8 +10,7 @@ struct
 
   structure P =
   struct
-    structure F = FunctorOfMonad (P)
-    open P F
+    local structure F = FunctorOfMonad (O.P) in open O.P F end
   end
 
   structure MetaCtx = Metavar.Ctx
@@ -170,10 +168,8 @@ struct
     fn V _ => SymCtx.empty
      | APP (theta, es <: (_, sctx, _)) =>
          List.foldr
-           (fn ((p, tau), memo) =>
-              (case P.extract p of
-                  SOME (LN.FREE u) => Ctx.SymCtxUtil.extend memo (u, tau)
-                | _ => memo))
+           (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
+             | (_, memo) => memo)
            (Susp.force sctx)
            (O.support theta)
      | META_APP (_, ps, ms <: (_, sctx, _)) =>
@@ -242,10 +238,8 @@ struct
      | APP (theta, es <: ctx) =>
          let
            fun rho v' = if Sym.eq (v, v') then LN.BOUND coord else LN.FREE v'
-           fun chk (p', tau') =
-             case P.extract p' of
-                SOME (LN.FREE v') => if Sym.eq (v, v') then assertSortEq (tau, tau') else ()
-              | _ => ()
+           fun chk (LN.FREE v', tau') = if Sym.eq (v, v') then assertSortEq (tau, tau') else ()
+             | chk _ = ()
            val _ = List.app chk (O.support theta)
            val theta' = O.map (P.map (LN.bind rho)) theta
            val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
@@ -550,21 +544,21 @@ struct
     structure SymRenUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sym)
     structure VarRenUtil = ContextUtil (structure Ctx = VarCtx and Elem = Var)
 
+    fun unifySyms ((u, sigma), (v, tau), rho) =
+      if S.eq (sigma, tau) then
+        case (u, v) of
+           (LN.FREE u', LN.FREE v') => SymRenUtil.extend rho (u', v')
+         | (LN.BOUND i, LN.BOUND j) => if LnCoord.eq (i, j) then rho else raise UnificationFailed
+         | _ => raise UnificationFailed
+      else
+        raise UnificationFailed
+
     fun unifyParams ((p, sigma), (q, tau), rho) =
       if S.eq (sigma, tau) then
         case (P.extract p, P.extract q) of
-           (SOME (LN.FREE u'), SOME (LN.FREE v')) =>
-              SymRenUtil.extend rho (u', v')
-         | (SOME (LN.BOUND i), SOME (LN.BOUND j)) =>
-              if LnCoord.eq (i, j) then
-                rho
-              else
-                raise UnificationFailed
-         | _ =>
-              if P.eq (LN.eq Sym.eq) (p, q) then
-                rho
-              else
-                 raise UnificationFailed
+           (SOME u, SOME v) => unifySyms ((u, sigma), (v, tau), rho)
+         | (NONE, NONE) => if P.eq (LN.eq Sym.eq) (p, q) then rho else raise UnificationFailed
+         | _ => raise UnificationFailed
       else
         raise UnificationFailed
 
@@ -574,7 +568,7 @@ struct
           val us = O.support theta1
           val vs = O.support theta2
         in
-          ListPair.foldlEq unifyParams rho (us, vs)
+          ListPair.foldlEq unifySyms rho (us, vs)
         end
       else
         raise UnificationFailed
@@ -603,8 +597,7 @@ struct
          | (META_APP ((x1, tau1), ps1, ms1 <: _), META_APP ((x2, tau2), ps2, ms2 <: _)) =>
              let
                val _ = if S.eq (tau1, tau2) then () else raise UnificationFailed
-               val mrho' =
-                 MetaRenUtil.extend mrho (x1, x2)
+               val mrho' = MetaRenUtil.extend mrho (x1, x2)
                val srho' =
                  Sp.foldr
                    (fn ((p, q), rho) => unifyParams (p, q, rho))
@@ -633,57 +626,8 @@ struct
 
 end
 
-structure IdMonad =
-struct
-  type 'i t = 'i
-  fun pure x = x
-  fun bind f x = f x
-
-  fun extract x = SOME x
-  fun eq f = f
-  fun toString f = f
-end
-
-structure CubeMonad =
-struct
-  datatype 'i t =
-     NAME of 'i
-   | DIM0
-   | DIM1
-
-  val pure = NAME
-
-  fun bind f =
-    fn NAME u => f u
-     | DIM0 => DIM0
-     | DIM1 => DIM1
-
-  val extract =
-    fn NAME u => SOME u
-     | _ => NONE
-
-  fun eq f =
-    fn (NAME u, NAME v) => f (u, v)
-     | (DIM0, DIM0) => true
-     | (DIM1, DIM1) => true
-     | _ => false
-
-  fun toString f =
-    fn NAME u => f u
-     | DIM0 => "dim0"
-     | DIM1 => "dim1"
-end
-
 functor SimpleAbt (O : ABT_OPERATOR) =
   Abt (structure Sym = AbtSymbol ()
        structure Var = AbtSymbol ()
        structure Metavar = AbtSymbol ()
-       structure O = O
-       structure P = IdMonad)
-
-functor CubicalAbt (O : ABT_OPERATOR) =
-  Abt (structure Sym = AbtSymbol ()
-       structure Var = AbtSymbol ()
-       structure Metavar = AbtSymbol ()
-       structure O = O
-       structure P = CubeMonad)
+       structure O = O)

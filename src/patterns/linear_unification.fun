@@ -20,7 +20,7 @@ struct
         val us = O.support ptheta
         val vs = O.support theta
       in
-        ListPair.foldlEq (fn ((u, _), (v, _), rho) => SymCtx.insert rho u v) SymCtx.empty (us, vs)
+        ListPair.foldlEq (fn ((u, _), (v, _), rho) => SymCtx.insert rho u (O.P.pure v)) SymCtx.empty (us, vs)
       end
     else
       raise UnificationFailure
@@ -31,7 +31,15 @@ struct
     else
       raise UnificationFailure
 
-  structure SymEnvUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sym)
+  local
+    structure Elem =
+    struct
+      type t = symbol O.P.t
+      val eq = O.P.eq Sym.eq
+    end
+  in
+    structure SymEnvUtil = ContextUtil (structure Ctx = SymCtx and Elem = Elem)
+  end
 
   fun extendEnv rho (mv, e) =
     MetaCtx.insertMerge rho mv e (fn _ => raise UnificationFailure)

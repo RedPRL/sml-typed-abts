@@ -2,15 +2,6 @@
  * signature describes every operation generally needed to manipulate syntax.
  *)
 
-signature ABT_PARAM =
-sig
-  include MONAD
-
-  val extract : 'i t -> 'i option
-  val eq : ('i * 'i -> bool) -> 'i t * 'i t -> bool
-  val toString : ('i -> string) -> 'i t -> string
-end
-
 signature ABT =
 sig
   structure Var : ABT_SYMBOL
@@ -31,9 +22,6 @@ sig
    * often referred to as "function symbols". *)
   structure O : ABT_OPERATOR
 
-  (* Symbolic parameter monad *)
-  structure P : ABT_PARAM
-
   (* Convienent shorthands for the types found in the above structures *)
   type symbol = Sym.t
   type variable = Var.t
@@ -41,7 +29,7 @@ sig
   type sort = O.Ar.sort
   type valence = O.Ar.valence
   type 'a spine = 'a O.Ar.spine
-  type 'a param = 'a P.t
+  type 'a param = 'a O.P.t
 
   type operator = symbol param O.t
 

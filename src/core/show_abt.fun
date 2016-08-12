@@ -17,13 +17,13 @@ struct
          `x => ShowVar.toString x
        | theta $ es =>
            if Sp.isEmpty es then
-             O.toString (P.toString ShowSym.toString) theta
+             O.toString (O.P.toString ShowSym.toString) theta
            else
-             O.toString (P.toString ShowSym.toString) theta
+             O.toString (O.P.toString ShowSym.toString) theta
                 ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
        | mv $# (ps, ms) =>
            let
-             val ps' = Sp.pretty (P.toString ShowSym.toString o #1) "," ps
+             val ps' = Sp.pretty (O.P.toString ShowSym.toString o #1) "," ps
              val ms' = Sp.pretty toString "," ms
            in
              "#" ^ Abt.Metavar.toString mv

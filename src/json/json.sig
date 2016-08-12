@@ -23,6 +23,6 @@ sig
   val encodeOperator : ('a -> Json.json_value) -> 'a Abt.O.t -> Json.json_value
   val decodeOperator : (Json.json_value -> 'a option) -> Json.json_value -> 'a Abt.O.t option
 
-  val encodeParam : ('a -> Json.json_value) -> 'a Abt.P.t -> Json.json_value
-  val decodeParam : (Json.json_value -> 'a option) -> Json.json_value -> 'a Abt.P.t option
+  val encodeParam : ('a -> Json.json_value) -> 'a Abt.O.P.t -> Json.json_value
+  val decodeParam : (Json.json_value -> 'a option) -> Json.json_value -> 'a Abt.O.P.t option
 end

@@ -27,7 +27,7 @@ sig
   sharing type Ast.operator = Abt.O.t
   sharing type Ast.metavariable = Abt.Metavar.t
   sharing type Ast.spine = Abt.O.Ar.Vl.Sp.t
-  sharing type Ast.P.t = Abt.P.t
+  sharing type Ast.P.t = Abt.O.P.t
 end
 
 signature AST_TO_ABT =

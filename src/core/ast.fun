@@ -1,14 +1,14 @@
 functor Ast
   (structure Operator : ABT_OPERATOR
-   structure Metavar : ABT_SYMBOL
-   structure P : ABT_PARAM) : AST =
+   structure Metavar : ABT_SYMBOL) : AST =
 struct
   type symbol = string
   type variable = string
   type metavariable = Metavar.t
-  type param = symbol P.t
+  type param = symbol Operator.P.t
 
-  structure P = P and Sp = Operator.Ar.Vl.Sp
+  structure O = Operator
+  structure P = O.P and Sp = Operator.Ar.Vl.Sp
 
   type 'i operator = 'i Operator.t
   type 'a spine = 'a Sp.t
@@ -25,13 +25,13 @@ struct
     fn `x => x
      | theta $ es =>
          if Sp.isEmpty es then
-           Operator.toString (P.toString (fn x => x)) theta
+           Operator.toString (O.P.toString (fn x => x)) theta
          else
-           Operator.toString (P.toString (fn x => x)) theta
+           Operator.toString (O.P.toString (fn x => x)) theta
               ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
      | mv $# (ps, es) =>
          let
-           val ps' = Sp.pretty (P.toString (fn x => x)) "," ps
+           val ps' = Sp.pretty (O.P.toString (fn x => x)) "," ps
            val es' = Sp.pretty toString "," es
          in
            "#" ^ Metavar.toString mv
@@ -62,8 +62,8 @@ struct
   structure NameEnv = SplayDict (structure Key = StringOrdered)
   structure P =
   struct
-    open Abt.P
-    local structure Functor = FunctorOfMonad (Abt.P) in open Functor end
+    open Abt.O.P
+    local structure Functor = FunctorOfMonad (Abt.O.P) in open Functor end
   end
 
   fun variable vnames x =
