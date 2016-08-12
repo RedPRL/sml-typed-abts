@@ -33,17 +33,17 @@ struct
                  val es' = Sp.pretty (parens o done o goB) ";" es
                in
                  atom
-                   @@ O.toString S.toString theta
+                   @@ O.toString (O.P.toString S.toString) theta
                     ^ (if Sp.isEmpty es then "" else "(" ^ es' ^ ")")
                end
-           | x $# (us, ms) =>
+           | x $# (ps, ms) =>
                let
-                 val us' = Sp.pretty (S.toString o #1) "," us
+                 val ps' = Sp.pretty (O.P.toString S.toString o #1) "," ps
                  val ms' = Sp.pretty (parens o done o outer) "," ms
                in
                  atom
                    @@ "#" ^ M.toString x
-                    ^ (if Sp.isEmpty us then "" else "{" ^ us' ^ "}")
+                    ^ (if Sp.isEmpty ps then "" else "{" ^ ps' ^ "}")
                     ^ (if Sp.isEmpty ms then "" else "[" ^ ms' ^ "]")
                end
       and goB ((us, xs) \ m) =

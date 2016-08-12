@@ -1,6 +1,7 @@
 Library
   signature ABT
   signature AST
+  signature ABT_PARAM
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT_SYMBOL
@@ -24,6 +25,8 @@ Library
   functor ListAbtArity
   structure UnisortedAbtArity
   functor ContextUtil
+  structure AbtIdParam
+  structure AbtCubicalParam
   functor Abt
   functor SimpleAbt
   functor Ast
@@ -31,6 +34,7 @@ Library
   functor PlainShowAbt
   functor DebugShowAbt
   functor AbtSimpleOperator
+  functor AbtSimpleCubicalOperator
   functor AbtEmptyOperator
 
   functor AbtSyntaxView
@@ -53,6 +57,8 @@ is
   src/core/spine.sig
   src/core/spine.sml
   src/core/arity.sig
+  src/core/param.sig
+  src/core/param.sml
   src/core/operator.sig
   src/core/operator.fun
   src/core/ast.sig

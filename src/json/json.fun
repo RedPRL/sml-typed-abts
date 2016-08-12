@@ -30,27 +30,28 @@ struct
     fn J.String u => (NameEnv.lookup rho u handle _ => raise DecodeAbt ("Sym " ^ u ^ " not in environment"))
      | m => raise DecodeAbt ("Sym: expected String, but got " ^ J.toString m)
 
-  fun encodeSymAnn (u, sigma) =
+  fun encodeParamAnn (p, sigma) =
     J.Obj
-      [("sym", encodeSym u),
+      [("param", encodeParam encodeSym p),
        ("sort", encodeSort sigma)]
 
   fun decodeSymAnn env =
-    fn J.Obj [("sym", u), ("sort", sigma)] =>
-         (decodeSym env u,
-          Option.valOf (decodeSort u)
+    fn J.Obj [("param", p), ("sort", sigma)] =>
+         (Option.valOf (decodeParam (SOME o decodeSym env) p)
+            handle _ => raise DecodeAbt ("Failed to decode param " ^ J.toString p),
+          Option.valOf (decodeSort sigma)
             handle _ => raise DecodeAbt ("Failed to decode sort " ^ J.toString sigma))
      | m => raise DecodeAbt ("SymAnn: failed to decode " ^ J.toString m)
 
   fun encodeApp (theta, es) =
     J.Obj
-      [("op", encodeOperator encodeSym theta),
+      [("op", encodeOperator (encodeParam encodeSym) theta),
        ("args", encodeArguments es)]
 
   and decodeApp env ctx =
     fn J.Obj [("op", theta), ("args", J.Array args)] =>
         let
-          val theta = Option.valOf (decodeOperator (SOME o decodeSym env) theta) handle _ => raise DecodeAbt ("Failed to decode operator " ^ J.toString theta)
+          val theta = Option.valOf (decodeOperator (decodeParam (SOME o decodeSym env)) theta) handle _ => raise DecodeAbt ("Failed to decode operator " ^ J.toString theta)
           val (vls, _) = Abt.O.arity theta
         in
           (theta, decodeArguments env ctx vls args)
@@ -63,10 +64,10 @@ struct
   and decodeArguments env ctx vls es =
     ListPair.map (fn (e, vl) => decodeB env ctx vl e) (es, vls)
 
-  and encodeMetaApp (x, us, ms) =
+  and encodeMetaApp (x, ps, ms) =
     J.Obj
       [("metavar", encodeMetavar x),
-       ("syms", J.Array (map encodeSymAnn us)),
+       ("syms", J.Array (map encodeParamAnn ps)),
        ("args", J.Array (map encode ms))]
 
   and decodeMetaApp env ctx =
@@ -89,7 +90,7 @@ struct
              fn J.String a => a
               | m => raise DecodeAbt ("Expected String but got " ^ J.toString m)
 
-           val ((ssorts, vsorts), _) = valence
+           val ((psorts, vsorts), _) = valence
            val us = map (Abt.Sym.named o getStr) syms
            val xs = map (Abt.Var.named o getStr) vars
 
@@ -99,7 +100,7 @@ struct
            val env' = (menv, senv', venv')
 
            val (mctx, sctx, vctx) = ctx
-           val sctx' = ListPair.foldl (fn (u, sigma, r) => Abt.Sym.Ctx.insert r u sigma) sctx (us, ssorts)
+           val sctx' = ListPair.foldl (fn (u, sigma, r) => Abt.Sym.Ctx.insert r u sigma) sctx (us, psorts)
            val vctx' = ListPair.foldl (fn (x, sigma, r) => Abt.Var.Ctx.insert r x sigma) vctx (xs, vsorts)
 
            val ctx' = (mctx, sctx', vctx')
@@ -112,7 +113,7 @@ struct
     case Abt.out m of
        Abt.`x => J.Obj [("Var", encodeVar x)]
      | Abt.$ (theta, es) => J.Obj [("App", encodeApp (theta, es))]
-     | Abt.$# (x, (us, ms)) => J.Obj [("MetaApp", encodeMetaApp (x, us, ms))]
+     | Abt.$# (x, (ps, ms)) => J.Obj [("MetaApp", encodeMetaApp (x, ps, ms))]
 
   and decode (env : env) (ctx as (mctx, sctx, vctx)) =
     fn J.Obj [("Var", var)] =>

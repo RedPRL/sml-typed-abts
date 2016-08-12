@@ -4,7 +4,7 @@ sig
 
   type 'a metaenv = 'a Abt.Metavar.Ctx.dict
   type 'a varenv = 'a Abt.Var.Ctx.dict
-  type symenv = Abt.symbol Abt.Sym.Ctx.dict
+  type symenv = Abt.symbol Abt.param Abt.Sym.Ctx.dict
 
   datatype 'a closure =
     <: of 'a * (Abt.abs closure metaenv * symenv * Abt.abt closure varenv)

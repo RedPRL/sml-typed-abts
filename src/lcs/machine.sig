@@ -8,7 +8,7 @@ sig
 
   type expr = Cl.Abt.abt
 
-  type cont = (Cl.Abt.symbol K.t, expr Cl.closure) pat
+  type cont = (Cl.Abt.symbol Cl.Abt.param K.t, expr Cl.closure) pat
   type stack = cont list
 
   (* Our stack machine has three phases of execution.

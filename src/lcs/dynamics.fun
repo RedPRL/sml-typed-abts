@@ -64,14 +64,22 @@ struct
 
   structure Pattern = Pattern (Abt)
   structure Unify = AbtLinearUnification (structure Abt = Abt and Pattern = Pattern)
-  structure SymEnvUtil = ContextUtil (structure Ctx = Sym.Ctx and Elem = Sym)
+  local
+    structure Elem =
+    struct
+      type t = symbol O.P.t
+      val eq = O.P.eq Sym.eq
+    end
+  in
+    structure SymEnvUtil = ContextUtil (structure Ctx = Sym.Ctx and Elem = Elem)
+  end
   structure AbsEq = struct type t = Abt.abs val eq = Abt.eqAbs end
 
   fun patternFromDef (opid, arity) (def : Sig.def) : Pattern.pattern =
     let
       open Pattern infix 2 $@
       val {parameters, arguments, ...} = def
-      val theta = CUSTOM (opid, parameters, arity)
+      val theta = CUSTOM (O.P.pure opid, List.map (fn (u, tau) => (O.P.pure u, tau)) parameters, arity)
     in
       into @@ theta $@ List.map (fn (x,_) => MVAR x) arguments
     end
@@ -107,6 +115,7 @@ struct
        | B.O.CUSTOM (opid, params, ar) $ _ =>
            let
              open Unify infix <*>
+             val opid = case O.P.extract opid of SOME opid => opid | _ => raise Match
              val def as {definiens, ...} = Sig.lookup sign opid
              val pat = patternFromDef (opid, ar) def
 

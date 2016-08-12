@@ -26,10 +26,12 @@ sig
   type symbol = Sym.t
   type variable = Var.t
   type metavariable = Metavar.t
-  type operator = symbol O.t
   type sort = O.Ar.sort
   type valence = O.Ar.valence
   type 'a spine = 'a O.Ar.spine
+  type 'a param = 'a O.P.t
+
+  type operator = symbol param O.t
 
   (* The core type of the signature. This is the type of the ABTs that
    * can be built from the given [operator]s, [variable]s, [symbol]s and
@@ -50,7 +52,7 @@ sig
 
   type metaenv = abs Metavar.ctx
   type varenv = abt Var.ctx
-  type symenv = symbol Sym.ctx
+  type symenv = symbol param Sym.ctx
 
   (* Modify the term inside an abstraction*)
   val mapAbs : (abt -> abt) -> abs -> abs
@@ -88,7 +90,7 @@ sig
   (* Below we provide unary versions of the simultaneous substitution operations *)
   val metasubst : abs * metavariable -> abt -> abt
   val subst : abt * variable -> abt -> abt
-  val rename : symbol * symbol -> abt -> abt
+  val rename : symbol param * symbol -> abt -> abt
 
   (* Patterns for abstract binding trees. *)
 
@@ -108,7 +110,7 @@ sig
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
-    | $# of metavariable * ((symbol * sort) spine * 'a spine)
+    | $# of metavariable * ((symbol param * sort) spine * 'a spine)
 
   val map : ('a -> 'b) -> 'a view -> 'b view
   val mapb : ('a -> 'b) -> 'a bview -> 'b bview

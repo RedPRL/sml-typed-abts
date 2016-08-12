@@ -1,6 +1,6 @@
 functor AbtSimpleOperator (O : ABT_SIMPLE_OPERATOR) : ABT_OPERATOR =
 struct
-  structure Ar = O.Ar
+  structure Ar = O.Ar and P = AbtIdParam
 
   type 'i t = O.t
   val arity = O.arity
@@ -10,11 +10,22 @@ struct
   fun map f x = x
 end
 
+functor AbtSimpleCubicalOperator (O : ABT_SIMPLE_OPERATOR) : ABT_OPERATOR =
+struct
+  local
+    structure O' = AbtSimpleOperator (O)
+  in
+    open O'
+    structure P = AbtCubicalParam
+  end
+end
+
 functor AbtEmptyOperator (Ar : ABT_ARITY) : ABT_OPERATOR =
 struct
-  structure Ar = Ar
+  structure Ar = Ar and P = AbtIdParam
 
   datatype 'i t = WELP of 'i t
+  type 'i param = 'i
 
   fun arity (WELP x) = arity x
   fun support (WELP x) = support x

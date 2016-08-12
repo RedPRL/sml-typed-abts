@@ -3,14 +3,17 @@ sig
   type 'i operator
   type 'a spine
 
+  structure P : ABT_PARAM
+
   type symbol = string
   type variable = string
+  type param = symbol P.t
   type metavariable
 
   datatype ast =
       ` of variable
-    | $ of symbol operator * abs spine
-    | $# of metavariable * (symbol spine * ast spine)
+    | $ of param operator * abs spine
+    | $# of metavariable * (param spine * ast spine)
   and abs = \ of (symbol spine * variable spine) * ast
 
   val toString : ast -> string
@@ -24,6 +27,7 @@ sig
   sharing type Ast.operator = Abt.O.t
   sharing type Ast.metavariable = Abt.Metavar.t
   sharing type Ast.spine = Abt.O.Ar.Vl.Sp.t
+  sharing type Ast.P.t = Abt.O.P.t
 end
 
 signature AST_TO_ABT =

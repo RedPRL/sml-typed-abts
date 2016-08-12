@@ -15,9 +15,9 @@ sig
   sharing type M.Cl.Abt.O.Ar.Vl.S.t = O.S.t
   sharing type O.operator = M.Cl.Abt.O.t
 
-  type vpat = (M.Cl.Abt.symbol O.L.V.t, M.expr) M.pat
-  type kpat = (M.Cl.Abt.symbol O.L.K.t, M.expr M.Cl.closure) M.pat
-  type dpat = (M.Cl.Abt.symbol O.L.D.t, M.expr) M.pat
+  type vpat = (M.Cl.Abt.symbol M.Cl.Abt.param O.L.V.t, M.expr) M.pat
+  type kpat = (M.Cl.Abt.symbol M.Cl.Abt.param O.L.K.t, M.expr M.Cl.closure) M.pat
+  type dpat = (M.Cl.Abt.symbol M.Cl.Abt.param O.L.D.t, M.expr) M.pat
 
   val plug : Sig.t -> (M.Cl.Abt.symbol list * vpat M.Cl.closure) * kpat -> M.stack -> M.expr M.state
 

@@ -6,6 +6,8 @@ struct
 
   structure O =
   struct
+    structure P = AbtIdParam
+
     structure S =
     struct
       datatype t = EXP | VAL | NAT
@@ -108,6 +110,7 @@ struct
     val parseInt =
       repeat1 digit wth valOf o Int.fromString o String.implode
 
+    val parseParam = identifier 
     val parse : string O.t CharParser.charParser =
       string "lam" return LAM
         || string "ap" return AP
