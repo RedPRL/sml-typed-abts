@@ -15,7 +15,7 @@ local
   src/core/spine.sml
   src/core/arity.sig
   src/core/param.sig
-  src/core/param.fun
+  src/core/param.sml
   src/core/operator.sig
   src/core/operator.fun
   src/core/abt.sig
