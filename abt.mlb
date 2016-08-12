@@ -66,6 +66,7 @@ in
   functor PlainShowAbt
   functor DebugShowAbt
   functor AbtSimpleOperator
+  functor AbtSimpleCubicalOperator
   functor AbtEmptyOperator
   functor Ast
   functor AstToAbt

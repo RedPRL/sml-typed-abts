@@ -10,6 +10,16 @@ struct
   fun map f x = x
 end
 
+functor AbtSimpleCubicalOperator (O : ABT_SIMPLE_OPERATOR) : ABT_OPERATOR =
+struct
+  local
+    structure O' = AbtSimpleOperator (O)
+  in
+    open O'
+    structure P = AbtCubicalParam
+  end
+end
+
 functor AbtEmptyOperator (Ar : ABT_ARITY) : ABT_OPERATOR =
 struct
   structure Ar = Ar and P = AbtIdParam
