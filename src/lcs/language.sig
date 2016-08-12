@@ -11,6 +11,8 @@ sig
 
   sharing type V.Ar.Vl.S.t = K.Ar.Vl.S.t
   sharing type V.Ar.Vl.S.t = D.Ar.Vl.S.t
+  sharing type V.P.t = K.P.t
+  sharing type V.P.t = D.P.t
 
   (* The valence sort of the principal argument / input to a continuation.
      Should return a list of sorts of symbols to bind (which will in most

@@ -11,7 +11,7 @@ struct
   type 'a cont_operator = 'a K.t
 
   type expr = Abt.abt
-  type cont = (Abt.symbol K.t, expr Cl.closure) pat
+  type cont = (Abt.symbol Abt.param K.t, expr Cl.closure) pat
   type stack = cont list
 
   datatype 'a state =
@@ -52,7 +52,7 @@ struct
         ^ Cl.toString cl
   in
     fun contToString (k `$ es) =
-      K.toString Abt.Sym.toString k
+      K.toString (Abt.O.P.toString Abt.Sym.toString) k
         ^ "("
         ^ ListSpine.pretty bindingToString ", " es
         ^ ")"

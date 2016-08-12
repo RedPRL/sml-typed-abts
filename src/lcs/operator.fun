@@ -4,6 +4,8 @@ struct
   open L
 
   structure S = LcsSort (structure AtomicSort = V.Ar.Vl.S val opidSort = opidSort)
+  structure P = V.P
+
   type sort = S.t
   type valence = (sort list * sort list) * sort
   type arity = valence list * sort
@@ -70,7 +72,8 @@ struct
              NONE => raise Fail "You forgot to implement opidSort"
            | SOME sigma =>
                let
-                 val supp = (opid, sigma) :: params
+                 val params' = List.foldl (fn ((p, tau), us) => case P.extract p of SOME u => (u, tau) :: us | _ => us) [] params
+                 val supp = case P.extract opid of SOME opid => (opid, sigma) :: params' | _ => params'
                in
                  List.map (fn (u, tau) => (u, S.EXP tau)) supp
                end)
