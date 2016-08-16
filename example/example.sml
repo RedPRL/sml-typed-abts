@@ -122,7 +122,7 @@ struct
   structure Ast = Ast (structure Operator = O and Metavar = M)
   structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavar = M and CharSet = GreekCharSet)
 
-  structure Abt = Abt (structure O = O and Metavar = M and Var = V and Sym = I)
+  structure Abt = Abt (structure O = O and Metavar = M and Var = V and Sym = I type annotation = unit)
   structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
 
   structure ShowAbt = DebugShowAbt (Abt)
