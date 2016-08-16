@@ -22,6 +22,9 @@ sig
    * often referred to as "function symbols". *)
   structure O : ABT_OPERATOR
 
+  (* user-supplied type of term annotations; irrelevant as far as equality is concerned. *)
+  type annotation
+
   (* Convienent shorthands for the types found in the above structures *)
   type symbol = Sym.t
   type variable = Var.t
@@ -89,6 +92,10 @@ sig
   val metasubst : abs * metavariable -> abt -> abt
   val subst : abt * variable -> abt -> abt
   val rename : symbol * symbol -> abt -> abt
+
+  val annotate : annotation -> abt -> abt
+  val getAnnotation : abt -> annotation option
+  val clearAnnotation : abt -> abt
 
   (* Patterns for abstract binding trees. *)
 
