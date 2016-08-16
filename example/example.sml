@@ -119,10 +119,16 @@ struct
         || string "set" >> squares identifier wth SET
   end
 
-  structure Ast = Ast (structure Operator = O and Metavar = M)
-  structure AstParser = ParseAst (structure Ast = Ast and ParseOperator = OParser and Metavar = M and CharSet = GreekCharSet)
+  structure Ast = Ast (structure Operator = O and Metavar = M type annotation = Pos.t)
+  structure AstParser =
+    ParseAst
+      (structure Ast = Ast
+         and ParseOperator = OParser
+         and Metavar = M
+         and CharSet = GreekCharSet
+       val setSourcePosition = Ast.annotate)
 
-  structure Abt = Abt (structure O = O and Metavar = M and Var = V and Sym = I type annotation = unit)
+  structure Abt = Abt (structure O = O and Metavar = M and Var = V and Sym = I type annotation = Pos.t)
   structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
 
   structure ShowAbt = DebugShowAbt (Abt)
@@ -142,7 +148,7 @@ struct
     fun myparser mtable () =
       AstParser.extend mtable ($ (notation mtable))
     and notation mtable () =
-      string "%" >> ($ (myparser mtable)) wth (fn x => Ast.$ (NUM, [Ast.\ (([],[]), x)]))
+      string "%" >> ($ (myparser mtable)) wth (fn x => Ast.into (Ast.$ (NUM, [Ast.\ (([],[]), x)])))
   end
 
   fun loop () =
@@ -156,10 +162,10 @@ struct
                  val parseResult = CharParser.parseString (myparser M.named ()) str
                  val ast as (Ast.$ (theta, es)) =
                    case parseResult of
-                        Sum.INR ast => ast
+                        Sum.INR ast => Ast.out ast
                       | Sum.INL err => raise Fail err
                  val (_, tau) = O.arity theta
-                 val abt = AstToAbt.convert Metavar.Ctx.empty (ast, tau)
+                 val abt = AstToAbt.convert Metavar.Ctx.empty (Ast.into ast, tau)
                in
                  print (ShowAbt.toString abt ^ "\n\n")
                end

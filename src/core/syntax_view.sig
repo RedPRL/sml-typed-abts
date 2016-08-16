@@ -6,6 +6,7 @@ sig
   type sort
   type 'a operator
   type 'a spine
+  type annotation
 
   type term
 

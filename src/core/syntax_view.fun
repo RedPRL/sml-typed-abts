@@ -19,6 +19,7 @@ struct
   type variable = Ast.variable
   type metavariable = Ast.metavariable
   type sort = sort
+  type annotation = Ast.annotation
   type 'a operator = 'a Ast.operator
   type 'a spine = 'a Ast.spine
 
@@ -34,9 +35,9 @@ struct
 
   fun check (m, _) =
     case m of
-       `x => Ast.` x
-     | $ (th, es) => Ast.$ (th, List.map (fn \ ((us,xs), m) => Ast.\ ((us, xs), m)) es)
-     | $# (x, (us, ms)) => Ast.$# (x, (List.map #1 us, ms))
+       `x => Ast.into (Ast.` x)
+     | $ (th, es) => Ast.into (Ast.$ (th, List.map (fn \ ((us,xs), m) => Ast.\ ((us, xs), m)) es))
+     | $# (x, (us, ms)) => Ast.into (Ast.$# (x, (List.map #1 us, ms)))
 
   fun $$ (th, es) =
     check ($ (th, es), ())
