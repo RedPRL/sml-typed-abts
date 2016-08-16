@@ -22,7 +22,8 @@ sig
    * often referred to as "function symbols". *)
   structure O : ABT_OPERATOR
 
-  (* user-supplied type of term annotations; irrelevant as far as equality is concerned. *)
+  (* User-supplied type of term annotations; irrelevant as far as equality is concerned.
+   * This can be used to add source positions to an abt. *)
   type annotation
 
   (* Convienent shorthands for the types found in the above structures *)
