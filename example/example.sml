@@ -119,7 +119,7 @@ struct
         || string "set" >> squares identifier wth SET
   end
 
-  structure Ast = Ast (structure Operator = O and Metavar = M type annotation = Pos.t)
+  structure Ast = AstUtil (Ast (structure Operator = O and Metavar = M type annotation = Pos.t))
   structure AstParser =
     ParseAst
       (structure Ast = Ast
@@ -148,7 +148,7 @@ struct
     fun myparser mtable () =
       AstParser.extend mtable ($ (notation mtable))
     and notation mtable () =
-      string "%" >> ($ (myparser mtable)) wth (fn x => Ast.into (Ast.$ (NUM, [Ast.\ (([],[]), x)])))
+      string "%" >> ($ (myparser mtable)) wth (fn x => Ast.$$ (NUM, [Ast.\ (([],[]), x)]))
   end
 
   fun loop () =

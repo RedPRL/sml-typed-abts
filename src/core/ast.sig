@@ -26,6 +26,15 @@ sig
   val toString : ast -> string
 end
 
+signature AST_UTIL =
+sig
+  include AST
+
+  val `` : variable -> ast
+  val $$ : symbol operator * ast abs spine -> ast
+  val $$# : metavariable * (symbol spine * ast spine) -> ast
+end
+
 signature AST_ABT =
 sig
   structure Abt : ABT

@@ -64,6 +64,15 @@ struct
       end
 end
 
+functor AstUtil (Ast : AST) : AST_UTIL =
+struct
+  open Ast
+
+  val `` = into o `
+  val $$ = into o $
+  val $$# = into o $#
+end
+
 functor AstToAbt (X : AST_ABT) : AST_TO_ABT =
 struct
   open X
