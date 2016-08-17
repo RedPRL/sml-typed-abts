@@ -11,4 +11,5 @@ in
   functor HashTable
   structure Sum
   structure Susp
+  structure Pos
 end

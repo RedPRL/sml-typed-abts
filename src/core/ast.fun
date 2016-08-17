@@ -1,33 +1,45 @@
 functor Ast
   (structure Operator : ABT_OPERATOR
-   structure Metavar : ABT_SYMBOL) : AST =
+   structure Metavar : ABT_SYMBOL
+   type annotation) : AST =
 struct
   type symbol = string
   type variable = string
   type metavariable = Metavar.t
+  type annotation = annotation
 
   structure Sp = Operator.Ar.Vl.Sp
 
   type 'i operator = 'i Operator.t
   type 'a spine = 'a Sp.t
 
-  datatype ast =
+  datatype 'a view =
       ` of variable
-    | $ of symbol operator * abs spine
-    | $# of metavariable * (symbol spine * ast spine)
-  and abs = \ of (symbol spine * variable spine) * ast
+    | $ of symbol operator * 'a abs spine
+    | $# of metavariable * (symbol spine * 'a spine)
+  and 'a abs = \ of (symbol spine * variable spine) * 'a
+
+  datatype ast = @: of ast view * annotation option
 
   infix $ $# \
+  infix @:
+
+  fun into m = m @: NONE
+  fun out (m @: _) = m
+
+  fun getAnnotation (m @: ann) = ann
+  fun annotate ann (m @: _) = m @: SOME ann
+  fun clearAnnotation (m @: _) = m @: NONE
 
   val rec toString =
-    fn `x => x
-     | theta $ es =>
+    fn `x @: _ => x
+     | theta $ es @: _ =>
          if Sp.isEmpty es then
            Operator.toString (fn x => x) theta
          else
            Operator.toString (fn x => x) theta
               ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
-     | mv $# (us, es) =>
+     | mv $# (us, es) @: _ =>
          let
            val us' = Sp.pretty (fn x => x) "," us
            val es' = Sp.pretty toString "," es
@@ -52,6 +64,15 @@ struct
       end
 end
 
+functor AstUtil (Ast : AST) : AST_UTIL =
+struct
+  open Ast
+
+  val `` = into o `
+  val $$ = into o $
+  val $$# = into o $#
+end
+
 functor AstToAbt (X : AST_ABT) : AST_TO_ABT =
 struct
   open X
@@ -71,24 +92,31 @@ struct
       Abt.Sym.named u
 
   fun convertOpen psi (snames, vnames) (m, tau) =
-    case m of
-         Ast.` x => Abt.check (Abt.` (variable vnames x), tau)
-       | Ast.$ (theta, es) =>
-          let
-            val (vls, _) = Abt.O.arity theta
-            val theta' = Abt.O.map (symbol snames) theta
-            val es' = Sp.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
-          in
-            Abt.check (Abt.$ (theta', es'), tau)
-          end
-       | Ast.$# (mv, (us, ms)) =>
-           let
-             val ((ssorts, vsorts), _) = Abt.Metavar.Ctx.lookup psi mv
-             val us' = Sp.Pair.zipEq (Sp.map (symbol snames) us, ssorts)
-             val ms' = Sp.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
-           in
-             Abt.check (Abt.$# (mv, (us', ms')), tau)
-           end
+    let
+      val abt =
+        case Ast.out m of
+             Ast.` x => Abt.check (Abt.` (variable vnames x), tau)
+           | Ast.$ (theta, es) =>
+              let
+                val (vls, _) = Abt.O.arity theta
+                val theta' = Abt.O.map (symbol snames) theta
+                val es' = Sp.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
+              in
+                Abt.check (Abt.$ (theta', es'), tau)
+              end
+           | Ast.$# (mv, (us, ms)) =>
+               let
+                 val ((ssorts, vsorts), _) = Abt.Metavar.Ctx.lookup psi mv
+                 val us' = Sp.Pair.zipEq (Sp.map (symbol snames) us, ssorts)
+                 val ms' = Sp.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
+               in
+                 Abt.check (Abt.$# (mv, (us', ms')), tau)
+               end
+    in
+      case Ast.getAnnotation m of
+         SOME ann => Abt.annotate ann abt
+       | NONE => abt
+    end
 
   and convertOpenAbs psi (snames, vnames) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
     let

@@ -1,6 +1,7 @@
 Library
   signature ABT
   signature AST
+  signature AST_UTIL
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT_SYMBOL
@@ -27,6 +28,7 @@ Library
   functor Abt
   functor SimpleAbt
   functor Ast
+  functor AstUtil
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt

@@ -1,6 +1,8 @@
 functor ParseAst
   (structure Ast : AST
     where type 'a spine = 'a list
+   val setSourcePosition : Pos.t -> Ast.ast -> Ast.ast
+
    structure CharSet : CHARSET
    structure ParseOperator : PARSE_ABT_OPERATOR
    structure Metavar : ABT_SYMBOL
@@ -49,21 +51,23 @@ struct
       val parameter = identifier
       val metavariable = symbol "#" >> identifier wth mtable
 
+      fun makeAst (pos, m) = setSourcePosition pos (Ast.into m)
+
       fun ast () =
         (custom
          || $ app
          || $ metaApp
-         || variable wth Ast.`) ?? "ast"
+         || !! variable wth (fn (x, pos) => makeAst (pos, Ast.` x))) ?? "ast"
       and app () =
-        ParseOperator.parse
+        !! ParseOperator.parse
           && opt (parens (semiSep ($ abs)))
-          wth (fn (theta, es) => Ast.$ (theta, getOpt (es, [])))
+          wth (fn ((theta, pos : Pos.t), es) => makeAst (pos, Ast.$ (theta, getOpt (es, []))))
           ?? "operator application"
       and metaApp () =
-        metavariable
+        !! metavariable
           && opt (braces (commaSep parameter))
           && opt (squares (commaSep ($ ast)))
-          wth (fn (x, (us, ms)) => Ast.$# (x, (getOpt (us, []), getOpt (ms, []))))
+          wth (fn ((x, pos), (us, ms)) => makeAst (pos, Ast.$# (x, (getOpt (us, []), getOpt (ms, [])))))
           ?? "metavariable application"
       and properAbs () =
         opt (braces (commaSep parameter))

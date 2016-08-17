@@ -10,5 +10,6 @@ Library
   functor HashTable
   structure Sum
   structure Susp
+  structure Pos
 is
   cmlib/cmlib.cm
