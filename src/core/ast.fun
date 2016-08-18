@@ -28,6 +28,7 @@ struct
   fun out (m @: _) = m
 
   fun getAnnotation (m @: ann) = ann
+  fun setAnnotation ann (m @: _) = m @: ann
   fun annotate ann (m @: _) = m @: SOME ann
   fun clearAnnotation (m @: _) = m @: NONE
 

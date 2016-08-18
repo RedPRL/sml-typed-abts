@@ -21,6 +21,7 @@ sig
 
   val annotate : annotation -> ast -> ast
   val getAnnotation : ast -> annotation option
+  val setAnnotation : annotation option -> ast -> ast
   val clearAnnotation : ast -> ast
 
   val toString : ast -> string
