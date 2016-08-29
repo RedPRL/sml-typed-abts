@@ -6,7 +6,7 @@ functor Abt
    type annotation) : ABT =
 struct
   structure Sym = Sym and Var = Var and Metavar = Metavar and O = O and Ar = O.Ar
-  structure S = Ar.Vl.S and Valence = Ar.Vl
+  structure S = Ar.Vl.S and PS = Ar.Vl.PS and Valence = Ar.Vl
   structure Sp = Valence.Sp
 
   structure MetaCtx = Metavar.Ctx
@@ -14,6 +14,7 @@ struct
   structure SymCtx = Sym.Ctx
 
   type sort = S.t
+  type psort = PS.t
   type valence = Valence.t
   type coord = LnCoord.t
   type symbol = Sym.t
@@ -33,13 +34,13 @@ struct
 
   type metactx = valence MetaCtx.dict
   type varctx = sort VarCtx.dict
-  type symctx = sort SymCtx.dict
+  type symctx = psort SymCtx.dict
 
   structure Ctx =
   struct
     structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
     structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = S)
-    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = S)
+    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = PS)
 
     type ctx = metactx Susp.susp * symctx Susp.susp * varctx Susp.susp
 
@@ -88,8 +89,8 @@ struct
   datatype abt_internal =
       V of LN.variable * sort
     | APP of LN.operator * abs spine ctx_ann
-    | META_APP of (metavariable * sort) * (LN.symbol * sort) spine * abt spine ctx_ann
-  and abs = ABS of (string * sort) spine * (string * sort) spine * abt
+    | META_APP of (metavariable * sort) * (LN.symbol * psort) spine * abt spine ctx_ann
+  and abs = ABS of (string * psort) spine * (string * sort) spine * abt
   withtype abt = abt_internal ann
 
   fun annotate ann (m @: _) = m @: SOME ann
@@ -106,7 +107,7 @@ struct
      | META_APP _ @: _ => "meta"
   and primToStringAbs =
     fn ABS (upsilon, gamma, m) =>
-      (if Sp.isEmpty upsilon then "" else "{" ^ Sp.pretty (S.toString o #2) "," upsilon ^ "}")
+      (if Sp.isEmpty upsilon then "" else "{" ^ Sp.pretty (PS.toString o #2) "," upsilon ^ "}")
       ^ (if Sp.isEmpty upsilon then "" else "[" ^ Sp.pretty (S.toString o #2) "," gamma ^ "]")
       ^ "." ^ primToString m
 
@@ -121,7 +122,7 @@ struct
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
-    | $# of metavariable * ((symbol * sort) spine * 'a spine)
+    | $# of metavariable * ((symbol * psort) spine * 'a spine)
   and 'a bview =
      \ of (symbol spine * variable spine) * 'a
 
@@ -139,6 +140,11 @@ struct
     assert
       ("expected " ^ S.toString sigma ^ " == " ^ S.toString tau)
       (S.eq (sigma, tau))
+
+  fun assertPSortEq (sigma, tau) =
+    assert
+      ("expected " ^ PS.toString sigma ^ " == " ^ PS.toString tau)
+      (PS.eq (sigma, tau))
 
   fun assertValenceEq (v1, v2) =
     assert
@@ -248,7 +254,7 @@ struct
      | APP (theta, es <: ctx) =>
          let
            fun rho v' = if Sym.eq (v, v') then LN.BOUND coord else LN.FREE v'
-           fun chk (LN.FREE v', tau') = if Sym.eq (v, v') then assertSortEq (tau, tau') else ()
+           fun chk (LN.FREE v', tau') = if Sym.eq (v, v') then assertPSortEq (tau, tau') else ()
              | chk _ = ()
            val _ = List.app chk (O.support theta)
            val theta' = O.map (LN.bind rho) theta
@@ -339,7 +345,7 @@ struct
     val liberateVariables : (variable * sort) Sp.t -> abt -> abt =
       foldStar liberateVariableAnn
 
-    val liberateSymbols : (symbol * sort) Sp.t -> abt -> abt =
+    val liberateSymbols : (symbol * psort) Sp.t -> abt -> abt =
       foldStar liberateSymbolAnn
   end
 
@@ -564,7 +570,7 @@ struct
     structure VarRenUtil = ContextUtil (structure Ctx = VarCtx and Elem = Var)
 
     fun unifySymbols ((u, sigma), (v, tau), rho) =
-      if S.eq (sigma, tau) then
+      if PS.eq (sigma, tau) then
         case (u, v) of
             (LN.FREE u', LN.FREE v') =>
               SymRenUtil.extend rho (u', v')

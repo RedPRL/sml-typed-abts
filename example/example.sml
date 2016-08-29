@@ -6,6 +6,18 @@ struct
 
   structure O =
   struct
+    structure PS =
+    struct
+      type t = unit
+      fun eq _ = true
+      fun toString _ = "assignable"
+    end
+
+    structure P =
+    struct
+      type 'i t = 'i
+    end
+
     structure S =
     struct
       datatype t = EXP | VAL | NAT
@@ -16,7 +28,7 @@ struct
     end
 
 
-    structure Vl = AbtValence (structure S = S and Sp = ListSpine)
+    structure Vl = AbtValence (structure S = S and PS = PS and Sp = ListSpine)
     structure Ar = AbtArity (Vl)
 
     datatype 'i t =
@@ -52,12 +64,12 @@ struct
         | arity AP = ([mkValence [] [] EXP, mkValence [] [] EXP], EXP)
         | arity NUM = ([mkValence [] [] NAT], VAL)
         | arity (LIT _) = ([], NAT)
-        | arity DCL = ([mkValence [] [] EXP, mkValence [EXP] [] EXP], EXP)
+        | arity DCL = ([mkValence [] [] EXP, mkValence [()] [] EXP], EXP)
         | arity (GET i) = ([], EXP)
         | arity (SET i) = ([mkValence [] [] EXP], EXP)
 
-      fun support (GET i) = [(i, EXP)]
-        | support (SET i) = [(i, EXP)]
+      fun support (GET i) = [(i, ())]
+        | support (SET i) = [(i, ())]
         | support _ = []
     end
 
