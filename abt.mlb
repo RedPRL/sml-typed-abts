@@ -14,6 +14,7 @@ local
   src/core/valence.sig
   src/core/spine.sml
   src/core/arity.sig
+  src/core/parameter.sig
   src/core/operator.sig
   src/core/operator.fun
   src/core/abt.sig
@@ -28,6 +29,7 @@ local
   src/core/syntax_view.fun
 
 in
+  signature ABT_PARAMETER
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT

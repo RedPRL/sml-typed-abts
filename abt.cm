@@ -2,6 +2,7 @@ Library
   signature ABT
   signature AST
   signature AST_UTIL
+  signature ABT_PARAMETER
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT_SYMBOL
@@ -55,6 +56,7 @@ is
   src/core/spine.sig
   src/core/spine.sml
   src/core/arity.sig
+  src/core/parameter.sig
   src/core/operator.sig
   src/core/operator.fun
   src/core/ast.sig

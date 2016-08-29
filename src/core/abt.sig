@@ -32,6 +32,7 @@ sig
   type metavariable = Metavar.t
   type operator = symbol O.t
   type sort = O.Ar.sort
+  type psort = O.Ar.psort
   type valence = O.Ar.valence
   type 'a spine = 'a O.Ar.spine
 
@@ -50,7 +51,7 @@ sig
 
   type metactx = valence Metavar.ctx
   type varctx = sort Var.ctx
-  type symctx = sort Sym.ctx
+  type symctx = psort Sym.ctx
 
   type metaenv = abs Metavar.ctx
   type varenv = abt Var.ctx
@@ -116,7 +117,7 @@ sig
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
-    | $# of metavariable * ((symbol * sort) spine * 'a spine)
+    | $# of metavariable * ((symbol * psort) spine * 'a spine)
 
   val map : ('a -> 'b) -> 'a view -> 'b view
   val mapb : ('a -> 'b) -> 'a bview -> 'b bview

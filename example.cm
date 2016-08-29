@@ -7,6 +7,6 @@ is
   lib/sml-parcom/parcom.cm (bind:(anchor:libs value:lib))
   lib/cmlib.cm
   basis/basis.cm
-  example/lcs-playground.sml
+  (* example/lcs-playground.sml *)
   example/example.sml
   example/main.sml

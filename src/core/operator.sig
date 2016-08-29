@@ -1,11 +1,12 @@
 signature ABT_OPERATOR =
 sig
+  structure P : ABT_PARAMETER
   structure Ar : ABT_ARITY
 
   type 'i t
 
   val arity : 'i t -> Ar.t
-  val support : 'i t -> ('i * Ar.Vl.sort) list
+  val support : 'i t -> ('i * Ar.Vl.psort) list
 
   val eq : ('i * 'i -> bool) -> 'i t * 'i t -> bool
   val toString : ('i -> string) -> 'i t -> string

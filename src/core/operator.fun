@@ -2,6 +2,12 @@ functor AbtSimpleOperator (O : ABT_SIMPLE_OPERATOR) : ABT_OPERATOR =
 struct
   structure Ar = O.Ar
 
+  structure P =
+  struct
+    type psort = unit
+    type 'i t = 'i
+  end
+
   type 'i t = O.t
   val arity = O.arity
   fun support _ = []
@@ -13,6 +19,12 @@ end
 functor AbtEmptyOperator (Ar : ABT_ARITY) : ABT_OPERATOR =
 struct
   structure Ar = Ar
+  
+  structure P =
+  struct
+    type psort = unit
+    type 'i t = 'i
+  end
 
   datatype 'i t = WELP of 'i t
 
