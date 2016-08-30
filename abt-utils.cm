@@ -1,4 +1,5 @@
 Group is
   basis/basis.cm
   abt.cm
+  src/utils/closure.sig
   src/utils/closure.fun

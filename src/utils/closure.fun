@@ -1,15 +1,3 @@
-signature ABT_CLOSURE =
-sig
-  structure Abt : ABT
-
-  type 'a env = {params : Abt.symenv, terms : 'a Abt.Var.Ctx.dict}
-  type ('a, 'b) tensor = 'a * 'b env
-
-  datatype ('a, 'b) closure = <: of ('a, ('b, 'b) closure) tensor
-
-  val force : (Abt.abt, Abt.abt) closure -> Abt.abt
-end
-
 functor AbtClosure (Abt : ABT) : ABT_CLOSURE =
 struct
   structure Abt = Abt and Sp = Abt.O.Ar.Vl.Sp and P = Abt.O.P
