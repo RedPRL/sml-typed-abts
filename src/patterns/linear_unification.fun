@@ -12,6 +12,7 @@ struct
   structure Sp = Vl.Sp and S = Vl.S
   structure SymCtx = Sym.Ctx and MetaCtx = Metavar.Ctx
 
+  (* TODO: this isn't *quite* right for general parameter signatures *)
   fun matchOperator (ptheta, theta) =
     (* compare if they are the "same" operator modulo parameters *)
     if O.eq (fn _ => true) (ptheta, theta) then
@@ -48,7 +49,7 @@ struct
      | _ => raise Fail "Expected application"
 
 
-  fun unify (pat <*> m) : symenv * metaenv =
+  fun unify (pat <*> m) : symbol Sym.Ctx.dict * metaenv =
     let
       val (ptheta $@ pargs, psi) = Pattern.out pat
       val (theta, es) = asApp m

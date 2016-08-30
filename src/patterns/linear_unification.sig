@@ -7,6 +7,8 @@ sig
   datatype match = <*> of Pattern.pattern * Abt.abt
 
   exception UnificationFailure
-  val unify : match -> Abt.symenv * Abt.metaenv
+
+  (* TODO: use symenv, properly unify parameters *)
+  val unify : match -> Abt.symbol Abt.Sym.Ctx.dict * Abt.metaenv
 end
 
