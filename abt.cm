@@ -3,6 +3,7 @@ Library
   signature AST
   signature AST_UTIL
   signature ABT_PARAMETER
+  signature ABT_PARAMETER_UTIL
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT_SYMBOL
@@ -17,6 +18,8 @@ Library
   signature ABT_SYNTAX_VIEW_INTO
   signature ABT_SYNTAX_VIEW
 
+  functor AbtParameterUtil
+  structure AbtEmptyParameter
   functor AbtSymbol
   structure StringAbtSymbol
   structure ListSpine
@@ -57,6 +60,7 @@ is
   src/core/spine.sml
   src/core/arity.sig
   src/core/parameter.sig
+  src/core/parameter.fun
   src/core/operator.sig
   src/core/operator.fun
   src/core/ast.sig

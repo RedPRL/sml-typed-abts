@@ -15,6 +15,7 @@ local
   src/core/spine.sml
   src/core/arity.sig
   src/core/parameter.sig
+  src/core/parameter.fun
   src/core/operator.sig
   src/core/operator.fun
   src/core/abt.sig
@@ -30,6 +31,7 @@ local
 
 in
   signature ABT_PARAMETER
+  signature ABT_PARAMETER_UTIL
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT
@@ -49,6 +51,8 @@ in
   signature ABT_SYNTAX_VIEW_INTO
   signature ABT_SYNTAX_VIEW
 
+  functor AbtParameterUtil
+  structure AbtEmptyParameter
   functor AbtSymbol
   structure StringAbtSymbol
   structure ListSpine

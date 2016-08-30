@@ -13,10 +13,7 @@ struct
       fun toString _ = "assignable"
     end
 
-    structure P =
-    struct
-      type 'i t = 'i
-    end
+    structure P = AbtEmptyParameter
 
     structure S =
     struct
@@ -73,14 +70,17 @@ struct
         | support _ = []
     end
 
+    fun getVar (P.VAR x) = x
+      | getVar (P.APP _) = raise Match
+
     fun map f LAM = LAM
       | map f AP = AP
       | map f NUM = NUM
       | map f (LIT n) = LIT n
       | map f RET = RET
       | map f DCL = DCL
-      | map f (GET i) = GET (f i)
-      | map f (SET i) = SET (f i)
+      | map f (GET i) = GET (getVar (f i))
+      | map f (SET i) = SET (getVar (f i))
   end
 
   structure OParser : PARSE_ABT_OPERATOR =
@@ -119,6 +119,8 @@ struct
 
     val parseInt =
       repeat1 digit wth valOf o Int.fromString o String.implode
+
+    val parseParam = identifier wth O.P.VAR
 
     val parse : string O.t CharParser.charParser =
       string "lam" return LAM

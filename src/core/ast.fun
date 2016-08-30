@@ -9,14 +9,16 @@ struct
   type annotation = annotation
 
   structure Sp = Operator.Ar.Vl.Sp
+  structure PM = AbtParameterUtil (Operator.P)
 
   type 'i operator = 'i Operator.t
+  type 'i param = 'i Operator.P.term
   type 'a spine = 'a Sp.t
 
   datatype 'a view =
       ` of variable
     | $ of symbol operator * 'a abs spine
-    | $# of metavariable * (symbol spine * 'a spine)
+    | $# of metavariable * (symbol param spine * 'a spine)
   and 'a abs = \ of (symbol spine * variable spine) * 'a
 
   datatype ast = @: of ast view * annotation option
@@ -41,7 +43,7 @@ struct
               ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
      | mv $# (us, es) @: _ =>
          let
-           val us' = Sp.pretty (fn x => x) "," us
+           val us' = Sp.pretty (PM.toString (fn x => x)) "," us
            val es' = Sp.pretty toString "," es
          in
            "#" ^ Metavar.toString mv
@@ -81,6 +83,9 @@ struct
 
   structure NameEnv = SplayDict (structure Key = StringOrdered)
 
+  structure PM = AbtParameterUtil (Abt.O.P)
+  structure PF = FunctorOfMonad (PM)
+
   fun variable vnames x =
     NameEnv.lookup vnames x
     handle _ =>
@@ -99,18 +104,18 @@ struct
            | Ast.$ (theta, es) =>
               let
                 val (vls, _) = Abt.O.arity theta
-                val theta' = Abt.O.map (symbol snames) theta
+                val theta' = Abt.O.map (PM.pure o symbol snames) theta
                 val es' = Sp.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
               in
                 Abt.check (Abt.$ (theta', es'), tau)
               end
-           | Ast.$# (mv, (us, ms)) =>
+           | Ast.$# (mv, (ps, ms)) =>
                let
                  val ((ssorts, vsorts), _) = Abt.Metavar.Ctx.lookup psi mv
-                 val us' = Sp.Pair.zipEq (Sp.map (symbol snames) us, ssorts)
+                 val ps' = Sp.Pair.zipEq (Sp.map (PF.map (symbol snames)) ps, ssorts)
                  val ms' = Sp.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
                in
-                 Abt.check (Abt.$# (mv, (us', ms')), tau)
+                 Abt.check (Abt.$# (mv, (ps', ms')), tau)
                end
     in
       case Ast.getAnnotation m of

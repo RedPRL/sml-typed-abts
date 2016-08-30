@@ -12,6 +12,8 @@ struct
 
   structure Sp = Abt.O.Ar.Vl.Sp
 
+  structure PM = AbtParameterUtil (Abt.O.P)
+
   fun toString M =
     case #1 (infer M) of
          `x => ShowVar.toString x
@@ -21,13 +23,13 @@ struct
            else
              O.toString ShowSym.toString theta
                 ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
-       | mv $# (us, ms) =>
+       | mv $# (ps, ms) =>
            let
-             val us' = Sp.pretty (ShowSym.toString o #1) "," us
+             val ps' = Sp.pretty (PM.toString Sym.toString o #1) "," ps
              val ms' = Sp.pretty toString "," ms
            in
              "#" ^ Abt.Metavar.toString mv
-                 ^ (if Sp.isEmpty us then "" else "{" ^ us' ^ "}")
+                 ^ (if Sp.isEmpty ps then "" else "{" ^ ps' ^ "}")
                  ^ (if Sp.isEmpty ms then "" else "[" ^ ms' ^ "]")
            end
 

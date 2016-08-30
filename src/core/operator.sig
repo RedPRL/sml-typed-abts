@@ -10,7 +10,7 @@ sig
 
   val eq : ('i * 'i -> bool) -> 'i t * 'i t -> bool
   val toString : ('i -> string) -> 'i t -> string
-  val map : ('i -> 'j) -> 'i t -> 'j t
+  val map : ('i -> 'j P.term) -> 'i t -> 'j t
 end
 
 signature ABT_SIMPLE_OPERATOR =

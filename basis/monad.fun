@@ -11,4 +11,11 @@ struct
     end
 end
 
+structure IdMonad :> MONAD where type 'a t = 'a =
+struct
+  type 'a t = 'a
+  fun pure a = a
+  fun bind f x = f x
+end
+
 structure ListFunctor = FunctorOfMonad (ListMonad)

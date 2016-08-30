@@ -34,6 +34,7 @@ sig
   type sort = O.Ar.sort
   type psort = O.Ar.psort
   type valence = O.Ar.valence
+  type param = symbol O.P.term
   type 'a spine = 'a O.Ar.spine
 
   (* The core type of the signature. This is the type of the ABTs that
@@ -55,7 +56,7 @@ sig
 
   type metaenv = abs Metavar.ctx
   type varenv = abt Var.ctx
-  type symenv = symbol Sym.ctx
+  type symenv = param Sym.ctx
 
   (* Modify the term inside an abstraction*)
   val mapAbs : (abt -> abt) -> abs -> abs
@@ -86,14 +87,14 @@ sig
    * the metavariable. This operation is related to Kevin Watkins' method
    * of hereditary substitution as invented for the Concurrent Logical Framework.
    *)
-  val metasubstEnv : metaenv -> abt -> abt
-  val substEnv : varenv -> abt -> abt
-  val renameEnv : symenv -> abt -> abt
+  val substMetaenv : metaenv -> abt -> abt
+  val substVarenv : varenv -> abt -> abt
+  val substSymenv : symenv -> abt -> abt
 
   (* Below we provide unary versions of the simultaneous substitution operations *)
-  val metasubst : abs * metavariable -> abt -> abt
-  val subst : abt * variable -> abt -> abt
-  val rename : symbol * symbol -> abt -> abt
+  val substMetavar : abs * metavariable -> abt -> abt
+  val substVar : abt * variable -> abt -> abt
+  val substSymbol : param * symbol -> abt -> abt
 
   val annotate : annotation -> abt -> abt
   val getAnnotation : abt -> annotation option
@@ -117,7 +118,7 @@ sig
   datatype 'a view =
       ` of variable
     | $ of operator * 'a bview spine
-    | $# of metavariable * ((symbol * psort) spine * 'a spine)
+    | $# of metavariable * ((param * psort) spine * 'a spine)
 
   val map : ('a -> 'b) -> 'a view -> 'b view
   val mapb : ('a -> 'b) -> 'a bview -> 'b bview
@@ -144,6 +145,7 @@ sig
   val outb : abs -> abt bview
   val valence : abs -> valence
 
+  (* alpha unification *)
   structure Unify :
   sig
     type renaming = metavariable Metavar.ctx * symbol Sym.ctx * variable Var.ctx

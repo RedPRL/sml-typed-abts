@@ -29,6 +29,7 @@ in
   functor FunctorOfMonad
   structure ListMonad
   structure ListFunctor
+  structure IdMonad
 
   functor CategoryFoldMap
 end
