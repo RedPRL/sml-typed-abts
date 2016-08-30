@@ -2,26 +2,26 @@ signature ABT_PARAMETER =
 sig
   include FUNCTOR
 
-  datatype 'a term =
-     VAR of 'a
-   | APP of 'a term t
-
   val eq : ('a * 'a -> bool) -> 'a t * 'a t -> bool
   val toString : ('a -> string) -> 'a t -> string
 
   val join : 'a -> ('a * 'a -> 'a) -> 'a t -> 'a
 end
 
-signature ABT_PARAMETER_UTIL =
+signature ABT_PARAMETER_TERM =
 sig
-  structure P : ABT_PARAMETER
+  structure Sig : ABT_PARAMETER
 
-  include MONAD where type 'a t = 'a P.term
+  datatype 'a term =
+     VAR of 'a
+   | APP of 'a term Sig.t
+
+  include MONAD where type 'a t = 'a term
 
   val eq : ('a * 'a -> bool) -> 'a t * 'a t -> bool
   val toString : ('a -> string) -> 'a t -> string
 
-  val collectSubterms : 'a P.t -> 'a list
+  val collectSubterms : 'a Sig.t -> 'a list
 end
 
 

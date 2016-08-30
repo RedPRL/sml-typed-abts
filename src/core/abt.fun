@@ -8,9 +8,7 @@ struct
   structure Sym = Sym and Var = Var and Metavar = Metavar and O = O and Ar = O.Ar
   structure S = Ar.Vl.S and PS = Ar.Vl.PS and Valence = Ar.Vl
   structure Sp = Valence.Sp
-  structure P = O.P
-  structure PM = AbtParameterUtil (P)
-  structure PF = FunctorOfMonad (PM)
+  structure P = O.P and PF = FunctorOfMonad (O.P)
 
   structure MetaCtx = Metavar.Ctx
   structure VarCtx = Var.Ctx
@@ -262,7 +260,7 @@ struct
            fun chk (LN.FREE v', tau') = if Sym.eq (v, v') then assertPSortEq (tau, tau') else ()
              | chk _ = ()
            val _ = List.app chk (O.support theta)
-           val theta' = O.map (PM.pure o LN.bind rho) theta
+           val theta' = O.map (P.pure o LN.bind rho) theta
            val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
          in
            APP (theta', Sp.map (liftTraverseAbs (imprisonSymbolAnn (v,tau)) coord) es <: ctx')
@@ -303,7 +301,7 @@ struct
       fn e as V _ => e
        | APP (theta, es <: ctx) =>
            let
-             val theta' = O.map (PM.pure o rho) theta
+             val theta' = O.map (P.pure o rho) theta
              val fs = Sp.map (liftTraverseAbs (liberateSymbolAnn (u, sigma)) coord) es
            in
              makeApp theta' fs
@@ -372,7 +370,7 @@ struct
        | APP (theta, Es <: _) =>
          let
            val (_, tau) = O.arity theta
-           val theta' = O.map (PM.pure o LN.getFree) theta
+           val theta' = O.map (P.pure o LN.getFree) theta
            val Es' = Sp.map (#1 o inferb) Es
          in
            (theta' $ Es', tau)
@@ -410,7 +408,7 @@ struct
            let
              val (valences, tau)  = O.arity theta
              val () = assertSortEq (sigma, tau)
-             val theta' = O.map (PM.pure o LN.FREE) theta
+             val theta' = O.map (P.pure o LN.FREE) theta
              val es' = Sp.Pair.mapEq checkb (es, valences)
            in
              makeApp theta' es' @: NONE
@@ -464,7 +462,7 @@ struct
           OpLnEq.eq (theta, theta') andalso Sp.Pair.allEq eqAbs (es, es')
       | eq (META_APP ((mv, _), ps, ms <: _) @: _, META_APP ((mv', _), ps', ms' <: _) @: _) =
           Metavar.eq (mv, mv')
-            andalso Sp.Pair.allEq (fn ((x, _), (y, _)) => PM.eq (LN.eq Sym.eq) (x,y)) (ps, ps')
+            andalso Sp.Pair.allEq (fn ((x, _), (y, _)) => P.eq (LN.eq Sym.eq) (x,y)) (ps, ps')
             andalso Sp.Pair.allEq eq (ms, ms')
       | eq _ = false
     and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
@@ -516,8 +514,8 @@ struct
   and substSymenv rho =
     let
       val substp =
-        fn LN.FREE a => PF.map LN.pure (getOpt (SymCtx.find rho a, PM.pure a))
-         | u => PM.pure u
+        fn LN.FREE a => PF.map LN.pure (getOpt (SymCtx.find rho a, P.pure a))
+         | u => P.pure u
     in
       Ann.map
         (fn m as V _ => m
@@ -529,7 +527,7 @@ struct
               end
           | META_APP (mv, ps, ms <: _) =>
               let
-                fun ren' (p, s) = (PM.bind substp p, s)
+                fun ren' (p, s) = (P.bind substp p, s)
               in
                 makeMetaApp mv (Sp.map ren' ps) (Sp.map (substSymenv rho) ms)
               end)
@@ -541,7 +539,7 @@ struct
       val (vs, xs) \ m = outb abs
       val srho =
         Sp.foldr
-          (fn ((v,u), rho) => SymCtx.insert rho v (PM.pure u))
+          (fn ((v,u), rho) => SymCtx.insert rho v (P.pure u))
           SymCtx.empty
           (Sp.Pair.zipEq (vs, us))
       val vrho =
@@ -595,11 +593,11 @@ struct
     fun unifyParams (p, q, rho) =
       case (p, q) of
          (P.VAR u, P.VAR v) => unifySymbols (u, v, rho)
-       | (P.APP (t1 : symbol LN.t PM.t P.t), P.APP t2) =>
+       | (P.APP t1, P.APP t2) =>
            (* check if the head operators are equal *)
-           if P.eq (fn _ => true) (t1, t2) then
+           if P.Sig.eq (fn _ => true) (t1, t2) then
              (* unify subterms *)
-             ListPair.foldrEq unifyParams rho (PM.collectSubterms t1, PM.collectSubterms t2)
+             ListPair.foldrEq unifyParams rho (P.collectSubterms t1, P.collectSubterms t2)
            else
              raise UnificationFailed
        | _ => raise UnificationFailed

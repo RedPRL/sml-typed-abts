@@ -12,8 +12,6 @@ struct
 
   structure Sp = Abt.O.Ar.Vl.Sp
 
-  structure PM = AbtParameterUtil (Abt.O.P)
-
   fun toString M =
     case #1 (infer M) of
          `x => ShowVar.toString x
@@ -25,7 +23,7 @@ struct
                 ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
        | mv $# (ps, ms) =>
            let
-             val ps' = Sp.pretty (PM.toString Sym.toString o #1) "," ps
+             val ps' = Sp.pretty (Abt.O.P.toString Sym.toString o #1) "," ps
              val ms' = Sp.pretty toString "," ms
            in
              "#" ^ Abt.Metavar.toString mv

@@ -3,7 +3,7 @@ Library
   signature AST
   signature AST_UTIL
   signature ABT_PARAMETER
-  signature ABT_PARAMETER_UTIL
+  signature ABT_PARAMETER_TERM
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT_SYMBOL
@@ -18,7 +18,7 @@ Library
   signature ABT_SYNTAX_VIEW_INTO
   signature ABT_SYNTAX_VIEW
 
-  functor AbtParameterUtil
+  functor AbtParameterTerm
   structure AbtEmptyParameter
   functor AbtSymbol
   structure StringAbtSymbol

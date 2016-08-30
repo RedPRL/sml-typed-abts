@@ -1,33 +1,34 @@
-functor AbtParameterUtil (P : ABT_PARAMETER) : ABT_PARAMETER_UTIL =
+functor AbtParameterTerm (Sig : ABT_PARAMETER) : ABT_PARAMETER_TERM =
 struct
-  structure P = P
+  structure Sig = Sig
 
-  type 'a t = 'a P.term
-  val pure = P.VAR
+  datatype 'a term =
+     VAR of 'a
+   | APP of 'a term Sig.t
+
+  type 'a t = 'a term
+  val pure = VAR
 
   fun bind f =
-    fn P.VAR x => f x
-     | P.APP t => P.APP (P.map (bind f) t)
+    fn VAR x => f x
+     | APP t => APP (Sig.map (bind f) t)
 
   fun eq f =
-    fn (P.VAR x, P.VAR y) => f (x, y)
-     | (P.APP t1, P.APP t2) => P.eq (eq f) (t1, t2)
+    fn (VAR x, VAR y) => f (x, y)
+     | (APP t1, APP t2) => Sig.eq (eq f) (t1, t2)
      | _ => false
 
   fun toString f =
-    fn P.VAR x => f x
-     | P.APP t => P.toString (toString f) t
+    fn VAR x => f x
+     | APP t => Sig.toString (toString f) t
 
   fun collectSubterms t =
-    P.join [] op@ (P.map ListMonad.pure t)
+    Sig.join [] op@ (Sig.map ListMonad.pure t)
 end
 
 structure AbtEmptyParameter : ABT_PARAMETER =
 struct
   datatype 'a t = NOPE of 'a t
-  datatype 'a term =
-     VAR of 'a
-   | APP of 'a term t
 
   fun map f (NOPE t) = raise Match
   fun eq _ _ = true

@@ -9,7 +9,7 @@ struct
   type annotation = annotation
 
   structure Sp = Operator.Ar.Vl.Sp
-  structure PM = AbtParameterUtil (Operator.P)
+  structure P = Operator.P
 
   type 'i operator = 'i Operator.t
   type 'i param = 'i Operator.P.term
@@ -44,7 +44,7 @@ struct
               ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
      | mv $# (us, es) @: _ =>
          let
-           val us' = Sp.pretty (PM.toString (fn x => x)) "," us
+           val us' = Sp.pretty (P.toString (fn x => x)) "," us
            val es' = Sp.pretty toString "," es
          in
            "#" ^ Metavar.toString mv
@@ -84,8 +84,7 @@ struct
 
   structure NameEnv = SplayDict (structure Key = StringOrdered)
 
-  structure PM = AbtParameterUtil (Abt.O.P)
-  structure PF = FunctorOfMonad (PM)
+  structure PF = FunctorOfMonad (Abt.O.P)
 
   fun variable vnames x =
     NameEnv.lookup vnames x
@@ -105,7 +104,7 @@ struct
            | Ast.$ (theta, es) =>
               let
                 val (vls, _) = Abt.O.arity theta
-                val theta' = Abt.O.map (PM.pure o symbol snames) theta
+                val theta' = Abt.O.map (Abt.O.P.pure o symbol snames) theta
                 val es' = Sp.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
               in
                 Abt.check (Abt.$ (theta', es'), tau)

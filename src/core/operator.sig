@@ -1,6 +1,6 @@
 signature ABT_OPERATOR =
 sig
-  structure P : ABT_PARAMETER
+  structure P : ABT_PARAMETER_TERM
   structure Ar : ABT_ARITY
 
   type 'i t

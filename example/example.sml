@@ -13,7 +13,7 @@ struct
       fun toString _ = "assignable"
     end
 
-    structure P = AbtEmptyParameter
+    structure P = AbtParameterTerm (AbtEmptyParameter)
 
     structure S =
     struct
