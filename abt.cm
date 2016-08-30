@@ -45,8 +45,6 @@ is
   basis/basis.cm
   lib/cmlib.cm
 
-  src/core/views.sig
-  src/core/views.fun
   src/core/symbol.sig
   src/core/symbol.fun
   src/core/context_util.sig
@@ -55,6 +53,8 @@ is
   src/core/valence.sig
   src/core/spine.sig
   src/core/spine.sml
+  src/core/views.sig
+  src/core/views.fun
   src/core/arity.sig
   src/core/parameter.sig
   src/core/parameter.fun

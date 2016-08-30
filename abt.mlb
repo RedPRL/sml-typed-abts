@@ -13,6 +13,8 @@ local
   src/core/spine.sig
   src/core/valence.sig
   src/core/spine.sml
+  src/core/views.sig
+  src/core/views.fun
   src/core/arity.sig
   src/core/parameter.sig
   src/core/parameter.fun
