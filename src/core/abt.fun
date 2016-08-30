@@ -26,6 +26,17 @@ struct
   type 'a spine = 'a Sp.t
   type annotation = annotation
 
+  structure Views = AbtViews (Sp)
+  open Views
+
+  type 'a view = (param, psort, symbol, variable, metavariable, operator, 'a) termf
+  type 'a bview = (symbol, variable, 'a) bindf
+  type 'a appview = (symbol, variable, operator, 'a) appf
+
+  infixr 5 \
+  infix 5 $ $#
+
+
   structure LN =
   struct
     local structure S = LocallyNameless (LnCoord) in open S end
@@ -120,17 +131,6 @@ struct
 
   fun abtToAbs m =
     ABS (Sp.empty (), Sp.empty (), m)
-
-  (* Patterns for abstract binding trees. *)
-  datatype 'a view =
-      ` of variable
-    | $ of operator * 'a bview spine
-    | $# of metavariable * ((param * psort) spine * 'a spine)
-  and 'a bview =
-     \ of (symbol spine * variable spine) * 'a
-
-  infixr 5 \
-  infix 5 $ $#
 
   (* A family of convenience functions for failing when things go wrong.
    * These are internal checks and so they should raise Fail; people shouldn't
@@ -443,22 +443,12 @@ struct
       check (theta $ es, tau)
     end
 
-  fun mapb f ((us, xs) \ m) =
-    (us, xs) \ f m
-
   fun mapAbs f abs =
     let
       val ((us, xs) \ m, vl) = inferb abs
     in
       checkb ((us, xs) \ f m, vl)
     end
-
-  fun map f =
-    fn `x => `x
-     | theta $ es =>
-         theta $ Sp.map (mapb f) es
-     | mv $# (us, ms) =>
-         mv $# (us, Sp.map f ms)
 
   local
     structure OpLnEq = struct val eq = O.eq (LN.eq Sym.eq) end
@@ -486,7 +476,7 @@ struct
         (case view of
              `x => m
            | theta $ es =>
-               check (theta $ Sp.map (mapb (substMetaenv rho)) es, tau)
+               check (theta $ Sp.map (mapBind (substMetaenv rho)) es, tau)
            | mv $# (us, ms) =>
                let
                  val ms' = Sp.map (substMetaenv rho) ms

@@ -45,6 +45,8 @@ is
   basis/basis.cm
   lib/cmlib.cm
 
+  src/core/views.sig
+  src/core/views.fun
   src/core/symbol.sig
   src/core/symbol.fun
   src/core/context_util.sig

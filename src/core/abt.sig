@@ -35,7 +35,6 @@ sig
   type psort = O.Ar.psort
   type valence = O.Ar.valence
   type param = symbol O.P.term
-  type 'a spine = 'a O.Ar.spine
 
   (* The core type of the signature. This is the type of the ABTs that
    * can be built from the given [operator]s, [variable]s, [symbol]s and
@@ -49,6 +48,12 @@ sig
    * an operator.
    *)
   type abs
+
+  (* Patterns for abstract binding trees. *)
+  include ABT_VIEWS where type 'a spine = 'a O.Ar.Vl.Sp.t
+  type 'a view = (param, psort, symbol, variable, metavariable, operator, 'a) termf
+  type 'a bview = (symbol, variable, 'a) bindf
+  type 'a appview = (symbol, variable, operator, 'a) appf
 
   type metactx = valence Metavar.ctx
   type varctx = sort Var.ctx
@@ -100,29 +105,6 @@ sig
   val getAnnotation : abt -> annotation option
   val setAnnotation : annotation option -> abt -> abt
   val clearAnnotation : abt -> abt
-
-  (* Patterns for abstract binding trees. *)
-
-  (* A [bview] is a view of a abstraction. This is NOT an abt;
-   * a binding is a spine of symbols and variables as well as the
-   * underlying 'a (usually an abt) that uses them.
-   *)
-  datatype 'a bview =
-     \ of (symbol spine * variable spine) * 'a
-
-  (* This is the main interface to be used for interacting with
-   * an ABT. When inspected, an standard ABT is just a variable or
-   * an operator (the binding case is always wrapped in an operators
-   * argument) or a metavariable applied to some collection of
-   * symbols and terms
-   *)
-  datatype 'a view =
-      ` of variable
-    | $ of operator * 'a bview spine
-    | $# of metavariable * ((param * psort) spine * 'a spine)
-
-  val map : ('a -> 'b) -> 'a view -> 'b view
-  val mapb : ('a -> 'b) -> 'a bview -> 'b bview
 
   (* Note: The [check] operation corresponds to the [into] operation found in
    * the Carnegie Mellon ABT libraries.
