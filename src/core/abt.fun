@@ -99,6 +99,7 @@ struct
 
   fun annotate ann (m @: _) = m @: SOME ann
   fun getAnnotation (_ @: ann) = ann
+  fun setAnnotation ann (m @: _) = m @: ann
   fun clearAnnotation (m @: _) = m @: NONE
 
   val rec primToString =
@@ -471,36 +472,38 @@ struct
 
   fun substMetaenv rho m =
     let
+      val ann = getAnnotation m
       val (view, tau) = infer m
     in
-      case view of
-           `x => m
-         | theta $ es =>
-             check (theta $ Sp.map (mapb (substMetaenv rho)) es, tau)
-         | mv $# (ps, ms) =>
-             let
-               val ms' = Sp.map (substMetaenv rho) ms
-             in
-               case MetaCtx.find rho mv of
-                    NONE =>
-                      check (mv $# (ps, ms'), tau)
-                  | SOME abs =>
-                      let
-                        val (vs, xs) \ m = outb abs
-                        val srho =
-                          Sp.foldr
-                            (fn ((v, (p, _)), r) => SymCtx.insert r v p)
-                            SymCtx.empty
-                            (Sp.Pair.zipEq (vs, ps))
-                        val rho' =
-                          Sp.foldr
-                            (fn ((x,m), rho) => VarCtx.insert rho x m)
-                            VarCtx.empty
-                            (Sp.Pair.zipEq (xs, ms'))
-                      in
-                        substVarenv rho' (substSymenv srho m)
-                      end
-             end
+      setAnnotation ann
+        (case view of
+             `x => m
+           | theta $ es =>
+               check (theta $ Sp.map (mapb (substMetaenv rho)) es, tau)
+           | mv $# (us, ms) =>
+               let
+                 val ms' = Sp.map (substMetaenv rho) ms
+               in
+                 case MetaCtx.find rho mv of
+                      NONE =>
+                        check (mv $# (us, ms'), tau)
+                    | SOME abs =>
+                        let
+                          val (vs, xs) \ m = outb abs
+                          val srho =
+                            Sp.foldr
+                              (fn ((v, (u, _)), r) => SymCtx.insert r v u)
+                              SymCtx.empty
+                              (Sp.Pair.zipEq (vs, us))
+                          val rho' =
+                            Sp.foldr
+                              (fn ((x,m), rho) => VarCtx.insert rho x m)
+                              VarCtx.empty
+                              (Sp.Pair.zipEq (xs, ms'))
+                        in
+                          substVarenv rho' (substSymenv srho m)
+                        end
+               end)
     end
 
   and substVarenv rho =

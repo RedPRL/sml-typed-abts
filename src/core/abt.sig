@@ -98,6 +98,7 @@ sig
 
   val annotate : annotation -> abt -> abt
   val getAnnotation : abt -> annotation option
+  val setAnnotation : annotation option -> abt -> abt
   val clearAnnotation : abt -> abt
 
   (* Patterns for abstract binding trees. *)
