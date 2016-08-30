@@ -592,10 +592,6 @@ struct
               raise UnificationFailed
         | _ => raise UnificationFailed
 
-    fun paramGetSubterms t =
-      P.join [] op@
-        (P.map ListMonad.pure t)
-
     fun unifyParams (p, q, rho) =
       case (p, q) of
          (P.VAR u, P.VAR v) => unifySymbols (u, v, rho)
@@ -603,7 +599,7 @@ struct
            (* check if the head operators are equal *)
            if P.eq (fn _ => true) (t1, t2) then
              (* unify subterms *)
-             ListPair.foldrEq unifyParams rho (paramGetSubterms t1, paramGetSubterms t2)
+             ListPair.foldrEq unifyParams rho (PM.collectSubterms t1, PM.collectSubterms t2)
            else
              raise UnificationFailed
        | _ => raise UnificationFailed

@@ -20,6 +20,8 @@ sig
 
   val eq : ('a * 'a -> bool) -> 'a t * 'a t -> bool
   val toString : ('a -> string) -> 'a t -> string
+
+  val collectSubterms : 'a P.t -> 'a list
 end
 
 

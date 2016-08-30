@@ -17,6 +17,9 @@ struct
   fun toString f =
     fn P.VAR x => f x
      | P.APP t => P.toString (toString f) t
+
+  fun collectSubterms t =
+    P.join [] op@ (P.map ListMonad.pure t)
 end
 
 structure AbtEmptyParameter : ABT_PARAMETER =
