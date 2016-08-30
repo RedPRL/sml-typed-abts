@@ -11,7 +11,7 @@ struct
   open Abt Unparse
   infix 5 $ $# \
 
-  structure V = Var and S = Sym and M = Metavar
+  structure V = Var and S = Sym and M = Metavar and P = Abt.O.P
   structure Sp = O.Ar.Vl.Sp
 
   type unparser = Abt.abt -> string Unparse.part
@@ -36,14 +36,14 @@ struct
                    @@ O.toString S.toString theta
                     ^ (if Sp.isEmpty es then "" else "(" ^ es' ^ ")")
                end
-           | x $# (us, ms) =>
+           | x $# (ps, ms) =>
                let
-                 val us' = Sp.pretty (S.toString o #1) "," us
+                 val ps' = Sp.pretty (P.toString S.toString o #1) "," ps
                  val ms' = Sp.pretty (parens o done o outer) "," ms
                in
                  atom
                    @@ "#" ^ M.toString x
-                    ^ (if Sp.isEmpty us then "" else "{" ^ us' ^ "}")
+                    ^ (if Sp.isEmpty ps then "" else "{" ^ ps' ^ "}")
                     ^ (if Sp.isEmpty ms then "" else "[" ^ ms' ^ "]")
                end
       and goB ((us, xs) \ m) =
