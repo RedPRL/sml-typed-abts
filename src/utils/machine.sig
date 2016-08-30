@@ -3,8 +3,7 @@ sig
   structure Cl : ABT_CLOSURE
 
   datatype 'a plus = HOLE | % of 'a
-  type 'a kont = ('a, 'a) Cl.closure plus Cl.Abt.appview
-  type 'a frame = 'a kont * (Cl.Abt.symbol list * Cl.Abt.variable list)
+  type 'a frame = ('a, 'a) Cl.closure plus Cl.Abt.appview
   type 'a focus = ('a, 'a) Cl.closure
   type 'a stack = 'a frame list
 
@@ -27,7 +26,7 @@ sig
   type abt = M.Cl.Abt.abt
 
   val step : (abt M.Cl.Abt.appview, abt) M.Cl.closure -> abt M.step
-  val plug : abt M.kont * abt M.focus M.Cl.Abt.bview -> abt M.focus option
+  val plug : abt M.frame * abt M.focus M.Cl.Abt.bview -> abt M.focus option
 end
 
 signature ABT_MACHINE =

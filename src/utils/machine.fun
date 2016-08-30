@@ -13,8 +13,8 @@ struct
     fn [] => raise Fail "No match"
      | x :: xs => (case f x of SOME y => y | _ => getFirstMatch f xs)
 
-  fun getHole (_ `$ args) =
-    List.foldl (fn _ => raise Match) NONE args
+  fun getHoleBinder (_ `$ args) =
+    getFirstMatch (fn bs \ HOLE => SOME bs | _ => NONE) args
 
   fun mapPlus f =
     fn HOLE => HOLE
@@ -25,7 +25,6 @@ struct
 
   fun makeFrame env (k as th `$ args) =
     let
-      val (us, xs) = getFirstMatch (fn bs \ HOLE => SOME bs | _ => NONE) args
       fun rho a =
         case Sym.Ctx.find (#params env) a of
            SOME p => p
@@ -33,7 +32,7 @@ struct
       val th' = O.map rho th
       val args' = List.map (mapBind (mapPlus (close env))) args
     in
-      (th' `$ args', (us, xs))
+      (th' `$ args')
     end
 
   fun down (foc as t <: env, stk) =
@@ -52,15 +51,19 @@ struct
   fun up (foc, stk) =
     case stk of
        [] => NONE
-     | (k, (us, xs)) :: stk' =>
-         (case plug (k, (us, xs) \ foc) of
-             SOME foc' => SOME (DOWN, foc', stk')
-           | NONE => SOME (UNLOAD, foc, stk))
+     | k :: stk' =>
+         let
+           val (us, xs) = getHoleBinder k
+         in
+           case plug (k, (us, xs) \ foc) of
+              SOME foc' => SOME (DOWN, foc', stk')
+            | NONE => SOME (UNLOAD, foc, stk)
+         end
 
   fun unload (foc, stk) =
     case stk of
        [] => NONE
-     | (k, _) :: stk' =>
+     | k :: stk' =>
          let
            val t <: env = foc
            val th `$ args = mapApp (fn HOLE => t | % cl => Cl.force cl) k
