@@ -38,7 +38,7 @@ struct
   fun collapseFocusedApp (th `$ args <: env) =
     th $$ args <: env
 
-  fun down (foc as t <: env, stk) =
+  fun down sign (foc as t <: env, stk) =
     case out t of
        `x =>
          (case Var.Ctx.find (#terms env) x of
@@ -46,31 +46,31 @@ struct
            | NONE => (UNLOAD, foc, stk))
      | _ $# _ => (UNLOAD, foc, stk)
      | th $ args =>
-         (case step (th `$ args <: env) of
+         (case step sign (th `$ args <: env) of
              STEP foc' => (DOWN, foc', stk)
            | THROW foc' => (HANDLE, foc', stk)
            | VAL => (UP, foc, stk)
            | CUT ((k, t) <: env) => (DOWN, t <: env, makeFrame env k :: stk))
 
-  fun up (foc : abt app_closure, stk) =
+  fun up sign (foc : abt app_closure, stk) =
     case stk of
        [] => NONE
      | k :: stk' =>
          let
            val (us, xs) = getHoleBinder k
-           val foc' = cut (k, (us, xs) \ foc)
+           val foc' = cut sign (k, (us, xs) \ foc)
          in
            SOME (DOWN, foc', stk')
          end
          handle InvalidCut => SOME (UNLOAD, collapseFocusedApp foc, stk)
 
-  fun handle' (foc, stk) =
+  fun handle' sign (foc, stk) =
     case stk of
        [] => NONE
      | k :: stk' =>
          (case getHoleBinder k of
              ([],[]) =>
-               (SOME (DOWN, cut (k, ([],[]) \ foc), stk')
+               (SOME (DOWN, cut sign (k, ([],[]) \ foc), stk')
                   handle InvalidCut => SOME (HANDLE, collapseFocusedApp foc, stk'))
            | _ => SOME (HANDLE, collapseFocusedApp foc, stk'))
 
@@ -86,12 +86,12 @@ struct
            SOME (UNLOAD, foc', stk')
          end
 
-  fun next (mode, foc, stk) =
+  fun next sign (mode, foc, stk) =
     case mode of
-       DOWN => SOME (down (foc, stk))
+       DOWN => SOME (down sign (foc, stk))
      | UNLOAD => unload (foc, stk)
-     | UP => (case expandFocusedApp foc of SOME foc' => up (foc', stk) | _ => SOME (UNLOAD, foc, stk))
-     | HANDLE => (case expandFocusedApp foc of SOME foc' => handle' (foc', stk) | _ => SOME (UNLOAD, foc, stk))
+     | UP => (case expandFocusedApp foc of SOME foc' => up sign (foc', stk) | _ => SOME (UNLOAD, foc, stk))
+     | HANDLE => (case expandFocusedApp foc of SOME foc' => handle' sign (foc', stk) | _ => SOME (UNLOAD, foc, stk))
 end
 
 functor AbtMachineUtil (M : ABT_MACHINE) : ABT_MACHINE_UTIL =
@@ -107,19 +107,19 @@ struct
   fun load t =
     (DOWN, t <: emptyEnv, [])
 
-  fun star st =
-    case next st of
+  fun star sign st =
+    case next sign st of
        NONE => st
-     | SOME st' => star st'
+     | SOME st' => star sign st'
 
-  fun unload (_, foc, stk) =
+  fun unload sign (_, foc, stk) =
     let
-      val (_, foc', stk) = star (UNLOAD, foc, stk)
+      val (_, foc', stk) = star sign (UNLOAD, foc, stk)
     in
       case stk of
          [] => Cl.force foc'
        | _ => raise Fail "AbtMachineUtil.unload: implementation error"
     end
 
-  val eval = unload o star o load
+  fun eval sign = unload sign o star sign o load
 end

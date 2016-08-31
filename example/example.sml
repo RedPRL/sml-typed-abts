@@ -114,6 +114,8 @@ structure ParseAst = ParseAst (ParseAstKit)
 
 structure MachineBasis : ABT_MACHINE_BASIS =
 struct
+  type sign = unit
+
   structure Cl = AbtClosureUtil (AbtClosure (Abt))
   structure S = AbtMachineState (Cl)
 
@@ -124,14 +126,14 @@ struct
 
   exception InvalidCut
 
-  val step =
+  fun step _ =
     fn LAM `$ _ <: _ => S.VAL
      | AP `$ [_ \ m, _ \ n] <: env => S.CUT ((AP `$ [([],[]) \ S.HOLE, ([],[]) \ S.% n], m) <: env)
      | NUM `$ _ <: _ => S.VAL
      | LIT _ `$ _ <: _ => S.VAL
      | _ => raise Fail "Invalid focus"
 
-  val cut =
+  fun cut _ =
     fn (AP `$ [_ \ S.HOLE, _ \ S.% cl], _ \ LAM `$ [(_,[x]) \ mx] <: env) =>
          mx <: Cl.insertVar env x cl
      | _ => raise InvalidCut
@@ -175,7 +177,7 @@ struct
                  val (_, tau) = O.arity theta
 
                  val abt = AstToAbt.convert Abt.Metavar.Ctx.empty (Ast.into ast, tau)
-                 val abt' = Machine.eval abt
+                 val abt' = Machine.eval () abt
                in
                  print (ShowAbt.toString abt ^ "  ==>  " ^ ShowAbt.toString abt' ^ "\n\n")
                end
