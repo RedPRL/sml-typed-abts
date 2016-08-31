@@ -38,9 +38,9 @@ sig
        4. VAL means that the focused term is a canonical form
    *)
   datatype 'a step =
-     STEP of 'a closure
-   | THROW of 'a closure
-   | CUT of ('a plus application * 'a, 'a) Cl.closure
+     STEP of 'a
+   | THROW of 'a
+   | CUT of 'a plus application * 'a
    | VAL
 end
 
@@ -53,12 +53,30 @@ sig
   type 'a app_closure = ('a M.application, 'a) M.Cl.closure
 
   (* How shall a focused term compute? See the documentation for M.step. *)
-  val step : abt app_closure -> abt M.step
+  val step : abt M.application -> abt M.step
 
   (* How to cut a canonical form into a stack frame. For instance "cut (fst, (m,n)) ~> m".
      This procedure is also used for handling exceptions. *)
   val cut : abt M.frame * abt app_closure M.Cl.Abt.bview -> abt M.closure option
 end
+
+
+(* Some sample code:
+
+  fun step (LOOP D0 `$ []) = STEP (BASE $$ [])
+    | step (LOOP D1 `$ []) = STEP (BASE $$ [])
+    | step (AP `$ [_ \ m, _ \ n]) = CUT (AP `$ [([],[]) \ HOLE, ([],[]) \ % n], m)
+    | step (HCOM (rs, r, r') `$ (_ \ a) :: (_ \ cap) :: tube <: env) =
+        CUT (HCOM (rs, r, r') `$ (([],[]) \ HOLE) :: (([],[]) \ % cap) :: List.map (mapBind %) tube, a)
+    | step (HCOM_BOOL (rs, r, r') `$ _) =
+        ...
+    ...
+
+  fun cut (AP `$ [_ \ HOLE, _ \ % n <: env_n], _ \ LAM `$ [([],[x]) \ mx] <: env) =
+        SOME (mx <: Env.insertVar env x (n <: env_n))
+    | cut (HCOM (rs, r, r') `$ (_ \ HOLE) :: es, _ \ BOOL `$ [] <: env) =
+        SOME (HCOM_BOOL (rs, r, r') $$ ... <: env)
+*)
 
 signature ABT_MACHINE =
 sig
