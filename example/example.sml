@@ -1,10 +1,3 @@
-structure EmptySort :> ABT_SORT =
-struct
-  datatype t = ROLL of t
-  fun eq _ = raise Match
-  fun toString _ = raise Match
-end
-
 structure Sort =
 struct
   datatype t = EXP | NAT
@@ -15,7 +8,7 @@ end
 
 structure O =
 struct
-  structure Ar = ListAbtArity (structure S = Sort and PS = EmptySort)
+  structure Ar = ListAbtArity (structure S = Sort and PS = AbtEmptySort)
   datatype t = LAM | AP | NUM | LIT of int
 
   val eq : t * t -> bool = op=

@@ -190,12 +190,18 @@ struct
              | (_, memo) => memo)
            (Susp.force sctx)
            (O.support theta)
-     | META_APP (_, us, ms <: (_, sctx, _)) @: _ =>
+     | META_APP (_, ps, ms <: (_, sctx, _)) @: _ =>
          Sp.foldr
            (fn ((O.P.VAR (LN.FREE u), tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
+             | ((O.P.APP t, tau), memo) =>
+                 List.foldr
+                   (fn ((LN.FREE u,sigma), memo') => Ctx.SymCtxUtil.extend memo' (u, sigma)
+                     | (_, memo') => memo')
+                   memo
+                   (O.P.freeVars t)
              | (_, memo) => memo)
            (Susp.force sctx)
-           us
+           ps
 
   val varctx =
     fn V (LN.FREE x, sigma) @: _ => VarCtx.singleton x sigma

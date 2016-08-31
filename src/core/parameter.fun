@@ -6,12 +6,18 @@ struct
      VAR of 'a
    | APP of 'a term Sig.t
 
-  type 'a t = 'a term
-  val pure = VAR
+  structure Monad =
+  struct
+    type 'a t = 'a term
+    val pure = VAR
 
-  fun bind f =
-    fn VAR x => f x
-     | APP t => APP (Sig.map (bind f) t)
+    fun bind f =
+      fn VAR x => f x
+       | APP t => APP (Sig.map (bind f) t)
+  end
+
+  structure Functor = FunctorOfMonad (Monad)
+  open Monad Functor
 
   fun eq f =
     fn (VAR x, VAR y) => f (x, y)
@@ -24,15 +30,28 @@ struct
 
   fun collectSubterms t =
     Sig.join [] op@ (Sig.map ListMonad.pure t)
+
+  fun freeVars t =
+    let
+      val (sigmas, _) = Sig.arity t
+      val annotatedSubterms = ListPair.zip (collectSubterms t, collectSubterms sigmas)
+    in
+      ListMonad.bind
+        (fn (VAR x, sigma) => [(x,sigma)]
+          | (APP t, _) => freeVars t)
+        annotatedSubterms
+    end
 end
 
-structure AbtEmptyParameter : ABT_PARAMETER =
+functor AbtEmptyParameter (S : ABT_SORT) : ABT_PARAMETER =
 struct
+  structure Sort = S
   datatype 'a t = NOPE of 'a t
 
-  fun map f (NOPE t) = raise Match
-  fun eq _ _ = true
+  fun arity _ = raise Match
+  fun map _ _ = raise Match
+  fun eq _ _ = raise Match
   fun toString _ _ = raise Match
 
-  fun join z m (NOPE t) = raise Match
+  fun join z m _ = raise Match
 end

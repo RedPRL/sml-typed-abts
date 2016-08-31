@@ -10,6 +10,7 @@ local
   src/core/context_util.sig
   src/core/context_util.fun
   src/core/sort.sig
+  src/core/sort.sml
   src/core/spine.sig
   src/core/valence.sig
   src/core/spine.sml
@@ -48,7 +49,8 @@ in
   signature CONTEXT_UTIL
 
   functor AbtParameterTerm
-  structure AbtEmptyParameter
+  functor AbtEmptyParameter
+  structure AbtEmptySort
   functor AbtSymbol
   structure StringAbtSymbol
   structure ListSpine

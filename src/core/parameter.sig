@@ -1,6 +1,10 @@
+(* First order signatures. Probably should rename. *)
 signature ABT_PARAMETER =
 sig
   include FUNCTOR
+
+  structure Sort : ABT_SORT
+  val arity : 'a t -> Sort.t t * Sort.t
 
   val eq : ('a * 'a -> bool) -> 'a t * 'a t -> bool
   val toString : ('a -> string) -> 'a t -> string
@@ -16,11 +20,13 @@ sig
      VAR of 'a
    | APP of 'a term Sig.t
 
+  val freeVars : 'a term Sig.t -> ('a * Sig.Sort.t) list
+
   include MONAD where type 'a t = 'a term
+  val map : ('a -> 'b) -> 'a term -> 'b term
 
   val eq : ('a * 'a -> bool) -> 'a t * 'a t -> bool
   val toString : ('a -> string) -> 'a t -> string
-
   val collectSubterms : 'a Sig.t -> 'a list
 end
 

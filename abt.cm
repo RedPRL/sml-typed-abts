@@ -17,8 +17,9 @@ Library
   signature CONTEXT_UTIL
 
   functor AbtParameterTerm
-  structure AbtEmptyParameter
+  functor AbtEmptyParameter
   functor AbtSymbol
+  structure AbtEmptySort
   structure StringAbtSymbol
   structure ListSpine
   functor AbtValence
@@ -50,6 +51,7 @@ is
   src/core/context_util.sig
   src/core/context_util.fun
   src/core/sort.sig
+  src/core/sort.sml
   src/core/valence.sig
   src/core/spine.sig
   src/core/spine.sml

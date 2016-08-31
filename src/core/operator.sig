@@ -2,6 +2,7 @@ signature ABT_OPERATOR =
 sig
   structure P : ABT_PARAMETER_TERM
   structure Ar : ABT_ARITY
+  sharing type P.Sig.Sort.t = Ar.Vl.PS.t
 
   type 'i t
 

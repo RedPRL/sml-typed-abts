@@ -2,7 +2,7 @@ functor AbtSimpleOperator (O : ABT_SIMPLE_OPERATOR) : ABT_OPERATOR =
 struct
   structure Ar = O.Ar
 
-  structure P = AbtParameterTerm (AbtEmptyParameter)
+  structure P = AbtParameterTerm (AbtEmptyParameter (O.Ar.Vl.PS))
 
   type 'i t = O.t
   val arity = O.arity
@@ -16,7 +16,7 @@ functor AbtEmptyOperator (Ar : ABT_ARITY) : ABT_OPERATOR =
 struct
   structure Ar = Ar
 
-  structure P = AbtParameterTerm (AbtEmptyParameter)
+  structure P = AbtParameterTerm (AbtEmptyParameter (Ar.Vl.PS))
 
   datatype 'i t = WELP of 'i t
 
