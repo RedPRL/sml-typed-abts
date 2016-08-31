@@ -51,11 +51,11 @@ struct
            | NONE => (UNLOAD, foc, stk))
      | _ $# _ => (UNLOAD, foc, stk)
      | th $ args =>
-         (case step (th `$ args) of
-             STEP t' => (DOWN, t' <: env, stk)
-           | THROW t' => (HANDLE, t' <: env, stk)
+         (case step (th `$ args <: env) of
+             STEP foc' => (DOWN, foc', stk)
+           | THROW foc' => (HANDLE, foc', stk)
            | VAL => (UP, foc, stk)
-           | CUT (k, t) => (DOWN, t <: env, makeFrame env k :: stk))
+           | CUT ((k, t) <: env) => (DOWN, t <: env, makeFrame env k :: stk))
 
   fun up (foc : abt app_closure, stk) =
     case stk of
