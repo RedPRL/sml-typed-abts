@@ -20,6 +20,11 @@ sig
      VAR of 'a
    | APP of 'a term Sig.t
 
+  (* returns a list of free variables and the sorts at which they are used.
+   * It is the responsibility of the client to ensure that these variables
+   * are used consistently. *)
+
+  val check : Sig.Sort.t -> 'a term -> ('a * Sig.Sort.t) list
   val freeVars : 'a term Sig.t -> ('a * Sig.Sort.t) list
 
   include MONAD where type 'a t = 'a term

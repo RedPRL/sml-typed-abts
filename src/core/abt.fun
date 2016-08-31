@@ -8,7 +8,7 @@ struct
   structure Sym = Sym and Var = Var and Metavar = Metavar and O = O and Ar = O.Ar
   structure S = Ar.Vl.S and PS = Ar.Vl.PS and Valence = Ar.Vl
   structure Sp = Valence.Sp
-  structure P = O.P and PF = FunctorOfMonad (O.P)
+  structure P = O.P
 
   structure MetaCtx = Metavar.Ctx
   structure VarCtx = Var.Ctx
@@ -22,7 +22,7 @@ struct
   type variable = Var.t
   type metavariable = Metavar.t
   type operator = symbol O.t
-  type param = symbol O.P.term
+  type param = symbol P.term
   type 'a spine = 'a Sp.t
   type annotation = annotation
 
@@ -102,7 +102,7 @@ struct
   datatype abt_internal =
       V of LN.variable * sort
     | APP of LN.operator * abs spine ctx_ann
-    | META_APP of (metavariable * sort) * (LN.symbol O.P.term * psort) spine * abt spine ctx_ann
+    | META_APP of (metavariable * sort) * (LN.symbol P.term * psort) spine * abt spine ctx_ann
   and abs = ABS of (string * psort) spine * (string * sort) spine * abt
   withtype abt = abt_internal ann
 
@@ -192,13 +192,13 @@ struct
            (O.support theta)
      | META_APP (_, ps, ms <: (_, sctx, _)) @: _ =>
          Sp.foldr
-           (fn ((O.P.VAR (LN.FREE u), tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
-             | ((O.P.APP t, tau), memo) =>
+           (fn ((P.VAR (LN.FREE u), tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
+             | ((P.APP t, tau), memo) =>
                  List.foldr
                    (fn ((LN.FREE u,sigma), memo') => Ctx.SymCtxUtil.extend memo' (u, sigma)
                      | (_, memo') => memo')
                    memo
-                   (O.P.freeVars t)
+                   (P.freeVars t)
              | (_, memo) => memo)
            (Susp.force sctx)
            ps
@@ -283,7 +283,7 @@ struct
      | META_APP (m, ps, Ms <: ctx) =>
          let
            fun rho v' = if Sym.eq (v, v') then LN.BOUND coord else LN.FREE v'
-           fun rho' (p, s) = (PF.map (LN.bind rho) p, s)
+           fun rho' (p, s) = (P.map (LN.bind rho) p, s)
            val vs = Sp.map rho' ps
            val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
          in
@@ -323,7 +323,7 @@ struct
            end
        | META_APP ((x, tau), ps, ms <: ctx) =>
            let
-             val vs = Sp.map (fn (l, s) => (PF.map rho l, s)) ps
+             val vs = Sp.map (fn (l, s) => (P.map rho l, s)) ps
              val ns = Sp.map (liberateSymbolAnn (u, sigma) coord) ms
              val ctx' = Ctx.modifySyms (fn sctx => SymCtx.insert sctx u sigma) ctx
            in
@@ -392,7 +392,7 @@ struct
          end
        | META_APP ((mv, tau), ps, Ms <: _) =>
          let
-           val ps' = Sp.map (fn (p, sigma) => (PF.map LN.getFree p, sigma)) ps
+           val ps' = Sp.map (fn (p, sigma) => (P.map LN.getFree p, sigma)) ps
          in
            (mv $# (ps', Ms), tau)
          end
@@ -432,10 +432,8 @@ struct
            let
              val ssorts = Sp.map #2 ps
              val vsorts = Sp.map sort ms
-
-             val ps' = Sp.map (fn (u, tau) => (PF.map LN.FREE u, tau)) ps
-             fun chkInf (m, tau) =
-               (assertSortEq (tau, sort m); m)
+             val ps' = Sp.map (fn (p, tau) => (P.map LN.FREE p, tau) before (P.check tau p; ())) ps
+             fun chkInf (m, tau) = (assertSortEq (tau, sort m); m)
              val ms' = Sp.Pair.mapEq chkInf (ms, vsorts)
              val ctx = Sp.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms'
            in
@@ -519,7 +517,7 @@ struct
   and substSymenv rho =
     let
       val substp =
-        fn LN.FREE a => PF.map LN.pure (getOpt (SymCtx.find rho a, P.pure a))
+        fn LN.FREE a => P.map LN.pure (getOpt (SymCtx.find rho a, P.pure a))
          | u => P.pure u
     in
       Ann.map

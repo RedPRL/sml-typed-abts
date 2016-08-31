@@ -31,6 +31,21 @@ struct
   fun collectSubterms t =
     Sig.join [] op@ (Sig.map ListMonad.pure t)
 
+  fun check tau =
+    fn VAR x => [(x, tau)]
+     | APP t =>
+         let
+           val (sigmas, tau') = Sig.arity t
+           val annotatedSubterms = ListPair.zip (collectSubterms t, collectSubterms sigmas)
+         in
+           if Sig.Sort.eq (tau, tau') then
+             ListMonad.bind
+               (fn (m, sigma) => check sigma m)
+               annotatedSubterms
+           else
+             raise Fail "Parameter sort mismatch"
+         end
+
   fun freeVars t =
     let
       val (sigmas, _) = Sig.arity t
