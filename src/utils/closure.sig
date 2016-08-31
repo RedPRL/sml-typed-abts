@@ -13,3 +13,11 @@ sig
 
   val force : (Abt.abt, Abt.abt) closure -> Abt.abt
 end
+
+signature ABT_CLOSURE_UTIL =
+sig
+  include ABT_CLOSURE
+
+  val insertSym : 'a env -> Abt.symbol -> Abt.param -> 'a env
+  val insertVar : 'a env -> Abt.variable -> 'a -> 'a env
+end

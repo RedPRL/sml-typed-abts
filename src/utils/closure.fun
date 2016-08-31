@@ -44,3 +44,16 @@ struct
        | NONE => Abt.check (`x, tau)
   end
 end
+
+functor AbtClosureUtil (Cl : ABT_CLOSURE) : ABT_CLOSURE_UTIL =
+struct
+  open Cl
+
+  fun insertSym {params, terms} u p =
+    {params = Abt.Sym.Ctx.insert params u p,
+     terms = terms}
+
+  fun insertVar {params, terms} x t =
+    {params = params,
+     terms = Abt.Var.Ctx.insert terms x t}
+end

@@ -55,9 +55,12 @@ sig
   (* How shall a focused term compute? See the documentation for M.step. *)
   val step : abt app_closure -> abt M.step
 
+
+  exception InvalidCut
+
   (* How to cut a canonical form into a stack frame. For instance "cut (fst, (m,n)) ~> m".
-     This procedure is also used for handling exceptions. *)
-  val cut : abt M.frame * abt app_closure M.Cl.Abt.bview -> abt M.closure option
+     This procedure is also used for handling exceptions.  Raises InvalidCut. *)
+  val cut : abt M.frame * abt app_closure M.Cl.Abt.bview -> abt M.closure
 end
 
 signature ABT_MACHINE =

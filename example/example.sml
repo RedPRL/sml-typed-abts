@@ -1,152 +1,156 @@
+structure EmptySort :> ABT_SORT =
+struct
+  datatype t = ROLL of t
+  fun eq _ = raise Match
+  fun toString _ = raise Match
+end
+
+structure Sort =
+struct
+  datatype t = EXP | NAT
+  val eq : t * t -> bool = op=
+  fun toString EXP = "exp"
+    | toString NAT = "nat"
+end
+
+structure O =
+struct
+  structure Ar = ListAbtArity (structure S = Sort and PS = EmptySort)
+  datatype t = LAM | AP | NUM | LIT of int
+
+  val eq : t * t -> bool = op=
+  val toString =
+    fn LAM => "lam"
+     | AP => "ap"
+     | NUM => "num"
+     | LIT n => Int.toString n
+
+  local
+    open Sort
+    fun mkValence p q s = ((p, q), s)
+  in
+    val arity =
+      fn LAM => ([mkValence [] [EXP] EXP], EXP)
+       | AP => ([mkValence [] [] EXP, mkValence [] [] EXP], EXP)
+       | NUM => ([mkValence [] [] NAT], EXP)
+       | LIT _ => ([], NAT)
+  end
+end
+
+structure Operator = AbtSimpleOperator (O)
+
+structure ParseOperator : PARSE_ABT_OPERATOR =
+struct
+  structure Operator = Operator
+
+  open ParserCombinators CharParser
+
+  infixr 4 << >>
+  infixr 3 &&
+  infix 2 -- ##
+  infix 2 wth suchthat return guard when
+  infixr 1 || <|> ??
+
+  structure LangDef :> LANGUAGE_DEF =
+  struct
+    type scanner = char CharParser.charParser
+    val commentStart = NONE
+    val commentEnd = NONE
+    val commentLine = NONE
+    val nestedComments = true
+
+    val identLetter =
+      CharParser.letter
+        || digit
+    val identStart = identLetter
+    val opStart = fail "Operators not supported" : scanner
+    val opLetter = opStart
+    val reservedNames = []
+    val reservedOpNames = []
+    val caseSensitive = true
+  end
+
+  structure TP = TokenParser (LangDef)
+  open TP
+
+  val parseInt =
+    repeat1 digit wth valOf o Int.fromString o String.implode
+
+  val parseParam = identifier wth Operator.P.VAR
+
+
+  val parse : O.t CharParser.charParser =
+    string "lam" return O.LAM
+      || string "ap" return O.AP
+      || string "num" return O.NUM
+      || parseInt wth O.LIT
+end
+
+structure AbtKit =
+struct
+  structure O = Operator
+    and Metavar = AbtSymbol ()
+    and Var = AbtSymbol ()
+    and Sym = AbtSymbol ()
+  type annotation = Pos.t
+end
+
+structure Abt = Abt (AbtKit)
+structure ShowAbt = DebugShowAbt (Abt)
+
+structure AstKit =
+struct
+  structure Operator = Operator
+  structure Metavar = Abt.Metavar
+  type annotation = Pos.t
+end
+
+structure Ast = AstUtil (Ast (AstKit))
+structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
+
+structure ParseAstKit =
+struct
+  structure Ast = Ast
+    and ParseOperator = ParseOperator
+    and Metavar = Abt.Metavar
+    and CharSet = GreekCharSet
+  val setSourcePosition = Ast.annotate
+end
+
+structure ParseAst = ParseAst (ParseAstKit)
+
+structure MachineBasis : ABT_MACHINE_BASIS =
+struct
+  structure Cl = AbtClosureUtil (AbtClosure (Abt))
+  structure M = AbtMachineState (Cl)
+
+  type abt = Abt.abt
+  type 'a app_closure = ('a M.application, 'a) M.Cl.closure
+
+  open Abt Cl O
+  infix 0 \
+  infix 1 <:
+  infix 2 $ `$ $$ $#
+
+  exception InvalidCut
+
+  val step =
+    fn LAM `$ _ <: _ => M.VAL
+     | AP `$ [_ \ m, _ \ n] <: env => M.CUT ((AP `$ [([],[]) \ M.HOLE, ([],[]) \ M.% n], m) <: env)
+     | NUM `$ _ <: _ => M.VAL
+     | LIT _ `$ _ <: _ => M.VAL
+     | _ => raise Fail "Invalid focus"
+
+  val cut =
+    fn (AP `$ [_ \ M.HOLE, _ \ M.% cl], _ \ LAM `$ [(_,[x]) \ mx] <: env) =>
+         mx <: Cl.insertVar env x cl
+     | _ => raise InvalidCut
+end
+
+structure Machine = AbtMachine (MachineBasis)
+
 structure Example =
 struct
-  structure M = AbtSymbol ()
-  structure V = AbtSymbol ()
-  structure I = AbtSymbol ()
-
-  structure O =
-  struct
-    structure PS =
-    struct
-      type t = unit
-      fun eq _ = true
-      fun toString _ = "assignable"
-    end
-
-    structure P = AbtParameterTerm (AbtEmptyParameter)
-
-    structure S =
-    struct
-      datatype t = EXP | VAL | NAT
-      val eq : t * t -> bool = op=
-      fun toString EXP = "exp"
-        | toString VAL = "val"
-        | toString NAT = "nat"
-    end
-
-
-    structure Vl = AbtValence (structure S = S and PS = PS and Sp = ListSpine)
-    structure Ar = AbtArity (Vl)
-
-    datatype 'i t =
-        LAM | AP | NUM | LIT of int | RET
-      | DCL | GET of 'i | SET of 'i
-
-    fun eq f (LAM, LAM) = true
-      | eq f (AP, AP) = true
-      | eq f (NUM, NUM) = true
-      | eq f (LIT m, LIT n) = m = n
-      | eq f (RET, RET) = true
-      | eq f (DCL, DCL) = true
-      | eq f (GET i, GET j) = f (i, j)
-      | eq f (SET i, SET j) = f (i, j)
-      | eq _ _ = false
-
-    fun toString f LAM = "lam"
-      | toString f AP = "ap"
-      | toString f NUM = "num"
-      | toString f (LIT n) = Int.toString n
-      | toString f RET = "ret"
-      | toString f DCL = "dcl"
-      | toString f (GET i) = "get[" ^ f i ^ "]"
-      | toString f (SET i) = "set[" ^ f i ^ "]"
-
-    local
-      open S
-      fun replicate i x = List.tabulate (i, fn _ => x)
-      fun mkValence p q s = ((p, q), s)
-    in
-      fun arity LAM = ([mkValence [] [EXP] EXP], EXP)
-        | arity RET = ([mkValence [] [] VAL], EXP)
-        | arity AP = ([mkValence [] [] EXP, mkValence [] [] EXP], EXP)
-        | arity NUM = ([mkValence [] [] NAT], VAL)
-        | arity (LIT _) = ([], NAT)
-        | arity DCL = ([mkValence [] [] EXP, mkValence [()] [] EXP], EXP)
-        | arity (GET i) = ([], EXP)
-        | arity (SET i) = ([mkValence [] [] EXP], EXP)
-
-      fun support (GET i) = [(i, ())]
-        | support (SET i) = [(i, ())]
-        | support _ = []
-    end
-
-    fun getVar (P.VAR x) = x
-      | getVar (P.APP _) = raise Match
-
-    fun map f LAM = LAM
-      | map f AP = AP
-      | map f NUM = NUM
-      | map f (LIT n) = LIT n
-      | map f RET = RET
-      | map f DCL = DCL
-      | map f (GET i) = GET (getVar (f i))
-      | map f (SET i) = SET (getVar (f i))
-  end
-
-  structure OParser : PARSE_ABT_OPERATOR =
-  struct
-    structure Operator = O
-    open O
-    open ParserCombinators CharParser
-
-    infixr 4 << >>
-    infixr 3 &&
-    infix 2 -- ##
-    infix 2 wth suchthat return guard when
-    infixr 1 || <|> ??
-
-    structure LangDef :> LANGUAGE_DEF =
-    struct
-      type scanner = char CharParser.charParser
-      val commentStart = NONE
-      val commentEnd = NONE
-      val commentLine = NONE
-      val nestedComments = true
-
-      val identLetter =
-        CharParser.letter
-          || digit
-      val identStart = identLetter
-      val opStart = fail "Operators not supported" : scanner
-      val opLetter = opStart
-      val reservedNames = []
-      val reservedOpNames = []
-      val caseSensitive = true
-    end
-
-    structure TP = TokenParser (LangDef)
-    open TP
-
-    val parseInt =
-      repeat1 digit wth valOf o Int.fromString o String.implode
-
-    val parseParam = identifier wth O.P.VAR
-
-    val parse : string O.t CharParser.charParser =
-      string "lam" return LAM
-        || string "ap" return AP
-        || string "num" return NUM
-        || parseInt wth LIT
-        || string "ret" return RET
-        || string "dcl" return DCL
-        || string "get" >> squares identifier wth GET
-        || string "set" >> squares identifier wth SET
-  end
-
-  structure Ast = AstUtil (Ast (structure Operator = O and Metavar = M type annotation = Pos.t))
-  structure AstParser =
-    ParseAst
-      (structure Ast = Ast
-         and ParseOperator = OParser
-         and Metavar = M
-         and CharSet = GreekCharSet
-       val setSourcePosition = Ast.annotate)
-
-  structure Abt = Abt (structure O = O and Metavar = M and Var = V and Sym = I type annotation = Pos.t)
-  structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
-
-  structure ShowAbt = DebugShowAbt (Abt)
-  open O O.S Abt
 
   local
     open ParserCombinators CharParser
@@ -159,10 +163,10 @@ struct
   in
     (* example of adding custom notation to the generated parser *)
 
-    fun myparser mtable () =
-      AstParser.extend mtable ($ (notation mtable))
+    fun myParser mtable () =
+      ParseAst.extend mtable ($ (notation mtable))
     and notation mtable () =
-      string "%" >> ($ (myparser mtable)) wth (fn x => Ast.$$ (NUM, [Ast.\ (([],[]), x)]))
+      string "%" >> ($ (myParser mtable)) wth (fn x => Ast.$$ (O.NUM, [Ast.\ (([],[]), x)]))
   end
 
   fun loop () =
@@ -173,13 +177,13 @@ struct
            NONE => 0
          | SOME str =>
              ((let
-                 val parseResult = CharParser.parseString (myparser M.named ()) str
+                 val parseResult = CharParser.parseString (myParser Abt.Metavar.named ()) str
                  val ast as (Ast.$ (theta, es)) =
                    case parseResult of
                         Sum.INR ast => Ast.out ast
                       | Sum.INL err => raise Fail err
                  val (_, tau) = O.arity theta
-                 val abt = AstToAbt.convert Metavar.Ctx.empty (Ast.into ast, tau)
+                 val abt = AstToAbt.convert Abt.Metavar.Ctx.empty (Ast.into ast, tau)
                in
                  print (ShowAbt.toString abt ^ "\n\n")
                end
