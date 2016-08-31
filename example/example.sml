@@ -124,9 +124,6 @@ struct
   structure Cl = AbtClosureUtil (AbtClosure (Abt))
   structure M = AbtMachineState (Cl)
 
-  type abt = Abt.abt
-  type 'a app_closure = ('a M.application, 'a) M.Cl.closure
-
   open Abt Cl O
   infix 0 \
   infix 1 <:

@@ -1,6 +1,9 @@
-functor AbtMachineState (Cl : ABT_CLOSURE) =
+functor AbtMachineState (Cl : ABT_CLOSURE) : ABT_MACHINE_STATE =
 struct
   structure Cl = Cl
+
+  type abt = Cl.Abt.abt
+  type 'a binding = 'a Cl.Abt.bview
 
   datatype 'a plus = HOLE | % of 'a
 
@@ -8,6 +11,7 @@ struct
 
   (* An application of the "signature endofunctor", i.e. a term headed by an operator *)
   type 'a application = 'a Cl.Abt.appview
+  type 'a app_closure = ('a application, 'a) Cl.closure
 
   (* a continuation is an application with a single hole in it *)
   type 'a continuation = 'a plus application

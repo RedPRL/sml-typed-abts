@@ -1,6 +1,8 @@
 signature ABT_MACHINE_STATE =
 sig
   structure Cl : ABT_CLOSURE
+  type abt = Cl.Abt.abt
+  type 'a binding = 'a Cl.Abt.bview
 
   datatype 'a plus = HOLE | % of 'a
 
@@ -8,6 +10,7 @@ sig
 
   (* An application of the "signature endofunctor", i.e. a term headed by an operator *)
   type 'a application = 'a Cl.Abt.appview
+  type 'a app_closure = ('a application, 'a) Cl.closure
 
   (* a continuation is an application with a single hole in it *)
   type 'a continuation = 'a plus application
@@ -48,25 +51,22 @@ end
 signature ABT_MACHINE_BASIS =
 sig
   structure M : ABT_MACHINE_STATE where type 'a Cl.Abt.O.Ar.Vl.Sp.t = 'a list
-  type abt = M.Cl.Abt.abt
-
-  type 'a app_closure = ('a M.application, 'a) M.Cl.closure
 
   (* How shall a focused term compute? See the documentation for M.step. *)
-  val step : abt app_closure -> abt M.step
+  val step : M.abt M.app_closure -> M.abt M.step
 
 
   exception InvalidCut
 
   (* How to cut a canonical form into a stack frame. For instance "cut (fst, (m,n)) ~> m".
      This procedure is also used for handling exceptions.  Raises InvalidCut. *)
-  val cut : abt M.frame * abt app_closure M.Cl.Abt.bview -> abt M.closure
+  val cut : M.abt M.frame * M.abt M.app_closure M.binding -> M.abt M.closure
 end
 
 signature ABT_MACHINE =
 sig
   include ABT_MACHINE_BASIS
 
-  val load : abt -> abt M.state
-  val next : abt M.state -> abt M.state option
+  val load : M.abt -> M.abt M.state
+  val next : M.abt M.state -> M.abt M.state option
 end
