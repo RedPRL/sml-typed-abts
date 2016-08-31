@@ -2,6 +2,7 @@ local
   $(SML_LIB)/basis/basis.mlb
   abt.mlb
   abt-parser.mlb
+  abt-machine.mlb
   lib/sml-parcom/parcom.mlb
   basis/basis.mlb
   example/example.sml

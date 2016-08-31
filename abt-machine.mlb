@@ -1,0 +1,28 @@
+local
+  abt.mlb
+  $(LIBS)/cmlib/cmlib.mlb
+
+  basis/basis.mlb
+  abt.mlb
+
+  src/machine/closure.sig
+  src/machine/state.sig
+
+  src/machine/closure.fun
+  src/machine/state.fun
+
+  src/machine/machine.sig
+  src/machine/machine.fun
+in
+  signature ABT_CLOSURE
+  signature ABT_MACHINE_STATE
+  signature ABT_MACHINE_BASIS
+  signature ABT_MACHINE
+  signature ABT_MACHINE_UTIL
+
+  functor AbtClosure
+  functor AbtClosureUtil
+  functor AbtMachineState
+  functor AbtMachine
+  functor AbtMachineUtil
+end
