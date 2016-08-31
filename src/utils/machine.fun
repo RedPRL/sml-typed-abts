@@ -68,7 +68,7 @@ struct
          let
            val ([], []) = getHoleBinder k
          in
-           case catch (k, foc) of
+           case cut (k, ([],[]) \ foc) of
               SOME foc' => SOME (DOWN, foc', stk')
             | NONE => SOME (HANDLE, foc, stk')
          end
