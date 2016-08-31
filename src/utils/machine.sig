@@ -50,12 +50,14 @@ sig
   structure M : ABT_MACHINE_STATE where type 'a Cl.Abt.O.Ar.Vl.Sp.t = 'a list
   type abt = M.Cl.Abt.abt
 
+  type 'a app_closure = ('a M.application, 'a) M.Cl.closure
+
   (* How shall a focused term compute? See the documentation for M.step. *)
-  val step : (abt M.application, abt) M.Cl.closure -> abt M.step
+  val step : abt app_closure -> abt M.step
 
   (* How to cut a canonical form into a stack frame. For instance "cut (fst, (m,n)) ~> m".
      This procedure is also used for handling exceptions. *)
-  val cut : abt M.frame * abt M.closure M.Cl.Abt.bview -> abt M.closure option
+  val cut : abt M.frame * abt app_closure M.Cl.Abt.bview -> abt M.closure option
 end
 
 signature ABT_MACHINE =

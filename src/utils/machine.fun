@@ -35,6 +35,14 @@ struct
       (th' `$ args')
     end
 
+  fun expandFocusedApp (t <: env) =
+    case out t of
+       th $ args => SOME (th `$ args <: env)
+     | _ => NONE
+
+  fun collapseFocusedApp (th `$ args <: env) =
+    th $$ args <: env
+
   fun down (foc as t <: env, stk) =
     case out t of
        `x =>
@@ -49,7 +57,7 @@ struct
            | VAL => (UP, foc, stk)
            | CUT ((k, t) <: env) => (DOWN, t <: env, makeFrame env k :: stk))
 
-  fun up (foc, stk) =
+  fun up (foc : abt app_closure, stk) =
     case stk of
        [] => NONE
      | k :: stk' =>
@@ -58,7 +66,7 @@ struct
          in
            case cut (k, (us, xs) \ foc) of
               SOME foc' => SOME (DOWN, foc', stk')
-            | NONE => SOME (UNLOAD, foc, stk)
+            | NONE => SOME (UNLOAD, collapseFocusedApp foc, stk)
          end
 
   fun handle' (foc, stk) =
@@ -70,7 +78,7 @@ struct
          in
            case cut (k, ([],[]) \ foc) of
               SOME foc' => SOME (DOWN, foc', stk')
-            | NONE => SOME (HANDLE, foc, stk')
+            | NONE => SOME (HANDLE, collapseFocusedApp foc, stk')
          end
 
   fun unload (foc, stk) =
@@ -88,7 +96,7 @@ struct
   fun next (mode, foc, stk) =
     case mode of
        DOWN => SOME (down (foc, stk))
-     | UP => up (foc, stk)
      | UNLOAD => unload (foc, stk)
-     | HANDLE => handle' (foc, stk)
+     | UP => (case expandFocusedApp foc of SOME foc' => up (foc', stk) | _ => SOME (UNLOAD, foc, stk))
+     | HANDLE => (case expandFocusedApp foc of SOME foc' => handle' (foc', stk) | _ => SOME (UNLOAD, foc, stk))
 end
