@@ -10,12 +10,14 @@ sig
   datatype mode =
      DOWN
    | UP
+   | HANDLE
    | UNLOAD
 
   type 'a state = mode * 'a focus * 'a stack
 
   datatype 'a step =
      STEP of ('a, 'a) Cl.closure
+   | THROW of ('a, 'a) Cl.closure
    | CUT of ('a plus Cl.Abt.appview * 'a, 'a) Cl.closure
    | VAL
 end
@@ -26,7 +28,9 @@ sig
   type abt = M.Cl.Abt.abt
 
   val step : (abt M.Cl.Abt.appview, abt) M.Cl.closure -> abt M.step
-  val plug : abt M.frame * abt M.focus M.Cl.Abt.bview -> abt M.focus option
+
+  val cut : abt M.frame * abt M.focus M.Cl.Abt.bview -> abt M.focus option
+  val catch : abt M.frame * abt M.focus -> abt M.focus option
 end
 
 signature ABT_MACHINE =
@@ -36,5 +40,3 @@ sig
   val load : abt -> abt M.state
   val next : abt M.state -> abt M.state option
 end
-
-

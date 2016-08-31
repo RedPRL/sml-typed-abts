@@ -45,6 +45,7 @@ struct
      | th $ args =>
          (case step (th `$ args <: env) of
              STEP foc' => (DOWN, foc', stk)
+           | THROW foc' => (HANDLE, foc', stk)
            | VAL => (UP, foc, stk)
            | CUT ((k, t) <: env) => (DOWN, t <: env, makeFrame env k :: stk))
 
@@ -55,9 +56,21 @@ struct
          let
            val (us, xs) = getHoleBinder k
          in
-           case plug (k, (us, xs) \ foc) of
+           case cut (k, (us, xs) \ foc) of
               SOME foc' => SOME (DOWN, foc', stk')
             | NONE => SOME (UNLOAD, foc, stk)
+         end
+
+  fun handle' (foc, stk) =
+    case stk of
+       [] => NONE
+     | k :: stk' =>
+         let
+           val ([], []) = getHoleBinder k
+         in
+           case catch (k, foc) of
+              SOME foc' => SOME (DOWN, foc', stk')
+            | NONE => SOME (HANDLE, foc, stk')
          end
 
   fun unload (foc, stk) =
@@ -77,6 +90,5 @@ struct
        DOWN => SOME (down (foc, stk))
      | UP => up (foc, stk)
      | UNLOAD => unload (foc, stk)
+     | HANDLE => handle' (foc, stk)
 end
-
-
