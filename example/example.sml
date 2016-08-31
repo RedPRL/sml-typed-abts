@@ -122,7 +122,7 @@ structure ParseAst = ParseAst (ParseAstKit)
 structure MachineBasis : ABT_MACHINE_BASIS =
 struct
   structure Cl = AbtClosureUtil (AbtClosure (Abt))
-  structure M = AbtMachineState (Cl)
+  structure S = AbtMachineState (Cl)
 
   open Abt Cl O
   infix 0 \
@@ -132,19 +132,19 @@ struct
   exception InvalidCut
 
   val step =
-    fn LAM `$ _ <: _ => M.VAL
-     | AP `$ [_ \ m, _ \ n] <: env => M.CUT ((AP `$ [([],[]) \ M.HOLE, ([],[]) \ M.% n], m) <: env)
-     | NUM `$ _ <: _ => M.VAL
-     | LIT _ `$ _ <: _ => M.VAL
+    fn LAM `$ _ <: _ => S.VAL
+     | AP `$ [_ \ m, _ \ n] <: env => S.CUT ((AP `$ [([],[]) \ S.HOLE, ([],[]) \ S.% n], m) <: env)
+     | NUM `$ _ <: _ => S.VAL
+     | LIT _ `$ _ <: _ => S.VAL
      | _ => raise Fail "Invalid focus"
 
   val cut =
-    fn (AP `$ [_ \ M.HOLE, _ \ M.% cl], _ \ LAM `$ [(_,[x]) \ mx] <: env) =>
+    fn (AP `$ [_ \ S.HOLE, _ \ S.% cl], _ \ LAM `$ [(_,[x]) \ mx] <: env) =>
          mx <: Cl.insertVar env x cl
      | _ => raise InvalidCut
 end
 
-structure Machine = AbtMachine (MachineBasis)
+structure Machine = AbtMachineUtil (AbtMachine (MachineBasis))
 
 structure Example =
 struct
@@ -180,9 +180,11 @@ struct
                         Sum.INR ast => Ast.out ast
                       | Sum.INL err => raise Fail err
                  val (_, tau) = O.arity theta
+
                  val abt = AstToAbt.convert Abt.Metavar.Ctx.empty (Ast.into ast, tau)
+                 val abt' = Machine.eval abt
                in
-                 print (ShowAbt.toString abt ^ "\n\n")
+                 print (ShowAbt.toString abt ^ "  ==>  " ^ ShowAbt.toString abt' ^ "\n\n")
                end
                handle err => print ("Error: " ^ exnMessage err ^ "\n\n"));
               loop ())

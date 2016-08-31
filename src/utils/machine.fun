@@ -51,14 +51,9 @@ end
 
 functor AbtMachine (B : ABT_MACHINE_BASIS) : ABT_MACHINE =
 struct
-  open B B.M B.M.Cl B.M.Cl.Abt
+  open B B.S B.S.Cl B.S.Cl.Abt
 
   infix <: \ `$ $ $# $$
-
-  val emptyEnv = {params = Sym.Ctx.empty, terms = Var.Ctx.empty}
-
-  fun load t =
-    (DOWN, t <: emptyEnv, [])
 
   fun getFirstMatch f =
     fn [] => raise Fail "No match"
@@ -150,4 +145,34 @@ struct
      | UNLOAD => unload (foc, stk)
      | UP => (case expandFocusedApp foc of SOME foc' => up (foc', stk) | _ => SOME (UNLOAD, foc, stk))
      | HANDLE => (case expandFocusedApp foc of SOME foc' => handle' (foc', stk) | _ => SOME (UNLOAD, foc, stk))
+end
+
+functor AbtMachineUtil (M : ABT_MACHINE) : ABT_MACHINE_UTIL =
+struct
+  open M M.S M.S.Cl M.S.Cl.Abt
+
+  infix <: `$
+
+  val emptyEnv =
+    {params = Sym.Ctx.empty,
+     terms = Var.Ctx.empty}
+
+  fun load t =
+    (DOWN, t <: emptyEnv, [])
+
+  fun star st =
+    case next st of
+       NONE => st
+     | SOME st' => star st'
+
+  fun unload (_, foc, stk) =
+    let
+      val (_, foc', stk) = star (UNLOAD, foc, stk)
+    in
+      case stk of
+         [] => Cl.force foc'
+       | _ => raise Fail "AbtMachineUtil.unload: implementation error"
+    end
+
+  val eval = unload o star o load
 end
