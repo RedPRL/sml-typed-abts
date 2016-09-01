@@ -18,7 +18,7 @@ struct
       val variables' = Sp.pretty S.toString ", " variableSorts
       val sigma' = S.toString sigma
     in
-      "{" ^ symbols' ^ "}(" ^ variables' ^ ")." ^ sigma'
+      "{" ^ symbols' ^ "}[" ^ variables' ^ "]." ^ sigma'
     end
 end
 
