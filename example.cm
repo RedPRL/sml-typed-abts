@@ -1,7 +1,7 @@
 Group
 is
   $/basis.cm
-  abt.cm
+  abt.cm (bind:(anchor:libs value:lib))
   abt-machine.cm
   abt-parser.cm
   lib/sml-parcom/parcom.cm (bind:(anchor:libs value:lib))
