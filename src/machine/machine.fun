@@ -23,7 +23,7 @@ struct
       fun rho a =
         case Sym.Ctx.find (#params env) a of
            SOME p => p
-         | NONE => O.P.pure a
+         | NONE => O.P.ret a
       val th' = O.map rho th
       val args' = List.map (mapBind (mapPlus (close env))) args
     in

@@ -9,14 +9,14 @@ struct
   structure Monad =
   struct
     type 'a t = 'a term
-    val pure = VAR
+    val ret = VAR
 
     fun bind f =
       fn VAR x => f x
        | APP t => APP (Sig.map (bind f) t)
   end
 
-  structure Functor = FunctorOfMonad (Monad)
+  structure Functor = MonadApplicative (Monad)
   open Monad Functor
 
   fun eq f =
@@ -29,7 +29,7 @@ struct
      | APP t => Sig.toString (toString f) t
 
   fun collectSubterms t =
-    Sig.join [] op@ (Sig.map ListMonad.pure t)
+    Sig.join [] op@ (Sig.map ListMonad.ret t)
 
   fun check tau =
     fn VAR x => [(x, tau)]

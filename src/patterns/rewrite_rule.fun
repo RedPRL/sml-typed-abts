@@ -45,6 +45,6 @@ struct
     let
       val (rho, env) = unify (pat <*> n)
     in
-      Abt.substSymenv (Abt.Sym.Ctx.map Abt.O.P.pure rho) (Abt.substMetaenv env m)
+      Abt.substSymenv (Abt.Sym.Ctx.map Abt.O.P.ret rho) (Abt.substMetaenv env m)
     end
 end

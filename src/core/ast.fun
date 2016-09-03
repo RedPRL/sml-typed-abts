@@ -84,7 +84,7 @@ struct
 
   structure NameEnv = SplayDict (structure Key = StringOrdered)
 
-  structure PF = FunctorOfMonad (Abt.O.P)
+  structure PF = MonadApplicative (Abt.O.P)
 
   fun variable vnames x =
     NameEnv.lookup vnames x
@@ -104,7 +104,7 @@ struct
            | Ast.$ (theta, es) =>
               let
                 val (vls, _) = Abt.O.arity theta
-                val theta' = Abt.O.map (Abt.O.P.pure o symbol snames) theta
+                val theta' = Abt.O.map (PF.pure o symbol snames) theta
                 val es' = Sp.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
               in
                 Abt.check (Abt.$ (theta', es'), tau)

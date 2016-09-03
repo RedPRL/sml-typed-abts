@@ -275,7 +275,7 @@ struct
            fun chk (LN.FREE v', tau') = if Sym.eq (v, v') then assertPSortEq (tau, tau') else ()
              | chk _ = ()
            val _ = List.app chk (O.support theta)
-           val theta' = O.map (P.pure o LN.bind rho) theta
+           val theta' = O.map (P.ret o LN.bind rho) theta
            val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
          in
            APP (theta', Sp.map (liftTraverseAbs (imprisonSymbolAnn (v,tau)) coord) es <: ctx')
@@ -316,7 +316,7 @@ struct
       fn e as V _ => e
        | APP (theta, es <: ctx) =>
            let
-             val theta' = O.map (P.pure o rho) theta
+             val theta' = O.map (P.ret o rho) theta
              val fs = Sp.map (liftTraverseAbs (liberateSymbolAnn (u, sigma)) coord) es
            in
              makeApp theta' fs
@@ -343,7 +343,7 @@ struct
     struct
       type ('a, 'b) hom = (coord * 'a -> 'b)
       fun id (_, x) = x
-      fun comp (f, g) (coord, a) = f (coord, g (LnCoord.shiftDown coord, a))
+      fun cmp (f, g) (coord, a) = f (coord, g (LnCoord.shiftDown coord, a))
     end
 
     structure ShiftFoldMap =
@@ -385,7 +385,7 @@ struct
        | APP (theta, Es <: _) =>
          let
            val (_, tau) = O.arity theta
-           val theta' = O.map (P.pure o LN.getFree) theta
+           val theta' = O.map (P.ret o LN.getFree) theta
            val Es' = Sp.map (#1 o inferb) Es
          in
            (theta' $ Es', tau)
@@ -423,7 +423,7 @@ struct
            let
              val (valences, tau)  = O.arity theta
              val () = assertSortEq (sigma, tau)
-             val theta' = O.map (P.pure o LN.FREE) theta
+             val theta' = O.map (P.ret o LN.FREE) theta
              val es' = Sp.Pair.mapEq checkb (es, valences)
            in
              makeApp theta' es' @: NONE
@@ -517,8 +517,8 @@ struct
   and substSymenv rho =
     let
       val substp =
-        fn LN.FREE a => P.map LN.pure (getOpt (SymCtx.find rho a, P.pure a))
-         | u => P.pure u
+        fn LN.FREE a => P.map LN.pure (getOpt (SymCtx.find rho a, P.ret a))
+         | u => P.ret u
     in
       Ann.map
         (fn m as V _ => m
@@ -542,7 +542,7 @@ struct
       val (vs, xs) \ m = outb abs
       val srho =
         Sp.foldr
-          (fn ((v,u), rho) => SymCtx.insert rho v (P.pure u))
+          (fn ((v,u), rho) => SymCtx.insert rho v (P.ret u))
           SymCtx.empty
           (Sp.Pair.zipEq (vs, us))
       val vrho =

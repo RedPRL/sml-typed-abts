@@ -36,7 +36,7 @@ struct
     and param env a =
       case Sym.Ctx.find (#params env) a of
          SOME p => p
-       | NONE => P.pure a
+       | NONE => P.ret a
 
     and var env (x, tau) =
       case Var.Ctx.find (#terms env) x of
