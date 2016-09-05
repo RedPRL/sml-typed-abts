@@ -1,6 +1,7 @@
 signature AST =
 sig
   type 'i operator
+  type 'i param
   type 'a spine
 
   type symbol = string
@@ -13,7 +14,7 @@ sig
   datatype 'a view =
       ` of variable
     | $ of symbol operator * 'a abs spine
-    | $# of metavariable * (symbol spine * 'a spine)
+    | $# of metavariable * (symbol param spine * 'a spine)
   and 'a abs = \ of (symbol spine * variable spine) * 'a
 
   val into : ast view -> ast
@@ -33,7 +34,7 @@ sig
 
   val `` : variable -> ast
   val $$ : symbol operator * ast abs spine -> ast
-  val $$# : metavariable * (symbol spine * ast spine) -> ast
+  val $$# : metavariable * (symbol param spine * ast spine) -> ast
 end
 
 signature AST_ABT =
@@ -45,6 +46,7 @@ sig
   sharing type Ast.metavariable = Abt.Metavar.t
   sharing type Ast.spine = Abt.O.Ar.Vl.Sp.t
   sharing type Ast.annotation = Abt.annotation
+  sharing type Ast.param = Abt.O.P.term
 end
 
 signature AST_TO_ABT =

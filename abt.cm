@@ -2,6 +2,8 @@ Library
   signature ABT
   signature AST
   signature AST_UTIL
+  signature ABT_PARAMETER
+  signature ABT_PARAMETER_TERM
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT_SYMBOL
@@ -13,10 +15,11 @@ Library
   signature ABT_ARITY
   signature UNISORTED_ABT_ARITY
   signature CONTEXT_UTIL
-  signature ABT_SYNTAX_VIEW_INTO
-  signature ABT_SYNTAX_VIEW
 
+  functor AbtParameterTerm
+  functor AbtEmptyParameter
   functor AbtSymbol
+  structure AbtEmptySort
   structure StringAbtSymbol
   structure ListSpine
   functor AbtValence
@@ -35,13 +38,11 @@ Library
   functor AbtSimpleOperator
   functor AbtEmptyOperator
 
-  functor AbtSyntaxView
-  functor AstSyntaxView
-
   signature AST_TO_ABT
   functor AstToAbt
 is
   $/basis.cm
+  $libs/sml-cats/cats.cm
   locally-nameless.cm
   basis/basis.cm
   lib/cmlib.cm
@@ -51,10 +52,15 @@ is
   src/core/context_util.sig
   src/core/context_util.fun
   src/core/sort.sig
+  src/core/sort.sml
   src/core/valence.sig
   src/core/spine.sig
   src/core/spine.sml
+  src/core/views.sig
+  src/core/views.fun
   src/core/arity.sig
+  src/core/parameter.sig
+  src/core/parameter.fun
   src/core/operator.sig
   src/core/operator.fun
   src/core/ast.sig
@@ -65,5 +71,3 @@ is
   src/core/abt.fun
   src/core/ast.fun
 
-  src/core/syntax_view.sig
-  src/core/syntax_view.fun

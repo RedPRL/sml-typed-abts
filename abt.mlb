@@ -1,6 +1,7 @@
 local
   $(SML_LIB)/basis/basis.mlb
 
+  $(LIBS)/sml-cats/cats.mlb
   basis/basis.mlb
   lib/cmlib.mlb
   locally-nameless.mlb
@@ -10,10 +11,15 @@ local
   src/core/context_util.sig
   src/core/context_util.fun
   src/core/sort.sig
+  src/core/sort.sml
   src/core/spine.sig
   src/core/valence.sig
   src/core/spine.sml
+  src/core/views.sig
+  src/core/views.fun
   src/core/arity.sig
+  src/core/parameter.sig
+  src/core/parameter.fun
   src/core/operator.sig
   src/core/operator.fun
   src/core/abt.sig
@@ -24,10 +30,9 @@ local
   src/core/abt.fun
   src/core/ast.fun
 
-  src/core/syntax_view.sig
-  src/core/syntax_view.fun
-
 in
+  signature ABT_PARAMETER
+  signature ABT_PARAMETER_TERM
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT
@@ -44,9 +49,9 @@ in
   signature UNISORTED_ABT_ARITY
   signature CONTEXT_UTIL
 
-  signature ABT_SYNTAX_VIEW_INTO
-  signature ABT_SYNTAX_VIEW
-
+  functor AbtParameterTerm
+  functor AbtEmptyParameter
+  structure AbtEmptySort
   functor AbtSymbol
   structure StringAbtSymbol
   structure ListSpine
@@ -66,7 +71,4 @@ in
   functor Ast
   functor AstUtil
   functor AstToAbt
-
-  functor AbtSyntaxView
-  functor AstSyntaxView
 end

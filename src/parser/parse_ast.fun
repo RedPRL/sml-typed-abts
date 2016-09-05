@@ -7,6 +7,7 @@ functor ParseAst
    structure ParseOperator : PARSE_ABT_OPERATOR
    structure Metavar : ABT_SYMBOL
    sharing type Ast.operator = ParseOperator.Operator.t
+   sharing type Ast.param = ParseOperator.Operator.P.term
    sharing type Ast.metavariable = Metavar.t) : PARSE_AST =
 struct
   structure Ast = Ast
@@ -47,8 +48,6 @@ struct
 
   fun extend mtable custom : Ast.ast CharParser.charParser =
     let
-      val variable = identifier
-      val parameter = identifier
       val metavariable = symbol "#" >> identifier wth mtable
 
       fun makeAst (pos, m) = setSourcePosition pos (Ast.into m)
@@ -57,7 +56,7 @@ struct
         (custom
          || $ app
          || $ metaApp
-         || !! variable wth (fn (x, pos) => makeAst (pos, Ast.` x))) ?? "ast"
+         || !! identifier wth (fn (x, pos) => makeAst (pos, Ast.` x))) ?? "ast"
       and app () =
         !! ParseOperator.parse
           && opt (parens (semiSep ($ abs)))
@@ -65,13 +64,13 @@ struct
           ?? "operator application"
       and metaApp () =
         !! metavariable
-          && opt (braces (commaSep parameter))
+          && opt (braces (commaSep ParseOperator.parseParam))
           && opt (squares (commaSep ($ ast)))
-          wth (fn ((x, pos), (us, ms)) => makeAst (pos, Ast.$# (x, (getOpt (us, []), getOpt (ms, [])))))
+          wth (fn ((x, pos), (ps, ms)) => makeAst (pos, Ast.$# (x, (getOpt (ps, []), getOpt (ms, [])))))
           ?? "metavariable application"
       and properAbs () =
-        opt (braces (commaSep parameter))
-          && opt (squares (commaSep variable))
+        opt (braces (commaSep identifier))
+          && opt (squares (commaSep identifier))
           && dot
           >> $ ast
           wth (fn (us, (xs, m)) => Ast.\ ((getOpt (us, []), getOpt (xs, [])), m))

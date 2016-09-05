@@ -1,12 +1,11 @@
 Group
 is
   $/basis.cm
-  abt.cm
-  abt-lcs.cm
+  abt.cm (bind:(anchor:libs value:lib))
+  abt-machine.cm
   abt-parser.cm
   lib/sml-parcom/parcom.cm (bind:(anchor:libs value:lib))
   lib/cmlib.cm
   basis/basis.cm
-  example/lcs-playground.sml
   example/example.sml
   example/main.sml

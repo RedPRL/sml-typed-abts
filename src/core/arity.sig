@@ -13,6 +13,7 @@ sig
 
   type valence = Vl.t
   type sort = Vl.sort
+  type psort = Vl.psort
   type 'a spine = 'a Vl.spine
 
   type t = valence spine * sort

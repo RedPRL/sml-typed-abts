@@ -30,16 +30,23 @@ struct
     fn J.String u => (NameEnv.lookup rho u handle _ => raise DecodeAbt ("Sym " ^ u ^ " not in environment"))
      | m => raise DecodeAbt ("Sym: expected String, but got " ^ J.toString m)
 
-  fun encodeSymAnn (u, sigma) =
+  fun encodeParamAnn (param, sigma) =
     J.Obj
-      [("sym", encodeSym u),
-       ("sort", encodeSort sigma)]
+      [("param", encodeParam encodeSym param),
+       ("sort", encodeParamSort sigma)]
 
-  fun decodeSymAnn env =
-    fn J.Obj [("sym", u), ("sort", sigma)] =>
-         (decodeSym env u,
-          Option.valOf (decodeSort u)
-            handle _ => raise DecodeAbt ("Failed to decode sort " ^ J.toString sigma))
+  fun decodeParamAnn env =
+    fn J.Obj [("param", param), ("sort", sigma)] =>
+        let
+          val param' =
+            Option.valOf (decodeParam (SOME o decodeSym env) param)
+              handle _ => raise DecodeAbt ("Failed to decode param " ^ J.toString param)
+          val sigma' =
+            Option.valOf (decodeParamSort sigma)
+              handle _ => raise DecodeAbt ("Failed to decode sort " ^ J.toString sigma)
+        in
+          (param', sigma')
+        end
      | m => raise DecodeAbt ("SymAnn: failed to decode " ^ J.toString m)
 
   fun encodeApp (theta, es) =
@@ -66,13 +73,13 @@ struct
   and encodeMetaApp (x, us, ms) =
     J.Obj
       [("metavar", encodeMetavar x),
-       ("syms", J.Array (map encodeSymAnn us)),
+       ("syms", J.Array (map encodeParamAnn us)),
        ("args", J.Array (map encode ms))]
 
   and decodeMetaApp env ctx =
-    fn J.Obj [("metavar", metavar), ("syms", J.Array syms), ("args", J.Array args)] =>
+    fn J.Obj [("metavar", metavar), ("params", J.Array params), ("args", J.Array args)] =>
          (decodeMetavar env metavar,
-          map (decodeSymAnn env) syms,
+          map (decodeParamAnn env) params,
           map (decode env ctx) args)
      | m => raise DecodeAbt ("MetaApp: failed to decode " ^ J.toString m)
 
@@ -124,10 +131,10 @@ struct
      | J.Obj [("App", app)] => Abt.$$ (decodeApp env ctx app)
      | J.Obj [("MetaApp", app)] =>
          let
-           val (x, us, ms) = decodeMetaApp env ctx app
+           val (x, ps, ms) = decodeMetaApp env ctx app
            val (_, tau) : Abt.valence = Abt.Metavar.Ctx.lookup mctx x
          in
-           Abt.check (Abt.$# (x, (us, ms)), tau)
+           Abt.check (Abt.$# (x, (ps, ms)), tau)
          end
      | m => raise DecodeAbt ("Abt: failed to decode " ^ J.toString m)
 end

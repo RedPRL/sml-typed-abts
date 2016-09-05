@@ -21,13 +21,13 @@ struct
            else
              O.toString ShowSym.toString theta
                 ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
-       | mv $# (us, ms) =>
+       | mv $# (ps, ms) =>
            let
-             val us' = Sp.pretty (ShowSym.toString o #1) "," us
+             val ps' = Sp.pretty (Abt.O.P.toString Sym.toString o #1) "," ps
              val ms' = Sp.pretty toString "," ms
            in
              "#" ^ Abt.Metavar.toString mv
-                 ^ (if Sp.isEmpty us then "" else "{" ^ us' ^ "}")
+                 ^ (if Sp.isEmpty ps then "" else "{" ^ ps' ^ "}")
                  ^ (if Sp.isEmpty ms then "" else "[" ^ ms' ^ "]")
            end
 

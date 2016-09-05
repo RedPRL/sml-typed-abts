@@ -32,8 +32,9 @@ sig
   type metavariable = Metavar.t
   type operator = symbol O.t
   type sort = O.Ar.sort
+  type psort = O.Ar.psort
   type valence = O.Ar.valence
-  type 'a spine = 'a O.Ar.spine
+  type param = symbol O.P.term
 
   (* The core type of the signature. This is the type of the ABTs that
    * can be built from the given [operator]s, [variable]s, [symbol]s and
@@ -48,13 +49,19 @@ sig
    *)
   type abs
 
+  (* Patterns for abstract binding trees. *)
+  include ABT_VIEWS where type 'a spine = 'a O.Ar.Vl.Sp.t
+  type 'a view = (param, psort, symbol, variable, metavariable, operator, 'a) termf
+  type 'a bview = (symbol, variable, 'a) bindf
+  type 'a appview = (symbol, variable, operator, 'a) appf
+
   type metactx = valence Metavar.ctx
   type varctx = sort Var.ctx
-  type symctx = sort Sym.ctx
+  type symctx = psort Sym.ctx
 
   type metaenv = abs Metavar.ctx
   type varenv = abt Var.ctx
-  type symenv = symbol Sym.ctx
+  type symenv = param Sym.ctx
 
   (* Modify the term inside an abstraction*)
   val mapAbs : (abt -> abt) -> abs -> abs
@@ -85,42 +92,19 @@ sig
    * the metavariable. This operation is related to Kevin Watkins' method
    * of hereditary substitution as invented for the Concurrent Logical Framework.
    *)
-  val metasubstEnv : metaenv -> abt -> abt
-  val substEnv : varenv -> abt -> abt
-  val renameEnv : symenv -> abt -> abt
+  val substMetaenv : metaenv -> abt -> abt
+  val substVarenv : varenv -> abt -> abt
+  val substSymenv : symenv -> abt -> abt
 
   (* Below we provide unary versions of the simultaneous substitution operations *)
-  val metasubst : abs * metavariable -> abt -> abt
-  val subst : abt * variable -> abt -> abt
-  val rename : symbol * symbol -> abt -> abt
+  val substMetavar : abs * metavariable -> abt -> abt
+  val substVar : abt * variable -> abt -> abt
+  val substSymbol : param * symbol -> abt -> abt
 
   val annotate : annotation -> abt -> abt
   val getAnnotation : abt -> annotation option
   val setAnnotation : annotation option -> abt -> abt
   val clearAnnotation : abt -> abt
-
-  (* Patterns for abstract binding trees. *)
-
-  (* A [bview] is a view of a abstraction. This is NOT an abt;
-   * a binding is a spine of symbols and variables as well as the
-   * underlying 'a (usually an abt) that uses them.
-   *)
-  datatype 'a bview =
-     \ of (symbol spine * variable spine) * 'a
-
-  (* This is the main interface to be used for interacting with
-   * an ABT. When inspected, an standard ABT is just a variable or
-   * an operator (the binding case is always wrapped in an operators
-   * argument) or a metavariable applied to some collection of
-   * symbols and terms
-   *)
-  datatype 'a view =
-      ` of variable
-    | $ of operator * 'a bview spine
-    | $# of metavariable * ((symbol * sort) spine * 'a spine)
-
-  val map : ('a -> 'b) -> 'a view -> 'b view
-  val mapb : ('a -> 'b) -> 'a bview -> 'b bview
 
   (* Note: The [check] operation corresponds to the [into] operation found in
    * the Carnegie Mellon ABT libraries.
@@ -144,6 +128,7 @@ sig
   val outb : abs -> abt bview
   val valence : abs -> valence
 
+  (* alpha unification *)
   structure Unify :
   sig
     type renaming = metavariable Metavar.ctx * symbol Sym.ctx * variable Var.ctx
