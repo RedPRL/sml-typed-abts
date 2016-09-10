@@ -96,7 +96,7 @@ struct
     handle _ =>
       Abt.Sym.named u
 
-  fun convertOpen psi (snames, vnames) (m, tau) =
+  fun convertOpen (psi, mnames) (snames, vnames) (m, tau) =
     let
       val abt =
         case Ast.out m of
@@ -105,17 +105,18 @@ struct
               let
                 val (vls, _) = Abt.O.arity theta
                 val theta' = Abt.O.map (PF.pure o symbol snames) theta
-                val es' = Sp.Pair.mapEq (convertOpenAbs psi (snames, vnames)) (es, vls)
+                val es' = Sp.Pair.mapEq (convertOpenAbs (psi, mnames) (snames, vnames)) (es, vls)
               in
                 Abt.check (Abt.$ (theta', es'), tau)
               end
            | Ast.$# (mv, (ps, ms)) =>
                let
-                 val ((ssorts, vsorts), _) = Abt.Metavar.Ctx.lookup psi mv
+                 val mv' = NameEnv.lookup mnames mv
+                 val ((ssorts, vsorts), _) = Abt.Metavar.Ctx.lookup psi mv'
                  val ps' = Sp.Pair.zipEq (Sp.map (PF.map (symbol snames)) ps, ssorts)
-                 val ms' = Sp.Pair.mapEq (convertOpen psi (snames, vnames)) (ms, vsorts)
+                 val ms' = Sp.Pair.mapEq (convertOpen (psi, mnames) (snames, vnames)) (ms, vsorts)
                in
-                 Abt.check (Abt.$# (mv, (ps', ms')), tau)
+                 Abt.check (Abt.$# (mv', (ps', ms')), tau)
                end
     in
       case Ast.getAnnotation m of
@@ -123,7 +124,7 @@ struct
        | NONE => abt
     end
 
-  and convertOpenAbs psi (snames, vnames) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
+  and convertOpenAbs (psi, mnames) (snames, vnames) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
     let
       val ((ssorts, vsorts), tau) = vl
       val us' = Sp.map Abt.Sym.named us
@@ -131,9 +132,9 @@ struct
       val snames' = Sp.foldr (fn ((u, u'), snames') => NameEnv.insert snames' u u') snames (Sp.Pair.zipEq (us, us'))
       val vnames' = Sp.foldr (fn ((x, x'), vnames') => NameEnv.insert vnames' x x') vnames (Sp.Pair.zipEq (xs, xs'))
     in
-      Abt.\ ((us', xs'), convertOpen psi (snames', vnames') (m, tau))
+      Abt.\ ((us', xs'), convertOpen (psi, mnames) (snames', vnames') (m, tau))
     end
 
-  fun convert psi m =
-    convertOpen psi (NameEnv.empty, NameEnv.empty) m
+  fun convert (psi, mnames) =
+    convertOpen (psi, mnames) (NameEnv.empty, NameEnv.empty)
 end

@@ -40,10 +40,9 @@ end
 signature AST_ABT =
 sig
   structure Abt : ABT
-  structure Ast : AST
+  structure Ast : AST where type metavariable = string
 
   sharing type Ast.operator = Abt.O.t
-  sharing type Ast.metavariable = Abt.Metavar.t
   sharing type Ast.spine = Abt.O.Ar.Vl.Sp.t
   sharing type Ast.annotation = Abt.annotation
   sharing type Ast.param = Abt.O.P.term
@@ -57,13 +56,13 @@ sig
 
   (* convert a closed ast to an abt *)
   val convert
-    : Abt.metactx
+    : Abt.metactx * Abt.metavariable NameEnv.dict
     -> Ast.ast * Abt.sort
     -> Abt.abt
 
   (* convert an open ast to an abt *)
   val convertOpen
-    : Abt.metactx
+    : Abt.metactx * Abt.metavariable NameEnv.dict
     -> Abt.symbol NameEnv.dict * Abt.variable NameEnv.dict
     -> Ast.ast * Abt.sort
     -> Abt.abt

@@ -94,7 +94,7 @@ structure ShowAbt = DebugShowAbt (Abt)
 structure AstKit =
 struct
   structure Operator = Operator
-  structure Metavar = Abt.Metavar
+  structure Metavar = StringAbtSymbol
   type annotation = Pos.t
 end
 
@@ -105,7 +105,7 @@ structure ParseAstKit =
 struct
   structure Ast = Ast
     and ParseOperator = ParseOperator
-    and Metavar = Abt.Metavar
+    and Metavar = StringAbtSymbol
     and CharSet = GreekCharSet
   val setSourcePosition = Ast.annotate
 end
@@ -169,14 +169,14 @@ struct
            NONE => 0
          | SOME str =>
              ((let
-                 val parseResult = CharParser.parseString (myParser Abt.Metavar.named ()) str
+                 val parseResult = CharParser.parseString (myParser (fn x => x) ()) str
                  val ast as (Ast.$ (theta, es)) =
                    case parseResult of
                         Sum.INR ast => Ast.out ast
                       | Sum.INL err => raise Fail err
                  val (_, tau) = O.arity theta
 
-                 val abt = AstToAbt.convert Abt.Metavar.Ctx.empty (Ast.into ast, tau)
+                 val abt = AstToAbt.convert (Abt.Metavar.Ctx.empty, AstToAbt.NameEnv.empty) (Ast.into ast, tau)
                  val abt' = Machine.eval () abt
                in
                  print (ShowAbt.toString abt ^ "  ==>  " ^ ShowAbt.toString abt' ^ "\n\n")
