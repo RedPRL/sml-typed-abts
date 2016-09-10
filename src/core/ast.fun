@@ -1,11 +1,10 @@
 functor Ast
   (structure Operator : ABT_OPERATOR
-   structure Metavar : ABT_SYMBOL
    type annotation) : AST =
 struct
   type symbol = string
   type variable = string
-  type metavariable = Metavar.t
+  type metavariable = string
   type annotation = annotation
 
   structure Sp = Operator.Ar.Vl.Sp
@@ -47,7 +46,7 @@ struct
            val us' = Sp.pretty (P.toString (fn x => x)) "," us
            val es' = Sp.pretty toString "," es
          in
-           "#" ^ Metavar.toString mv
+           "#" ^ mv
                ^ (if Sp.isEmpty us then "" else "{" ^ us' ^ "}")
                ^ (if Sp.isEmpty es then "" else "[" ^ es' ^ "]")
          end

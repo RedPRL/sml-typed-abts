@@ -6,7 +6,7 @@ sig
 
   type symbol = string
   type variable = string
-  type metavariable
+  type metavariable = string
 
   type annotation
   type ast
@@ -40,7 +40,7 @@ end
 signature AST_ABT =
 sig
   structure Abt : ABT
-  structure Ast : AST where type metavariable = string
+  structure Ast : AST
 
   sharing type Ast.operator = Abt.O.t
   sharing type Ast.spine = Abt.O.Ar.Vl.Sp.t

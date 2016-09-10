@@ -155,10 +155,10 @@ struct
   in
     (* example of adding custom notation to the generated parser *)
 
-    fun myParser mtable () =
-      ParseAst.extend mtable ($ (notation mtable))
-    and notation mtable () =
-      string "%" >> ($ (myParser mtable)) wth (fn x => Ast.$$ (O.NUM, [Ast.\ (([],[]), x)]))
+    fun myParser () =
+      ParseAst.extend ($ notation)
+    and notation () =
+      string "%" >> ($ myParser) wth (fn x => Ast.$$ (O.NUM, [Ast.\ (([],[]), x)]))
   end
 
   fun loop () =
@@ -169,7 +169,7 @@ struct
            NONE => 0
          | SOME str =>
              ((let
-                 val parseResult = CharParser.parseString (myParser (fn x => x) ()) str
+                 val parseResult = CharParser.parseString (myParser ()) str
                  val ast as (Ast.$ (theta, es)) =
                    case parseResult of
                         Sum.INR ast => Ast.out ast

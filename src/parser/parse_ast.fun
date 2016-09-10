@@ -5,10 +5,8 @@ functor ParseAst
 
    structure CharSet : CHARSET
    structure ParseOperator : PARSE_ABT_OPERATOR
-   structure Metavar : ABT_SYMBOL
    sharing type Ast.operator = ParseOperator.Operator.t
-   sharing type Ast.param = ParseOperator.Operator.P.term
-   sharing type Ast.metavariable = Metavar.t) : PARSE_AST =
+   sharing type Ast.param = ParseOperator.Operator.P.term) : PARSE_AST =
 struct
   structure Ast = Ast
   structure ParseOperator = ParseOperator
@@ -44,11 +42,9 @@ struct
   structure TokenParser = TokenParser (LangDef)
   open TokenParser
 
-  type metavariable_table = string -> Ast.metavariable
-
-  fun extend mtable custom : Ast.ast CharParser.charParser =
+  fun extend custom : Ast.ast CharParser.charParser =
     let
-      val metavariable = symbol "#" >> identifier wth mtable
+      val metavariable = symbol "#" >> identifier
 
       fun makeAst (pos, m) = setSourcePosition pos (Ast.into m)
 
@@ -84,5 +80,5 @@ struct
       $ ast
     end
 
-    fun parse mtable = extend mtable (parse mtable)
+    val parse = ParserCombinators.fix extend
 end
