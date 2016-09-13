@@ -111,7 +111,8 @@ struct
            | Ast.$# (mv, (ps, ms)) =>
                let
                  val mv' = NameEnv.lookup mnames mv
-                 val ((ssorts, vsorts), _) = Abt.Metavar.Ctx.lookup psi mv'
+                 val ((ssorts, vsorts), tau') = Abt.Metavar.Ctx.lookup psi mv'
+                 val _ = if Abt.O.Ar.Vl.S.eq (tau, tau') then () else raise Fail "Convert: metavariable sort mismatch"
                  val ps' = Sp.Pair.zipEq (Sp.map (PF.map (symbol snames)) ps, ssorts)
                  val ms' = Sp.Pair.mapEq (convertOpen (psi, mnames) (snames, vnames)) (ms, vsorts)
                in
