@@ -14,6 +14,11 @@ struct
 
     fun map1 f (x, y) = (f x, y)
     fun close env m = m <: env
+
+    fun sym (env : 'a env) a =
+      case Sym.Ctx.find (#params env) a of
+         SOME p => p
+       | NONE => P.ret a
   in
     fun force (tm <: env) =
       case infer tm of
@@ -23,23 +28,21 @@ struct
              | NONE => tm)
        | (x $# (ps, ms), tau) =>
            let
-             val ps' = Sp.map (map1 (P.bind (param env))) ps
+             val ps' = Sp.map (map1 (P.bind (sym env))) ps
              val ms' = Sp.map (force o close env) ms
            in
              setAnnotation (getAnnotation tm) (Abt.check (x $# (ps', ms'), tau))
            end
        | (theta $ es, tau) =>
            let
-             val theta' = O.map (param env) theta
+             val theta' = O.map (sym env) theta
              val es' = Sp.map (mapBind (force o close env)) es
            in
              setAnnotation (getAnnotation tm) (theta' $$ es')
            end
 
-    and param env a =
-      case Sym.Ctx.find (#params env) a of
-         SOME p => p
-       | NONE => P.ret a
+    fun forceParam (p <: env) =
+      P.bind (sym env) p
   end
 end
 

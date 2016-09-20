@@ -12,6 +12,7 @@ sig
   datatype ('a, 'b) closure = <: of ('a, ('b, 'b) closure) tensor
 
   val force : (Abt.abt, Abt.abt) closure -> Abt.abt
+  val forceParam : (Abt.param, 'a) closure -> Abt.param
 end
 
 signature ABT_CLOSURE_UTIL =
