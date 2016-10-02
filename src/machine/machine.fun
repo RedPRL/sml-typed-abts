@@ -98,7 +98,7 @@ functor AbtMachineUtil (M : ABT_MACHINE) : ABT_MACHINE_UTIL =
 struct
   open M M.S M.S.Cl M.S.Cl.Abt
 
-  infix <: `$
+  infix <: `$ $ $#
 
   val emptyEnv =
     {params = Sym.Ctx.empty,
@@ -122,4 +122,24 @@ struct
     end
 
   fun eval sign = unload sign o star sign o load
+
+  datatype canonicity =
+     CANONICAL
+   | NEUTRAL
+   | REDEX
+
+  fun canonicity sign t =
+    case out t of
+       ` _ => NEUTRAL
+     | _ $# _ => NEUTRAL
+     | th $ es =>
+       (case step sign (th `$ es <: emptyEnv) of
+           VAL => CANONICAL
+         | STEP _ => REDEX
+         | THROW _ => NEUTRAL
+         | CUT ((k, t) <: env) =>
+           (case canonicity sign (force (t <: env)) of
+               NEUTRAL => NEUTRAL
+             | _ => REDEX))
+
 end

@@ -34,4 +34,12 @@ sig
   val star : sign -> S.abt S.state -> S.abt S.state
 
   val eval : sign -> S.abt -> S.abt
+
+  datatype canonicity =
+     CANONICAL
+   | NEUTRAL
+   | REDEX
+
+  val canonicity : sign -> S.abt -> canonicity
+
 end
