@@ -1,10 +1,15 @@
 local
   $(SML_LIB)/basis/basis.mlb
+  $(SML_LIB)/mlyacc-lib/mlyacc-lib.mlb
+
   abt.mlb
-  abt-parser.mlb
   abt-machine.mlb
-  lib/sml-parcom/parcom.mlb
+  lib/cmlib.mlb
   basis/basis.mlb
+  example/syntax.sml
+  example/example.grm.sig
+  example/example.grm.sml
+  example/example.lex.sml
   example/example.sml
   example/main.sml
 in
