@@ -7,4 +7,3 @@ install:
   - git submodule update --init --recursive
 script:
   - ./scripts/mlton.sh
-  - ./scripts/smlnj.sh
