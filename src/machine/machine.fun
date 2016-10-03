@@ -123,23 +123,27 @@ struct
 
   fun eval sign = unload sign o star sign o load
 
+  datatype blocker =
+     VAR of S.Cl.Abt.variable
+   | MVAR of S.Cl.Abt.metavariable
+
   datatype canonicity =
      CANONICAL
-   | NEUTRAL
+   | NEUTRAL of blocker
    | REDEX
 
   fun canonicity sign t =
     case out t of
-       ` _ => NEUTRAL
-     | _ $# _ => NEUTRAL
+       ` x => NEUTRAL (VAR x)
+     | x $# _ => NEUTRAL (MVAR x)
      | th $ es =>
        (case step sign (th `$ es <: emptyEnv) of
            VAL => CANONICAL
          | STEP _ => REDEX
-         | THROW _ => NEUTRAL
+         | THROW _ => CANONICAL
          | CUT ((k, t) <: env) =>
            (case canonicity sign (force (t <: env)) of
-               NEUTRAL => NEUTRAL
+               NEUTRAL x => NEUTRAL x
              | _ => REDEX))
 
 end

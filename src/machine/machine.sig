@@ -35,9 +35,13 @@ sig
 
   val eval : sign -> S.abt -> S.abt
 
+  datatype blocker =
+     VAR of S.Cl.Abt.variable
+   | MVAR of S.Cl.Abt.metavariable
+
   datatype canonicity =
      CANONICAL
-   | NEUTRAL
+   | NEUTRAL of blocker
    | REDEX
 
   val canonicity : sign -> S.abt -> canonicity
