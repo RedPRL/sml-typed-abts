@@ -12,4 +12,5 @@ in
   structure Sum
   structure Susp
   structure Pos
+  structure Coord
 end

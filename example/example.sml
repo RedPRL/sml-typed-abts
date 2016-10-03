@@ -1,116 +1,14 @@
-structure Sort =
-struct
-  datatype t = EXP | NAT
-  val eq : t * t -> bool = op=
-  fun toString EXP = "exp"
-    | toString NAT = "nat"
-end
+structure ExampleLrVals =
+  ExampleLrValsFun(structure Token = LrParser.Token)
 
-structure O =
-struct
-  structure Ar = ListAbtArity (structure S = Sort and PS = AbtEmptySort)
-  datatype t = LAM | AP | NUM | LIT of int
+structure ExampleLex =
+  ExampleLexFun(structure Tokens = ExampleLrVals.Tokens)
 
-  val eq : t * t -> bool = op=
-  val toString =
-    fn LAM => "lam"
-     | AP => "ap"
-     | NUM => "num"
-     | LIT n => Int.toString n
-
-  local
-    open Sort
-    fun mkValence p q s = ((p, q), s)
-  in
-    val arity =
-      fn LAM => ([mkValence [] [EXP] EXP], EXP)
-       | AP => ([mkValence [] [] EXP, mkValence [] [] EXP], EXP)
-       | NUM => ([mkValence [] [] NAT], EXP)
-       | LIT _ => ([], NAT)
-  end
-end
-
-structure Operator = AbtSimpleOperator (O)
-
-structure ParseOperator : PARSE_ABT_OPERATOR =
-struct
-  structure Operator = Operator
-
-  open ParserCombinators CharParser
-
-  infixr 4 << >>
-  infixr 3 &&
-  infix 2 -- ##
-  infix 2 wth suchthat return guard when
-  infixr 1 || <|> ??
-
-  structure LangDef :> LANGUAGE_DEF =
-  struct
-    type scanner = char CharParser.charParser
-    val commentStart = NONE
-    val commentEnd = NONE
-    val commentLine = NONE
-    val nestedComments = true
-
-    val identLetter =
-      CharParser.letter
-        || digit
-    val identStart = identLetter
-    val opStart = fail "Operators not supported" : scanner
-    val opLetter = opStart
-    val reservedNames = []
-    val reservedOpNames = []
-    val caseSensitive = true
-  end
-
-  structure TP = TokenParser (LangDef)
-  open TP
-
-  val parseInt =
-    repeat1 digit wth valOf o Int.fromString o String.implode
-
-  val parseParam = identifier wth Operator.P.VAR
-
-
-  val parse : O.t CharParser.charParser =
-    string "lam" return O.LAM
-      || string "ap" return O.AP
-      || string "num" return O.NUM
-      || parseInt wth O.LIT
-end
-
-structure AbtKit =
-struct
-  structure O = Operator
-    and Metavar = AbtSymbol ()
-    and Var = AbtSymbol ()
-    and Sym = AbtSymbol ()
-  type annotation = Pos.t
-end
-
-structure Abt = Abt (AbtKit)
-structure ShowAbt = DebugShowAbt (Abt)
-
-structure AstKit =
-struct
-  structure Operator = Operator
-  structure Metavar = StringAbtSymbol
-  type annotation = Pos.t
-end
-
-structure Ast = AstUtil (Ast (AstKit))
-structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
-
-structure ParseAstKit =
-struct
-  structure Ast = Ast
-    and ParseOperator = ParseOperator
-    and Metavar = StringAbtSymbol
-    and CharSet = GreekCharSet
-  val setSourcePosition = Ast.annotate
-end
-
-structure ParseAst = ParseAst (ParseAstKit)
+structure ExampleParser =
+  JoinWithArg
+    (structure LrParser = LrParser
+     structure ParserData = ExampleLrVals.ParserData
+     structure Lex = ExampleLex)
 
 structure MachineBasis : ABT_MACHINE_BASIS =
 struct
@@ -143,23 +41,27 @@ structure Machine = AbtMachineUtil (AbtMachine (MachineBasis))
 
 structure Example =
 struct
+  fun stringreader s =
+    let
+      val pos = ref 0
+      val remainder = ref (String.size s)
+      fun min(a, b) = if a < b then a else b
+    in
+      fn n =>
+        let
+          val m = min(n, !remainder)
+          val s = String.substring(s, !pos, m)
+          val () = pos := !pos + m
+          val () = remainder := !remainder - m
+        in
+          s
+        end
+    end
 
-  local
-    open ParserCombinators CharParser
+  exception ParseError of Pos.t * string
 
-    infixr 4 << >>
-    infixr 3 &&
-    infix 2 -- ##
-    infix 2 wth suchthat return guard when
-    infixr 1 || <|> ??
-  in
-    (* example of adding custom notation to the generated parser *)
-
-    fun myParser () =
-      ParseAst.extend ($ notation)
-    and notation () =
-      string "%" >> ($ myParser) wth (fn x => Ast.$$ (O.NUM, [Ast.\ (([],[]), x)]))
-  end
+  fun error fileName (s, pos, pos') : unit =
+    raise ParseError (Pos.pos (pos fileName) (pos' fileName), s)
 
   fun loop () =
     let
@@ -169,11 +71,9 @@ struct
            NONE => 0
          | SOME str =>
              ((let
-                 val parseResult = CharParser.parseString (myParser ()) str
-                 val ast as (Ast.$ (theta, es)) =
-                   case parseResult of
-                        Sum.INR ast => Ast.out ast
-                      | Sum.INL err => raise Fail err
+                 val lexer = ExampleParser.makeLexer (stringreader (Option.valOf input)) "-"
+                 val (result, _) = ExampleParser.parse (1, lexer, error "-", "-")
+                 val ast as (Ast.$ (theta, es)) = Ast.out result
                  val (_, tau) = O.arity theta
 
                  val abt = AstToAbt.convert (Abt.Metavar.Ctx.empty, AstToAbt.NameEnv.empty) (Ast.into ast, tau)

@@ -54,14 +54,14 @@ ABT expressions. Here's an example session:
 
     Type an expression at the prompt
 
-    > lam([x]. dcl(x; {a}. set[a](x)))
-    lam([x@3].dcl(x@3; {a@7}.set[a@7](x@3)))
+    > \x. x
+    lam([x@10].x@10)  ==>  lam([x@11].x@11)
 
-    > ap(lam([x].x); num(3))
-    Error: Fail: expected exp == val
+    > (\f. f 3) (\x. x)
+    Error: Fail: expected exp == nat
 
-    > ap(lam([x].x); ret(num(3)))
-    ap(lam([x@8].x@8); ret(num(3)))
+    > (\f. f #3) (\x. x)
+    ap(lam([f@31].ap(f@31; num(3))); lam([x@32].x@32))  ==>  num(3)
 
 The printer is in "debug mode", which means that all variables and symbols are
 annotated with a unique index; this is useful for convincing oneself that

@@ -1,11 +1,13 @@
 Group
 is
   $/basis.cm
+  $/ml-yacc-lib.cm
   abt.cm (bind:(anchor:libs value:lib))
   abt-machine.cm
-  abt-parser.cm
-  lib/sml-parcom/parcom.cm (bind:(anchor:libs value:lib))
   lib/cmlib.cm
   basis/basis.cm
+  example/syntax.sml
+  example/example.grm
+  example/example.lex
   example/example.sml
   example/main.sml

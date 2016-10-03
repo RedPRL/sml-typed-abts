@@ -1,0 +1,42 @@
+open Ast
+
+%%
+%header (functor ExampleLrValsFun (structure Token : TOKEN))
+
+%term
+   EOF
+ | IDENT of string
+ | NUMERAL of int
+ | LPAREN | RPAREN
+ | DOT | HASH
+ | LAMBDA
+ | FUN_APP
+
+%left FUN_APP
+
+%nonterm
+   start of ast
+ | term of ast
+ | atomicTerm of ast
+
+%verbose
+%pos (string -> Coord.t)
+%start start
+%eop EOF
+%noshift EOF
+%name Example
+%arg (fileName) : string
+%%
+
+start : term (term)
+
+term
+  : term atomicTerm %prec FUN_APP (Ast.$$ (O.AP, [\ (([],[]), term), \ (([],[]), atomicTerm)]))
+  | atomicTerm (atomicTerm)
+
+atomicTerm
+  : LAMBDA IDENT DOT term (Ast.$$ (O.LAM, [\ (([], [IDENT]), term)]))
+  | NUMERAL (Ast.$$ (O.LIT NUMERAL, []))
+  | IDENT (Ast.`` IDENT)
+  | HASH atomicTerm (Ast.$$ (O.NUM, [\ (([],[]), atomicTerm)]))
+  | LPAREN term RPAREN (term)

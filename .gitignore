@@ -3,3 +3,7 @@
 *.x86-darwin
 abt
 abt-lcs
+*.grm.desc
+*.grm.sig
+*.grm.sml
+*.lex.sml

@@ -11,5 +11,6 @@ Library
   structure Sum
   structure Susp
   structure Pos
+  structure Coord
 is
   cmlib/cmlib.cm
