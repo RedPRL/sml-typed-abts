@@ -84,6 +84,9 @@ sig
   val varctx : abt -> varctx
   val symctx : abt -> symctx
 
+  (* Finding occurrences (ie, annotations) of free variables. *)
+  val varOccurrences : abt -> annotation list Var.ctx
+
   val unbind : abs -> symbol spine -> abt spine -> abt
   val // : abs * (symbol spine * abt spine) -> abt
 

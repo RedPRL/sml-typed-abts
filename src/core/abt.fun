@@ -209,6 +209,20 @@ struct
      | APP (theta, es <: (_, _, vctx)) @: _ => Susp.force vctx
      | META_APP (_, _, ms <: (_, _, vctx)) @: _ => Susp.force vctx
 
+
+  local
+    fun union c1 c2 = VarCtx.union c1 c2 (fn (_, l, r) => l @ r)
+  in
+    val rec varOccurrences =
+      fn V (LN.FREE x, _) @: SOME m => VarCtx.singleton x [m]
+      (* Note: this silently ignores free variables without an annotation. *)
+      | V _ @: _ => VarCtx.empty
+      | APP (_, es <: _) @: _ =>
+        Sp.foldr (fn (ABS (_, _, m), ctx) => union ctx (varOccurrences m)) VarCtx.empty es
+      | META_APP (_, _, ms <: _) @: _ =>
+        Sp.foldr (fn (m, ctx) => union ctx (varOccurrences m)) VarCtx.empty ms
+  end
+
   fun getCtx m : Ctx.ctx =
     (Susp.delay (fn _ => metactx m),
      Susp.delay (fn _ => symctx m),
