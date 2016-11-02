@@ -222,15 +222,6 @@ struct
 
   fun makeApp theta es =
     let
-      val supp = O.support theta
-      val ctx0 =
-        Ctx.modifySyms
-          (fn us =>
-            List.foldl
-              (fn ((LN.FREE u,tau), us) => Sym.Ctx.insert us u tau
-                | _ => us)
-              us supp)
-          Ctx.empty
       val ctx = Sp.foldr (fn (ABS (_, _, m), ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty es
     in
       APP (theta, es <: ctx)
