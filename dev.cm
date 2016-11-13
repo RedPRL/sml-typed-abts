@@ -1,0 +1,10 @@
+Group
+is
+  $/basis.cm
+  $/ml-yacc-lib.cm
+  abt.cm (bind:(anchor:libs value:lib))
+  abt-machine.cm
+  lib/cmlib.cm
+  basis/basis.cm
+  src/core/theory.sig
+  src/core/theory.fun
