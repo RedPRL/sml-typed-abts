@@ -15,6 +15,7 @@ Library
   signature ABT_ARITY
   signature UNISORTED_ABT_ARITY
   signature CONTEXT_UTIL
+  signature LAWVERE_THEORY
 
   functor AbtParameterTerm
   functor AbtEmptyParameter
@@ -40,6 +41,8 @@ Library
 
   signature AST_TO_ABT
   functor AstToAbt
+
+  functor AbtLawvereTheory
 is
   $/basis.cm
   $libs/sml-cats/cats.cm
@@ -70,4 +73,6 @@ is
   src/core/arity.fun
   src/core/abt.fun
   src/core/ast.fun
+  src/core/theory.sig
+  src/core/theory.fun
 
