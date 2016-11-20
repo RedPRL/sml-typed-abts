@@ -21,7 +21,7 @@ sig
   val toList : term -> Abt.abs list
 end =
 struct
-  type sort = Abt.sort
+  type sort = Abt.valence
   type var = Abt.metavariable
   type ctx = Abt.metactx
 
