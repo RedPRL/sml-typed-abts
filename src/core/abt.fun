@@ -209,6 +209,65 @@ struct
      | APP (theta, es <: (_, _, vctx)) @: _ => Susp.force vctx
      | META_APP (_, _, ms <: (_, _, vctx)) @: _ => Susp.force vctx
 
+
+  local
+    fun union c1 c2 = VarCtx.union c1 c2 (fn (_, l, r) => l @ r)
+  in
+    val rec varOccurrences =
+      fn V (LN.FREE x, _) @: SOME m => VarCtx.singleton x [m]
+      (* Note: this silently ignores free variables without an annotation. *)
+      | V _ @: _ => VarCtx.empty
+      | APP (_, es <: _) @: _ =>
+        Sp.foldr (fn (ABS (_, _, m), ctx) => union ctx (varOccurrences m)) VarCtx.empty es
+      | META_APP (_, _, ms <: _) @: _ =>
+        Sp.foldr (fn (m, ctx) => union ctx (varOccurrences m)) VarCtx.empty ms
+  end
+
+  local
+    fun union c1 c2 = SymCtx.union c1 c2 (fn (_, l, r) => l @ r)
+  in
+    val rec symOccurrences =
+      fn V _ @: _ => SymCtx.empty
+      | APP (theta, es <: _) @: m =>
+        (* The annotation mechanism is not fine-grained enough to give us
+         * positions of symbols themselves, but only of the applied operator.
+         * If the application is unannotated,
+         *)
+        let
+          val ctx0 =
+            case m of
+              NONE => SymCtx.empty
+            | SOME m =>
+              List.foldr
+                (fn ((LN.FREE u, tau), ctx) => union (SymCtx.singleton u [m]) ctx
+                  | (_, ctx) => ctx)
+                SymCtx.empty
+                (O.support theta)
+        in
+          Sp.foldr (fn (ABS (_, _, m), ctx) => union ctx (symOccurrences m)) ctx0 es
+        end
+      | META_APP (_, ps, ms <: _) @: m =>
+        let
+          val ctx0 =
+              case m of
+                NONE => SymCtx.empty
+              | SOME m =>
+                Sp.foldr
+                  (fn ((P.VAR (LN.FREE u), tau), ctx) => union (SymCtx.singleton u [m]) ctx
+                    | ((P.APP t, tau), ctx) =>
+                      List.foldr
+                        (fn ((LN.FREE u,sigma), ctx') => union (SymCtx.singleton u [m]) ctx'
+                          | (_, ctx') => ctx')
+                        ctx
+                        (P.freeVars t)
+                    | (_, ctx) => ctx)
+                  SymCtx.empty
+                  ps
+        in
+          Sp.foldr (fn (m, ctx) => union ctx (symOccurrences m)) ctx0 ms
+        end
+  end
+
   fun getCtx m : Ctx.ctx =
     (Susp.delay (fn _ => metactx m),
      Susp.delay (fn _ => symctx m),
