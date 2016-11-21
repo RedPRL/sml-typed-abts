@@ -84,8 +84,15 @@ sig
   val varctx : abt -> varctx
   val symctx : abt -> symctx
 
-  (* Finding occurrences (ie, annotations) of free variables. *)
+  (* Finding occurrences (ie, annotations) of free variables, symbols,
+   * and metavariables. Note that if a variable, symbol, or metavariable
+   * is unannotated, it will *not* be included in the result. Thus, these
+   * functions are not substitutes to the *ctx functions above, but should
+   * only be used in a best-effort attempt to produce useful annotation
+   * information on an element of the corresponding *ctx.
+   *)
   val varOccurrences : abt -> annotation list Var.ctx
+  val symOccurrences : abt -> annotation list Sym.ctx
 
   val unbind : abs -> symbol spine -> abt spine -> abt
   val // : abs * (symbol spine * abt spine) -> abt
