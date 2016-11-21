@@ -231,7 +231,7 @@ struct
       | APP (theta, es <: _) @: m =>
         (* The annotation mechanism is not fine-grained enough to give us
          * positions of symbols themselves, but only of the applied operator.
-         * If the application is unannotated,
+         * See the comment in abt.sig.
          *)
         let
           val ctx0 =
