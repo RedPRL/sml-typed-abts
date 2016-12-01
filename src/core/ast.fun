@@ -108,6 +108,8 @@ struct
                 val (vls, _) = Abt.O.arity theta
                 val theta' = Abt.O.map (PF.pure o symbol snames) theta
                 val es' = Sp.Pair.mapEq (convertOpenAbs (psi, mnames) (snames, vnames)) (es, vls)
+                          handle ListPair.UnequalLengths =>
+                                 raise BadConversion ("Arity mismatch for operator " ^ Abt.O.toString (fn x => x) theta, oann)
               in
                 Abt.check (Abt.$ (theta', es'), tau)
               end
