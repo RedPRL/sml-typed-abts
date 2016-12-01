@@ -95,7 +95,7 @@ struct
     handle _ =>
       Abt.Sym.named u
 
-  exception FreeMeta of string * Ast.annotation option
+  exception BadConversion of string * Ast.annotation option
 
   fun convertOpen (psi, mnames) (snames, vnames) (m, tau) =
     let
@@ -114,7 +114,8 @@ struct
            | Ast.$# (mv, (ps, ms)) =>
                let
                  val mv' = NameEnv.lookup mnames mv
-                           handle Absent => raise FreeMeta (mv, oann)
+                           handle NameEnv.Absent =>
+                                  raise BadConversion ("Free metavariable " ^ mv, oann)
                  val ((ssorts, vsorts), tau') = Abt.Metavar.Ctx.lookup psi mv'
                  val _ = if Abt.O.Ar.Vl.S.eq (tau, tau') then () else raise Fail "Convert: metavariable sort mismatch"
                  val ps' = Sp.Pair.zipEq (Sp.map (PF.map (symbol snames)) ps, ssorts)

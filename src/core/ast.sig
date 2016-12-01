@@ -54,7 +54,7 @@ sig
 
   structure NameEnv : DICT where type key = string
 
-  exception FreeMeta of string * Ast.annotation option
+  exception BadConversion of string * Ast.annotation option
 
   (* convert a closed ast to an abt *)
   val convert
