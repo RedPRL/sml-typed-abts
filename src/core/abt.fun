@@ -111,19 +111,29 @@ struct
   fun setAnnotation ann (m @: _) = m @: ann
   fun clearAnnotation (m @: _) = m @: NONE
 
+
   val rec primToString =
     fn V (v, _) @: _ => LN.toString Var.toString v
      | APP (theta, es <: _) @: _ =>
          O.toString (LN.toString Sym.toString) theta
            ^ "("
-           ^ Sp.pretty primToStringAbs ";" es
+           ^ Sp.pretty primToStringAbs "; " es
            ^ ")"
-     | META_APP _ @: _ => "meta"
+     | META_APP ((x, tau), ps, ms <: _) @: _ =>
+         "#" ^ Metavar.toString x 
+           ^ "{" ^ Sp.pretty (P.toString (LN.toString Sym.toString) o #1) ", " ps ^ "}"
+           ^ "[" ^ Sp.pretty primToString ", " ms ^ "]"
   and primToStringAbs =
     fn ABS (upsilon, gamma, m) =>
-      (if Sp.isEmpty upsilon then "" else "{" ^ Sp.pretty (PS.toString o #2) "," upsilon ^ "}")
-      ^ (if Sp.isEmpty upsilon then "" else "[" ^ Sp.pretty (S.toString o #2) "," gamma ^ "]")
+      "{" ^ Sp.pretty (PS.toString o #2) ", " upsilon ^ "}"
+      ^ "[" ^ Sp.pretty (S.toString o #2) ", " gamma ^ "]"
       ^ "." ^ primToString m
+
+  fun bindToString ((us, xs) \ m) = 
+    "{" ^ Sp.pretty Sym.toString ", " us ^ "}"
+      ^ "[" ^ Sp.pretty Var.toString ", " xs ^ "]."
+      ^ primToString m
+      
 
   type metaenv = abs MetaCtx.dict
   type varenv = abt VarCtx.dict
