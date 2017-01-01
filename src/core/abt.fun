@@ -531,6 +531,16 @@ struct
     and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
   end
 
+  fun metaenvToString (env : metaenv) : string = 
+    let
+      val assignments = Metavar.Ctx.toList env
+      fun f (x, abs) = Metavar.toString x ^ " := " ^ primToStringAbs abs
+    in
+      "{" ^ ListSpine.pretty f "; " assignments ^ "}"
+    end
+
+  exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
+
   fun substMetaenv rho m =
     let
       val ann = getAnnotation m
@@ -541,30 +551,35 @@ struct
              `x => m
            | theta $ es =>
                check (theta $ Sp.map (mapBind (substMetaenv rho)) es, tau)
-           | mv $# (us, ms) =>
+           | mv $# (ps, ms) =>
                let
                  val ms' = Sp.map (substMetaenv rho) ms
                in
                  case MetaCtx.find rho mv of
                       NONE =>
-                        check (mv $# (us, ms'), tau)
+                        check (mv $# (ps, ms'), tau)
                     | SOME abs =>
                         let
-                          val (vs, xs) \ m = outb abs
+                          val (us , xs) \ m = outb abs
                           val srho =
                             Sp.foldr
-                              (fn ((v, (u, _)), r) => SymCtx.insert r v u)
+                              (fn ((u, (p, _)), r) => SymCtx.insert r u p)
                               SymCtx.empty
-                              (Sp.Pair.zipEq (vs, us))
-                          val rho' =
+                              (Sp.Pair.zipEq (us, ps))
+                          val vrho =
                             Sp.foldr
                               (fn ((x,m), rho) => VarCtx.insert rho x m)
                               VarCtx.empty
                               (Sp.Pair.zipEq (xs, ms'))
                         in
-                          substVarenv rho' (substSymenv srho m)
+                          substVarenv vrho (substSymenv srho m)
                         end
                end)
+        handle Sp.Pair.UnequalLengths => 
+          raise BadSubstMetaenv
+            {metaenv = rho,
+             term = m,
+             description = "Tried to substitute " ^ metaenvToString rho ^ " in " ^ primToString m}
     end
 
   and substVarenv rho =

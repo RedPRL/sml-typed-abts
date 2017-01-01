@@ -106,6 +106,8 @@ sig
   val substVarenv : varenv -> abt -> abt
   val substSymenv : symenv -> abt -> abt
 
+  exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
+
   (* Below we provide unary versions of the simultaneous substitution operations *)
   val substMetavar : abs * metavariable -> abt -> abt
   val substVar : abt * variable -> abt -> abt
