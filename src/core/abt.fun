@@ -111,19 +111,29 @@ struct
   fun setAnnotation ann (m @: _) = m @: ann
   fun clearAnnotation (m @: _) = m @: NONE
 
+
   val rec primToString =
     fn V (v, _) @: _ => LN.toString Var.toString v
      | APP (theta, es <: _) @: _ =>
          O.toString (LN.toString Sym.toString) theta
            ^ "("
-           ^ Sp.pretty primToStringAbs ";" es
+           ^ Sp.pretty primToStringAbs "; " es
            ^ ")"
-     | META_APP _ @: _ => "meta"
+     | META_APP ((x, tau), ps, ms <: _) @: _ =>
+         "#" ^ Metavar.toString x 
+           ^ "{" ^ Sp.pretty (P.toString (LN.toString Sym.toString) o #1) ", " ps ^ "}"
+           ^ "[" ^ Sp.pretty primToString ", " ms ^ "]"
   and primToStringAbs =
     fn ABS (upsilon, gamma, m) =>
-      (if Sp.isEmpty upsilon then "" else "{" ^ Sp.pretty (PS.toString o #2) "," upsilon ^ "}")
-      ^ (if Sp.isEmpty upsilon then "" else "[" ^ Sp.pretty (S.toString o #2) "," gamma ^ "]")
+      "{" ^ Sp.pretty (PS.toString o #2) ", " upsilon ^ "}"
+      ^ "[" ^ Sp.pretty (S.toString o #2) ", " gamma ^ "]"
       ^ "." ^ primToString m
+
+  fun bindToString ((us, xs) \ m) = 
+    "{" ^ Sp.pretty Sym.toString ", " us ^ "}"
+      ^ "[" ^ Sp.pretty Var.toString ", " xs ^ "]."
+      ^ primToString m
+      
 
   type metaenv = abs MetaCtx.dict
   type varenv = abt VarCtx.dict
@@ -521,6 +531,16 @@ struct
     and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
   end
 
+  fun metaenvToString (env : metaenv) : string = 
+    let
+      val assignments = Metavar.Ctx.toList env
+      fun f (x, abs) = Metavar.toString x ^ " := " ^ primToStringAbs abs
+    in
+      "{" ^ ListSpine.pretty f "; " assignments ^ "}"
+    end
+
+  exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
+
   fun substMetaenv rho m =
     let
       val ann = getAnnotation m
@@ -531,30 +551,35 @@ struct
              `x => m
            | theta $ es =>
                check (theta $ Sp.map (mapBind (substMetaenv rho)) es, tau)
-           | mv $# (us, ms) =>
+           | mv $# (ps, ms) =>
                let
                  val ms' = Sp.map (substMetaenv rho) ms
                in
                  case MetaCtx.find rho mv of
                       NONE =>
-                        check (mv $# (us, ms'), tau)
+                        check (mv $# (ps, ms'), tau)
                     | SOME abs =>
                         let
-                          val (vs, xs) \ m = outb abs
+                          val (us , xs) \ m = outb abs
                           val srho =
                             Sp.foldr
-                              (fn ((v, (u, _)), r) => SymCtx.insert r v u)
+                              (fn ((u, (p, _)), r) => SymCtx.insert r u p)
                               SymCtx.empty
-                              (Sp.Pair.zipEq (vs, us))
-                          val rho' =
+                              (Sp.Pair.zipEq (us, ps))
+                          val vrho =
                             Sp.foldr
                               (fn ((x,m), rho) => VarCtx.insert rho x m)
                               VarCtx.empty
                               (Sp.Pair.zipEq (xs, ms'))
                         in
-                          substVarenv rho' (substSymenv srho m)
+                          substVarenv vrho (substSymenv srho m)
                         end
                end)
+        handle Sp.Pair.UnequalLengths => 
+          raise BadSubstMetaenv
+            {metaenv = rho,
+             term = m,
+             description = "Tried to substitute " ^ metaenvToString rho ^ " in " ^ primToString m}
     end
 
   and substVarenv rho =
