@@ -140,6 +140,9 @@ sig
   val outb : abs -> abt bview
   val valence : abs -> valence
 
+  val primToString : abt -> string 
+  val primToStringAbs : abs -> string 
+
   (* alpha unification *)
   structure Unify :
   sig
