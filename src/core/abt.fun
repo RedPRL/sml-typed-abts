@@ -641,7 +641,7 @@ struct
     let
       val (view, tau) = infer m
     in
-      check (map f view, tau)
+      setAnnotation (getAnnotation m) (check (map f view, tau))
     end
 
   fun deepMapSubterms f m =

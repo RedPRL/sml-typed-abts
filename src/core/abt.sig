@@ -156,4 +156,6 @@ sig
     val unifyOpt :  abt * abt -> renaming option
   end
 
+  val primToString : abt -> string
+  val primToStringAbs : abs -> string
 end
