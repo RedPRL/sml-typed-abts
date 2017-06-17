@@ -14,6 +14,7 @@ sig
 
   val compare : t * t -> order
 
+  structure Ord : ORDERED where type t = t
   structure Ctx : DICT where type key = t
   type 'a ctx = 'a Ctx.dict
 
