@@ -22,7 +22,7 @@ struct
 
   fun toString (_, a) = a
 
-  structure Ordered =
+  structure Ord =
   struct
     type t = t
 
@@ -33,9 +33,9 @@ struct
       Int.compare (i, j)
   end
 
-  open Ordered
+  open Ord
 
-  structure Ctx = SplayDict (structure Key = Ordered)
+  structure Ctx = SplayDict (structure Key = Ord)
   type 'a ctx = 'a Ctx.dict
 
   structure DebugShow =
@@ -50,10 +50,11 @@ structure StringAbtSymbol : ABT_SYMBOL =
 struct
   type t = string
 
-  structure Ctx = SplayDict (structure Key = StringOrdered)
+  structure Ord = StringOrdered
+  structure Ctx = SplayDict (structure Key = Ord)
   type 'a ctx = 'a Ctx.dict
 
-  open StringOrdered
+  open Ord
 
   fun named x = x
   fun toString x = x
