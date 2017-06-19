@@ -589,6 +589,14 @@ struct
         | APP (theta, es <: _) => makeApp theta (Sp.map (mapAbs_ (substVarenv rho)) es)
         | META_APP (mv, us, ms <: _) => makeMetaApp mv us (Sp.map (substVarenv rho) ms))
 
+  and renameVars rho =
+    Ann.map
+      (fn m as V (LN.FREE x, sigma) => V (LN.FREE (getOpt (VarCtx.find rho x, x)), sigma)
+        | m as V _ => m
+        | APP (theta, es <: _) => makeApp theta (Sp.map (mapAbs_ (renameVars rho)) es)
+        | META_APP (mv, us, ms <: _) => makeMetaApp mv us (Sp.map (renameVars rho) ms))
+
+
   and substSymenv rho =
     let
       val substp =
