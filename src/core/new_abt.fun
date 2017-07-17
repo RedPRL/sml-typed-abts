@@ -204,7 +204,7 @@ struct
          | APP (theta, scopes) =>
            let
              val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
-             val theta' = O.map (abstractSym (i, j, k) (us, xs, Xs)) theta
+             val theta' = O.map (P.ret o abstractSym (i, j, k) (us, xs, Xs)) theta
              val scopes' = List.map (#abstract scopeBindingSupport (i, j, k) (us, xs, Xs)) scopes
            in
              makeAppTerm (theta', scopes') (#user ann)
@@ -215,7 +215,7 @@ struct
                  case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of 
                     NONE => FREE X
                   | SOME k' => BOUND (k + k')
-               val rs' = List.map (fn (r, sigma) => (P.bind (abstractSym (i, j, k) (us, xs, Xs)) r, sigma)) rs
+               val rs' = List.map (fn (r, sigma) => (P.map (abstractSym (i, j, k) (us, xs, Xs)) r, sigma)) rs
                val ms' = List.map (abstractAbt (i, j, k) (us, xs, Xs)) ms
              in
                makeMetaTerm ((meta, tau), rs', ms') (#user ann)
@@ -225,9 +225,9 @@ struct
     and abstractSym (i, j, k) (us, xs, Xs) = 
       fn FREE u =>
          (case indexOfFirst (fn v => Sym.eq (u, v)) us of 
-             NONE => P.ret (FREE u)
-           | SOME k => P.ret (BOUND (i + k)))
-       | BOUND k => P.ret (BOUND k)
+             NONE => FREE u
+           | SOME k => BOUND (i + k))
+       | BOUND k => BOUND k
   in
     val abtBindingSupport : abt binding_support = abtBindingSupport () 
   end
