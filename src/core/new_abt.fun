@@ -190,8 +190,11 @@ struct
     and abstractAbt (i, j, k) (us, xs, Xs) (term <: ann) =
       let
         val {hasFreeSyms, hasFreeVars, hasFreeMetas, ...} = #system ann
+        val noNeedSyms = case us of [] => true | _ => not hasFreeSyms
+        val noNeedVars = case xs of [] => true | _ => not hasFreeVars
+        val noNeedMetas = case Xs of [] => true | _ => not hasFreeMetas
       in
-        if not (hasFreeSyms orelse hasFreeVars orelse hasFreeMetas) then term <: ann else 
+        if noNeedSyms andalso noNeedVars andalso noNeedMetas then term <: ann else 
         case term of
            V (BOUND _, _) => term <: ann
          | V (FREE x, tau) =>
