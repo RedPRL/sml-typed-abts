@@ -148,7 +148,7 @@ struct
            hasFreeMetas = false}
         end
     
-  fun makeMetaTerm (((meta, tau), ps, ms) : meta_term) userAnn =
+  fun makeMetaTerm (((meta, tau), rs, ms) : meta_term) userAnn =
     let
       val (metaIdxBound, hasFreeMetas) = case meta of FREE _ => (NONE, true) | BOUND j => (SOME (j + 1), false)
       val metaSystemAnn = 
@@ -162,14 +162,14 @@ struct
         List.foldr 
           (fn ((p, _), ann) => systemAnnLub (ann, paramSystemAnn p))
           metaSystemAnn
-          ps
+          rs
       val systemAnn =
         List.foldr
           (fn (_ <: termAnn, ann) => systemAnnLub (ann, #system termAnn))
           systemAnn
           ms
     in
-      META ((meta, tau), ps, ms) <: {user = userAnn, system = systemAnn}
+      META ((meta, tau), rs, ms) <: {user = userAnn, system = systemAnn}
     end
 
   local
@@ -200,31 +200,31 @@ struct
                | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
          | APP (theta, scopes) =>
            let
-             val psi = 
-               fn FREE u =>
-                  (case indexOfFirst (fn v => Sym.eq (u, v)) us of 
-                      NONE => P.ret (FREE u)
-                    | SOME k => P.ret (BOUND (i + k)))
-                | BOUND k => P.ret (BOUND k)
              val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
-             val theta' = O.map psi theta
+             val theta' = O.map (abstractSym (i, j, k) (us, xs, Xs)) theta
              val scopes' = List.map (#abstract scopeBindingSupport (i, j, k) (us, xs, Xs)) scopes
            in
              makeAppTerm (theta', scopes') (#user ann)
            end
-         | META ((FREE X, tau), ps, ms) =>
+         | META ((FREE X, tau), rs, ms) =>
              let
                val meta = 
                  case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of 
                     NONE => FREE X
                   | SOME k' => BOUND (k + k')
-
-               val ps' = raise Match
-               val ms' = raise Match
+               val rs' = List.map (fn (r, sigma) => (P.bind (abstractSym (i, j, k) (us, xs, Xs)) r, sigma)) rs
+               val ms' = List.map (abstractAbt (i, j, k) (us, xs, Xs)) ms
              in
-               makeMetaTerm ((meta, tau), ps', ms') (#user ann)
+               makeMetaTerm ((meta, tau), rs', ms') (#user ann)
              end
       end
+
+    and abstractSym (i, j, k) (us, xs, Xs) = 
+      fn FREE u =>
+         (case indexOfFirst (fn v => Sym.eq (u, v)) us of 
+             NONE => P.ret (FREE u)
+           | SOME k => P.ret (BOUND (i + k)))
+       | BOUND k => P.ret (BOUND k)
   in
     val abtBindingSupport : abt binding_support = abtBindingSupport () 
   end
