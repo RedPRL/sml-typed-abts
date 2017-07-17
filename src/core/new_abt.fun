@@ -11,7 +11,7 @@ struct
   structure P = O.P
   type param = Sym.t P.term
 
-  structure Sc = LnScope (structure Sym = Sym and Var = Var type psort = psort type sort = sort)
+  structure Sc = LnScope (structure Sym = Sym and Var = Var and Metavar = Metavar type psort = psort type sort = sort)
   datatype 'a locally =
      FREE of 'a
    | BOUND of int
@@ -48,7 +48,7 @@ struct
   and abt = <: of abt_internal * annotation
   withtype var_term = Var.t locally * sort
   and app_term = Sym.t locally O.t * abt Sc.scope list
-  and meta_term = (Metavar.t * sort) * (Sym.t locally P.term * psort) list * abt list
+  and meta_term = (Metavar.t locally * sort) * (Sym.t locally P.term * psort) list * abt list
 
   infix <:
 
@@ -125,12 +125,12 @@ struct
         aux (0, xs)
       end
 
-    fun abstractVarTerm (i, j) (us, xs) = 
+    fun abstractVarTerm (i, j, k) (us, xs, Xs) = 
       fn (FREE x, tau) => 
          (case indexOfFirst (fn y => Var.eq (x, y)) xs of
              NONE => (FREE x, tau)
-           | SOME k => (BOUND (j + k), tau))
-       | (BOUND k, tau) => (BOUND k, tau)
+           | SOME j' => (BOUND (j + j'), tau))
+       | (BOUND l, tau) => (BOUND l, tau)
 
     fun abtBindingSupport () : abt binding_support = 
       {abstract = abstractAbt,
@@ -138,7 +138,7 @@ struct
        freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
        freeSymbol = P.ret o FREE}
 
-    and abstractAbt (i, j) (us, xs) (term <: ann) =
+    and abstractAbt (i, j, k) (us, xs, Xs) (term <: ann) =
       let
         val {hasFreeSyms, hasFreeVars, ...} = #system ann
       in
@@ -146,7 +146,7 @@ struct
         case term of
            V varTerm =>
              if not hasFreeVars then term <: ann else
-               makeVarTerm (abstractVarTerm (i, j) (us, xs) varTerm) (#user ann)
+               makeVarTerm (abstractVarTerm (i, j, k) (us, xs, Xs) varTerm) (#user ann)
          | APP (theta, scopes) =>
            let
              val psi = 
@@ -157,7 +157,7 @@ struct
                 | BOUND k => P.ret (BOUND k)
              val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
              val theta' = O.map psi theta
-             val scopes' = List.map (#abstract scopeBindingSupport (i, j) (us, xs)) scopes
+             val scopes' = List.map (#abstract scopeBindingSupport (i, j, k) (us, xs, Xs)) scopes
            in
              makeAppTerm (theta', scopes') (#user ann)
            end

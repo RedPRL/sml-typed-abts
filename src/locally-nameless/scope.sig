@@ -2,6 +2,7 @@ signature LN_SCOPE =
 sig
   type 'a scope
 
+  type metavariable
   type variable
   type symbol
 
@@ -12,8 +13,8 @@ sig
   exception Instantiate
 
   type ('m, 'p, 'a) binding_support = 
-    {abstract: int * int -> symbol list * variable list -> 'a -> 'a,
-     instantiate: int * int -> 'a -> 'p list * 'm list -> 'a,
+    {abstract: int * int * int -> symbol list * variable list * metavariable list -> 'a -> 'a,
+     instantiate: int * int * int -> 'a -> 'p list * 'm list * 'm scope list -> 'a,
      freeVariable : variable * sort -> 'm,
      freeSymbol : symbol -> 'p}
 
