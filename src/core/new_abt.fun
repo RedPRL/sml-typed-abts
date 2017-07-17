@@ -22,8 +22,10 @@ struct
   type system_annotation =
     {symIdxBound: int option,
      varIdxBound: int option,
+     metaIdxBound: int option,
      hasFreeVars: bool,
-     hasFreeSyms: bool}
+     hasFreeSyms: bool,
+     hasFreeMetas: bool}
   
   type annotation = 
     {user: user_annotation option,
@@ -38,8 +40,10 @@ struct
   fun systemAnnLub (ann1 : system_annotation, ann2 : system_annotation) : system_annotation = 
     {symIdxBound = optionalIdxLub (#symIdxBound ann1, #symIdxBound ann2),
      varIdxBound = optionalIdxLub (#varIdxBound ann1, #varIdxBound ann2),
+     metaIdxBound = optionalIdxLub (#metaIdxBound ann1, #metaIdxBound ann2),
      hasFreeVars = #hasFreeVars ann1 orelse #hasFreeVars ann2,
-     hasFreeSyms = #hasFreeSyms ann1 orelse #hasFreeSyms ann2}
+     hasFreeSyms = #hasFreeSyms ann1 orelse #hasFreeSyms ann2,
+     hasFreeMetas = #hasFreeMetas ann1 orelse #hasFreeMetas ann2}
 
   datatype abt_internal = 
      V of var_term
@@ -57,7 +61,7 @@ struct
   fun scopeReadAnn scope = 
     let
       val Sc.\ ((us, xs), body <: ann) = Sc.unsafeRead scope
-      val {symIdxBound, varIdxBound, hasFreeVars, hasFreeSyms} = #system ann
+      val {symIdxBound, varIdxBound, metaIdxBound, hasFreeVars, hasFreeSyms, hasFreeMetas} = #system ann
       val symIdxBound' = Option.map (fn i => i - List.length us) symIdxBound 
       val varIdxBound' = Option.map (fn i => i - List.length xs) varIdxBound
     in
@@ -65,8 +69,10 @@ struct
        system =
          {symIdxBound = symIdxBound',
           varIdxBound = varIdxBound',
+          metaIdxBound = metaIdxBound,
           hasFreeSyms = hasFreeSyms,
-          hasFreeVars = hasFreeVars}}
+          hasFreeVars = hasFreeVars,
+          hasFreeMetas = hasFreeMetas}}
     end
 
   fun makeVarTerm (var, tau) userAnn = 
@@ -77,8 +83,10 @@ struct
             system =
               {symIdxBound = NONE,
                varIdxBound = NONE,
+               metaIdxBound = NONE,
                hasFreeVars = true,
-               hasFreeSyms = false}}
+               hasFreeSyms = false,
+               hasFreeMetas = false}}
 
      | BOUND i =>
          V (var, tau) <:
@@ -86,8 +94,10 @@ struct
             system =
               {symIdxBound = NONE,
                varIdxBound = SOME (i + 1),
+               metaIdxBound = NONE,
                hasFreeVars = false,
-               hasFreeSyms = false}}
+               hasFreeSyms = false,
+               hasFreeMetas = false}}
 
   fun makeAppTerm (theta, scopes) userAnn =
     let
@@ -104,8 +114,10 @@ struct
       val operatorAnn = 
         {symIdxBound = symIdxBound,
          varIdxBound = NONE,
+         metaIdxBound = NONE,
          hasFreeVars = false,
-         hasFreeSyms = hasFreeSyms}
+         hasFreeSyms = hasFreeSyms,
+         hasFreeMetas = false}
 
       val systemAnn =
         List.foldr
