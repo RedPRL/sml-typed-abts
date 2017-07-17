@@ -4,10 +4,18 @@ Library
 
   signature LOCALLY_NAMELESS
   functor LocallyNameless
+
+  signature LN_SCOPE
+  functor LnScope
+
+  signature ABT_SYMBOL
+  signature ABT_IMPERATIVE_SYMBOL
 is
   $/basis.cm
   basis/basis.cm
   src/locally-nameless/coord.sig
   src/locally-nameless/coord.sml
+  src/locally-nameless/scope.sig
+  src/locally-nameless/scope.fun
   src/locally-nameless/locally_nameless.sig
   src/locally-nameless/locally_nameless.fun
