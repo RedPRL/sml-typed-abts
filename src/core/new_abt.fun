@@ -137,13 +137,6 @@ struct
         aux (0, xs)
       end
 
-    fun abstractVarTerm (i, j, k) (us, xs, Xs) = 
-      fn (FREE x, tau) => 
-         (case indexOfFirst (fn y => Var.eq (x, y)) xs of
-             NONE => (FREE x, tau)
-           | SOME j' => (BOUND (j + j'), tau))
-       | (BOUND l, tau) => (BOUND l, tau)
-
     fun abtBindingSupport () : abt binding_support = 
       {abstract = abstractAbt,
        instantiate = raise Match,
@@ -156,9 +149,11 @@ struct
       in
         if not (hasFreeSyms orelse hasFreeVars) then term <: ann else 
         case term of
-           V varTerm =>
-             if not hasFreeVars then term <: ann else
-               makeVarTerm (abstractVarTerm (i, j, k) (us, xs, Xs) varTerm) (#user ann)
+           V (BOUND _, _) => term <: ann
+         | V (FREE x, tau) =>
+             (case indexOfFirst (fn y => Var.eq (x, y)) xs of 
+                 NONE => makeVarTerm (FREE x, tau) (#user ann)
+               | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
          | APP (theta, scopes) =>
            let
              val psi = 
