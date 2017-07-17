@@ -85,7 +85,7 @@ struct
            {user = userAnn,
             system =
               {symIdxBound = NONE,
-               varIdxBound = SOME i,
+               varIdxBound = SOME (i + 1),
                hasFreeVars = false,
                hasFreeSyms = false}}
 
