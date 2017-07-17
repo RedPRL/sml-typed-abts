@@ -99,17 +99,22 @@ struct
                hasFreeSyms = false,
                hasFreeMetas = false}}
 
+  fun idxBoundForSyms support = 
+    List.foldr
+      (fn ((FREE _,_), oidx) => oidx
+        | ((BOUND i, _), NONE) => SOME (i + 1)
+        | ((BOUND i, _), SOME j) => SOME (Int.max (i, j)))
+      NONE
+      support
+
+  fun supportContainsFreeSyms support = 
+    Option.isSome (List.find (fn (FREE _, _) => true | _ => false) support)    
+
   fun makeAppTerm (theta, scopes) userAnn =
     let
       val support = O.support theta
-      val hasFreeSyms = case support of [] => false | _ => true
-      val symIdxBound =
-        List.foldr
-          (fn ((FREE _,_), oidx) => oidx
-            | ((BOUND i, _), NONE) => SOME i
-            | ((BOUND i, _), SOME j) => SOME (Int.max (i, j)))
-          NONE
-          support
+      val hasFreeSyms = supportContainsFreeSyms support
+      val symIdxBound = idxBoundForSyms support
 
       val operatorAnn = 
         {symIdxBound = symIdxBound,
@@ -126,6 +131,45 @@ struct
           scopes
     in
       APP (theta, scopes) <: {user = userAnn, system = systemAnn}
+    end
+
+  val paramSystemAnn = 
+    fn P.VAR (FREE x) => {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = NONE, hasFreeVars = false, hasFreeSyms = true, hasFreeMetas = false}
+     | P.VAR (BOUND i) => {symIdxBound = SOME (i + 1), varIdxBound = NONE, metaIdxBound = NONE, hasFreeVars = false, hasFreeSyms = false, hasFreeMetas = false}
+     | P.APP t => 
+        let
+          val support = P.freeVars t
+        in
+          {symIdxBound = idxBoundForSyms support,
+           varIdxBound = NONE,
+           metaIdxBound = NONE,
+           hasFreeVars = false,
+           hasFreeSyms = supportContainsFreeSyms support,
+           hasFreeMetas = false}
+        end
+    
+  fun makeMetaTerm (((meta, tau), ps, ms) : meta_term) userAnn =
+    let
+      val (metaIdxBound, hasFreeMetas) = case meta of FREE _ => (NONE, true) | BOUND j => (SOME (j + 1), false)
+      val metaSystemAnn = 
+        {symIdxBound = NONE,
+         varIdxBound = NONE,
+         metaIdxBound = metaIdxBound,
+         hasFreeVars = false,
+         hasFreeSyms = false,
+         hasFreeMetas = hasFreeMetas}
+      val systemAnn = 
+        List.foldr 
+          (fn ((p, _), ann) => systemAnnLub (ann, paramSystemAnn p))
+          metaSystemAnn
+          ps
+      val systemAnn =
+        List.foldr
+          (fn (_ <: termAnn, ann) => systemAnnLub (ann, #system termAnn))
+          systemAnn
+          ms
+    in
+      META ((meta, tau), ps, ms) <: {user = userAnn, system = systemAnn}
     end
 
   local
@@ -145,9 +189,9 @@ struct
 
     and abstractAbt (i, j, k) (us, xs, Xs) (term <: ann) =
       let
-        val {hasFreeSyms, hasFreeVars, ...} = #system ann
+        val {hasFreeSyms, hasFreeVars, hasFreeMetas, ...} = #system ann
       in
-        if not (hasFreeSyms orelse hasFreeVars) then term <: ann else 
+        if not (hasFreeSyms orelse hasFreeVars orelse hasFreeMetas) then term <: ann else 
         case term of
            V (BOUND _, _) => term <: ann
          | V (FREE x, tau) =>
@@ -168,7 +212,18 @@ struct
            in
              makeAppTerm (theta', scopes') (#user ann)
            end
-         | META ((X, tau), ps, ms) => raise Match
+         | META ((FREE X, tau), ps, ms) =>
+             let
+               val meta = 
+                 case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of 
+                    NONE => FREE X
+                  | SOME k' => BOUND (k + k')
+
+               val ps' = raise Match
+               val ms' = raise Match
+             in
+               makeMetaTerm ((meta, tau), ps', ms') (#user ann)
+             end
       end
   in
     val abtBindingSupport : abt binding_support = abtBindingSupport () 
