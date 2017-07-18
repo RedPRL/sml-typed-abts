@@ -196,7 +196,6 @@ struct
              NONE
          end
 
-
     type traverse_kit = 
       {handleSym : int -> symbol locally -> symbol locally P.t,
        handleVar : int -> var_term annotated -> abt,
@@ -221,6 +220,7 @@ struct
          in
            #handleMeta kit (i, j, k) (((X, tau), rs', ms') <: ann)
          end
+
   in
     fun instantiateAbt (i, j, k) (rs, ms, scopes) =
       let
@@ -286,7 +286,10 @@ struct
 
         fun abstractMeta (i, j, k) ((((X, tau), rs, ms) : meta_term) <: ann) =
           case X of 
-              FREE a => raise Match
+              FREE X =>
+              (case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of 
+                 NONE => META ((FREE X, tau), rs, ms) <: ann
+               | SOME k' => META ((BOUND (k + k'), tau), rs, ms) <: ann)
             | BOUND k' => META ((X, tau), rs, ms) <: ann
 
         val kit =
