@@ -12,6 +12,7 @@ Library
   signature ABT_IMPERATIVE_SYMBOL
 is
   $/basis.cm
+  lib/cmlib.cm
   basis/basis.cm
   src/locally-nameless/symbol.sig
   src/locally-nameless/coord.sig
