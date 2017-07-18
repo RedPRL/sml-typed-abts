@@ -8,7 +8,6 @@ sig
 
   type sort
   type psort
-  type valence = (psort list * sort list) * sort
 
   exception Instantiate
 
@@ -26,7 +25,7 @@ sig
   val eq : ('a * 'a -> bool) -> 'a scope * 'a scope -> bool
 
   val intoScope : ('m, 'p, 'a) binding_support -> (symbol, variable, 'a) scope_view -> 'a scope 
-  val outScope : ('m, 'p, 'a) binding_support -> 'a scope -> valence -> (symbol, variable, 'a) scope_view
+  val outScope : ('m, 'p, 'a) binding_support -> psort list * sort list -> 'a scope -> (symbol, variable, 'a) scope_view
 
   (* O(1) *)
   val unsafeRead : 'a scope -> (string, string, 'a) scope_view

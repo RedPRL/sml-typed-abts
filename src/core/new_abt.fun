@@ -78,12 +78,12 @@ struct
      V of var_term
    | APP of app_term
    | META of meta_term
+  and abs = ABS of psort list * sort list * abt Sc.scope
   withtype abt = abt_internal annotated
   and var_term = Var.t locally * sort
-  and app_term = Sym.t locally O.t * abt Sc.scope list
+  and app_term = Sym.t locally O.t * abs list
   and meta_term = (Metavar.t locally * sort) * (Sym.t locally P.term * psort) list * abt list
 
-  type abs = abt Sc.scope
   type metaenv = abs Metavar.Ctx.dict
   type varenv = abt Var.Ctx.dict
   type symenv = param Sym.Ctx.dict
@@ -146,7 +146,7 @@ struct
       val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = freeSyms, freeMetas = Metavar.Ctx.empty}
       val systemAnn =
         List.foldr
-          (fn (scope, ann) => systemAnnLub (ann, #system (scopeReadAnn scope)))
+          (fn (ABS (_, _, scope), ann) => systemAnnLub (ann, #system (scopeReadAnn scope)))
           operatorAnn
           scopes
     in
@@ -185,6 +185,10 @@ struct
       META ((meta, tau), rs, ms) <: {user = userAnn, system = systemAnn}
     end
 
+
+  fun mapFst f (x, y) =
+    (f x, y)
+
   local
     fun indexOfFirst pred xs =
       let
@@ -193,9 +197,6 @@ struct
       in
         aux (0, xs)
       end
-
-    fun mapFst f (x, y) =
-      (f x, y)
 
     fun findInstantiation i items var =
       case var of
@@ -225,7 +226,7 @@ struct
        | APP (theta, args) =>
          let
            val theta' = O.mapWithSort (fn (u, sigma) => #handleSym alg i ((u, sigma) <: ann)) theta
-           val args' = List.map (Sc.liftTraversal (abtRec alg) (i, j, k)) args
+           val args' = List.map (fn ABS (ssorts, vsorts, scope) => ABS (ssorts, vsorts, Sc.liftTraversal (abtRec alg) (i, j, k) scope)) args
          in
            makeAppTerm (theta', args') user
          end
@@ -247,7 +248,7 @@ struct
            val memo = List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg i ((u, sigma) <: ann), memo)) (#unit acc) support
          in
            List.foldr
-             (fn (scope, memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (abtAccum acc alg) (i, j, k) scope), memo))
+             (fn (ABS (_, _, scope), memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (abtAccum acc alg) (i, j, k) scope), memo))
              memo
              args
          end
@@ -380,7 +381,7 @@ struct
              FREE X =>
              (case Metavar.Ctx.find mrho X of
                  NONE => META ((FREE X, tau), rs, ms) <: ann
-               | SOME scope => instantiateAbt (0,0,0) (List.map #1 rs, ms, []) (Sc.unsafeReadBody scope))
+               | SOME (ABS (_, _, scope)) => instantiateAbt (0,0,0) (List.map #1 rs, ms, []) (Sc.unsafeReadBody scope))
            | BOUND _ => META ((X, tau), rs, ms) <: ann
 
         val alg =
@@ -526,10 +527,47 @@ struct
       assertSortEq (tau, tau');
       ListPair.app (fn (u, sigma) => assertPSortEq (sigma, Option.getOpt (Sym.Ctx.find syms u, sigma))) (us, ssorts);
       ListPair.app (fn (x, tau) => assertSortEq (tau, Option.getOpt (Var.Ctx.find vars x, tau))) (xs, vsorts);
-      Sc.intoScope (abtBindingSupport) (Sc.\ ((us, xs), m))
+      ABS (ssorts, vsorts, Sc.intoScope abtBindingSupport (Sc.\ ((us, xs), m)))
     end
 
-  and infer _ = ?todo
+  and infer (term <: ann) =
+    case term of 
+       V (FREE x, tau) => (`x, tau)
+     | V _ => raise Fail "I am a number, not a free variable!!"
+     | APP (theta, args) =>
+       let
+         val (vls, tau) = O.arity theta
+         val theta' = O.map (fn FREE u => P.ret u | _ => raise Fail "Did not expect bound symbol") theta
+         val args' =
+           ListPair.map
+             (fn (abs, vl) => 
+              let
+                val (arg, vl') = inferb abs
+              in
+                assertValenceEq (vl, vl');
+                arg
+              end)
+             (args, vls)
+       in
+         (theta' $ ?todo, tau)
+       end
+     | META ((FREE X, tau), rs, ms) =>
+       let
+         val rs' = List.map (mapFst (P.map (fn FREE u => u | _ => raise Fail "Did not expect bound symbol"))) rs
+       in
+         (X $# (rs', ms), tau)
+       end
+     | META _ => raise Fail "I am a number, not a free metavariable!!"
+
+  and inferb (ABS (ssorts, vsorts, scope)) =
+    let
+      val Sc.\ ((us, xs), m) = Sc.outScope abtBindingSupport (ssorts, vsorts) scope
+    in
+      ((us, xs) \ m, ((ssorts, vsorts), sort m))
+    end
+
+  and valence abs =
+    #2 (inferb abs)
 
 
   fun unbind _ = ?todo
@@ -544,9 +582,7 @@ struct
   fun mapSubterms _ = ?todo
   fun deepMapSubterms _ = ?todo
   fun eq _ = ?todo
-  fun inferb _ = ?todo
   fun outb _ = ?todo
-  fun valence _ = ?todo
   fun primToString _ = ?todo
   fun primToStringAbs _ = ?todo
 end

@@ -60,7 +60,7 @@ struct
   fun intoScope (driver : ('m, 'p, 'a) binding_support) ((us, xs) \ m) =
     (List.map Sym.toString us, List.map Var.toString xs) \ #abstract driver (0,0,0) (us, xs, []) m
 
-  fun outScope (driver : ('m, 'p, 'a) binding_support) ((us, xs) \ m) ((_, taus), tau) =
+  fun outScope (driver : ('m, 'p, 'a) binding_support) (_, taus) ((us, xs) \ m) =
     let
       val us' = List.map Sym.named us
       val xs' = List.map Var.named xs
