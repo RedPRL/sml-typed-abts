@@ -620,14 +620,14 @@ struct
     end
 
 
-  fun unbind abs us ms =
+  fun unbind abs ps ms =
     let
       val (vs, xs) \ m = outb abs
       val srho =
         Sp.foldr
-          (fn ((v,u), rho) => SymCtx.insert rho v (P.ret u))
+          (fn ((v,p), rho) => SymCtx.insert rho v p)
           SymCtx.empty
-          (Sp.Pair.zipEq (vs, us))
+          (Sp.Pair.zipEq (vs, ps))
       val vrho =
         Sp.foldr
           (fn ((x,m), rho) => VarCtx.insert rho x m)
@@ -637,8 +637,8 @@ struct
       substVarenv vrho (substSymenv srho m)
     end
 
-  fun // (abs, (us, ms)) =
-    unbind abs us ms
+  fun // (abs, (ps, ms)) =
+    unbind abs ps ms
 
 
   fun substVar (n, x) = substVarenv (VarCtx.insert VarCtx.empty x n)

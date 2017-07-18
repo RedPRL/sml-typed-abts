@@ -588,16 +588,45 @@ struct
   val valence = #2 o inferb
   val out = #1 o infer
 
-  fun unbind _ = ?todo
-  fun // _ = ?todo
-  fun $$ _ = ?todo
+  fun unbind (ABS (ssorts, vsorts, scope)) rs ms =
+    let
+      val rs' = ListPair.map (fn (r, sigma) => (P.check sigma r; P.map FREE r)) (rs, ssorts)
+      val _ = ListPair.app (fn (m, tau) => assertSortEq (sort m, tau)) (ms, vsorts)
+      val m = Sc.unsafeReadBody scope
+    in
+      instantiateAbt (0,0,0) (rs', ms, []) m
+    end
 
-  fun eqAbs _ = ?todo
+  fun // (abs, (rs, ms)) =
+    unbind abs rs ms
+
+  fun $$ (theta, args) = 
+    check (theta $ args, #2 (O.arity theta))
+
+  fun locallyEq f = 
+    fn (FREE x, FREE y) => f (x, y)
+     | (BOUND i, BOUND j) => i = j
+     | _ => false
+
+  val rec eq = 
+    fn (V (x, _) <: _, V (y, _) <: _) => locallyEq Var.eq (x, y)
+     | (APP (theta1, args1) <: _, APP (theta2, args2) <: _) =>
+       O.eq (locallyEq Sym.eq) (theta1, theta2)
+         andalso ListPair.allEq eqAbs (args1, args2)
+     | (META ((X1, _), rs1, ms1) <: _, META ((X2, _), rs2, ms2) <: _) =>
+       locallyEq Metavar.eq (X1, X2)
+         andalso ListPair.allEq (fn ((r1, _), (r2, _)) => P.eq (locallyEq Sym.eq) (r1, r2)) (rs1, rs2)
+         andalso ListPair.allEq eq (ms1, ms2)
+     | _ => false
+
+  and eqAbs = 
+    fn (ABS (_, _, scope1), ABS (_, _, scope2)) =>
+      Sc.eq eq (scope1, scope2)
+
   fun mapAbs _ = ?todo
   fun abtToAbs _ = ?todo
   fun mapSubterms _ = ?todo
   fun deepMapSubterms _ = ?todo
-  fun eq _ = ?todo
   fun primToString _ = ?todo
   fun primToStringAbs _ = ?todo
 end

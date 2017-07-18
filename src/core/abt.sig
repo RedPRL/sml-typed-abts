@@ -94,8 +94,8 @@ sig
   val varOccurrences : abt -> annotation list Var.ctx
   val symOccurrences : abt -> annotation list Sym.ctx
 
-  val unbind : abs -> symbol spine -> abt spine -> abt
-  val // : abs * (symbol spine * abt spine) -> abt
+  val unbind : abs -> param spine -> abt spine -> abt
+  val // : abs * (param spine * abt spine) -> abt
 
   (* Substitution of metavariables instantiates the bound variables and
    * symbols of the abstraction with the operands of applications of
