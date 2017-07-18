@@ -66,13 +66,7 @@ struct
       val varIdxBound' = Option.map (fn i => i - List.length xs) varIdxBound
     in
       {user = #user ann,
-       system =
-         {symIdxBound = symIdxBound',
-          varIdxBound = varIdxBound',
-          metaIdxBound = metaIdxBound,
-          hasFreeSyms = hasFreeSyms,
-          hasFreeVars = hasFreeVars,
-          hasFreeMetas = hasFreeMetas}}
+       system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', metaIdxBound = metaIdxBound, hasFreeSyms = hasFreeSyms, hasFreeVars = hasFreeVars, hasFreeMetas = hasFreeMetas}}
     end
 
   fun makeVarTerm (var, tau) userAnn = 
@@ -81,23 +75,12 @@ struct
          V (var, tau) <:
            {user = userAnn,
             system =
-              {symIdxBound = NONE,
-               varIdxBound = NONE,
-               metaIdxBound = NONE,
-               hasFreeVars = true,
-               hasFreeSyms = false,
-               hasFreeMetas = false}}
+              {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = NONE, hasFreeVars = true, hasFreeSyms = false, hasFreeMetas = false}}
 
      | BOUND i =>
          V (var, tau) <:
            {user = userAnn,
-            system =
-              {symIdxBound = NONE,
-               varIdxBound = SOME (i + 1),
-               metaIdxBound = NONE,
-               hasFreeVars = false,
-               hasFreeSyms = false,
-               hasFreeMetas = false}}
+            system = {symIdxBound = NONE, varIdxBound = SOME (i + 1), metaIdxBound = NONE, hasFreeVars = false, hasFreeSyms = false, hasFreeMetas = false}}
 
   fun idxBoundForSyms support = 
     List.foldr
@@ -115,14 +98,7 @@ struct
       val support = O.support theta
       val hasFreeSyms = supportContainsFreeSyms support
       val symIdxBound = idxBoundForSyms support
-
-      val operatorAnn = 
-        {symIdxBound = symIdxBound,
-         varIdxBound = NONE,
-         metaIdxBound = NONE,
-         hasFreeVars = false,
-         hasFreeSyms = hasFreeSyms,
-         hasFreeMetas = false}
+      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = NONE, metaIdxBound = NONE, hasFreeVars = false, hasFreeSyms = hasFreeSyms, hasFreeMetas = false}
 
       val systemAnn =
         List.foldr
@@ -140,24 +116,13 @@ struct
         let
           val support = P.freeVars t
         in
-          {symIdxBound = idxBoundForSyms support,
-           varIdxBound = NONE,
-           metaIdxBound = NONE,
-           hasFreeVars = false,
-           hasFreeSyms = supportContainsFreeSyms support,
-           hasFreeMetas = false}
+          {symIdxBound = idxBoundForSyms support, varIdxBound = NONE, metaIdxBound = NONE, hasFreeVars = false, hasFreeSyms = supportContainsFreeSyms support, hasFreeMetas = false}
         end
     
   fun makeMetaTerm (((meta, tau), rs, ms) : meta_term) userAnn =
     let
       val (metaIdxBound, hasFreeMetas) = case meta of FREE _ => (NONE, true) | BOUND j => (SOME (j + 1), false)
-      val metaSystemAnn = 
-        {symIdxBound = NONE,
-         varIdxBound = NONE,
-         metaIdxBound = metaIdxBound,
-         hasFreeVars = false,
-         hasFreeSyms = false,
-         hasFreeMetas = hasFreeMetas}
+      val metaSystemAnn = {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = metaIdxBound, hasFreeVars = false, hasFreeSyms = false, hasFreeMetas = hasFreeMetas}
       val systemAnn = 
         List.foldr 
           (fn ((p, _), ann) => systemAnnLub (ann, paramSystemAnn p))
@@ -183,9 +148,60 @@ struct
 
     fun abtBindingSupport () : abt binding_support = 
       {abstract = abstractAbt,
-       instantiate = raise Match,
+       instantiate = instantiateAbt,
        freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
        freeSymbol = P.ret o FREE}
+
+    and instantiateAbt (i, j, k) (term <: ann) (rs, ms, scopes) =
+      let
+        val {symIdxBound, varIdxBound, metaIdxBound, ...} = #system ann
+        (* if all the following things hold, then there would be no variable or symbol to instantiate *)
+        val noNeedSyms = case symIdxBound of SOME i' => i >= i' | NONE => false
+        val noNeedVars = case varIdxBound of SOME j' => j >= j' | NONE => false
+        val noNeedMetas = case metaIdxBound of SOME k' => k >= k' | NONE => false
+      in
+        if noNeedSyms andalso noNeedVars andalso noNeedMetas then term <: ann else
+        case term of 
+           V (BOUND j', _) =>
+           let
+             val j'' = j' - j
+           in
+             if j'' >= 0 andalso j'' < List.length ms then 
+               List.nth (ms, j'')
+             else
+               term <: ann
+           end
+         | V _ => term <: ann
+         | APP (theta, args) =>
+           let
+             val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
+             val theta' = O.map (instantiateSym (i, j, k) (rs, ms, scopes)) theta
+             val args' = List.map (fn sc => #instantiate scopeBindingSupport (i, j, k) sc (rs, ms, scopes)) args
+           in
+             makeAppTerm (theta', args') (#user ann)
+           end
+         | META ((X, tau), rsX, msX) =>
+           let
+             val rsX' = List.map (fn (r, sigma) => (P.bind (instantiateSym (i, j, k) (rs, ms, scopes)) r, sigma)) rsX
+             val msX' = List.map (fn m => instantiateAbt (i, j, k) m (rs, ms, scopes)) msX
+           in
+             case X of
+                FREE _ => makeMetaTerm ((X, tau), rsX', msX') (#user ann)
+              | BOUND k' =>
+                let
+                  val k'' = k' - k
+                in
+                  if k'' >= 0 andalso k'' < List.length scopes then
+                    let
+                      val Sc.\ (_, m) = Sc.unsafeRead (List.nth (scopes, k''))
+                    in
+                      instantiateAbt (i, j, k) m (List.map #1 rsX', msX', scopes)
+                    end
+                  else
+                    makeMetaTerm ((X, tau), rsX', msX') (#user ann)
+                end
+           end
+      end
 
     and abstractAbt (i, j, k) (us, xs, Xs) (term <: ann) =
       let
@@ -228,6 +244,18 @@ struct
              NONE => FREE u
            | SOME k => BOUND (i + k))
        | BOUND k => BOUND k
+
+    and instantiateSym (i, j, k) (rs, ms, Xs) = 
+      fn FREE u => P.ret (FREE u)
+       | BOUND i' => 
+         let
+           val i'' = i' - i
+         in
+           if i'' >= 0 andalso i'' < List.length rs then
+             List.nth (rs, i'')
+           else
+             P.ret (BOUND i')
+         end
   in
     val abtBindingSupport : abt binding_support = abtBindingSupport () 
   end
