@@ -41,7 +41,7 @@ struct
   type annotation = Pos.t
 end
 
-structure Abt = Abt (AbtKit)
+structure Abt = NewAbt (AbtKit)
 structure ShowAbt = DebugShowAbt (Abt)
 
 structure AstKit =
