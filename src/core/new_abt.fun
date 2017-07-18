@@ -85,6 +85,28 @@ struct
   and app_term = Sym.t locally O.t * abs list
   and meta_term = (Metavar.t locally * sort) * (Sym.t locally P.term * psort) list * abt_internal annotated list
 
+  fun locallyToString f = 
+    fn FREE x => f x
+     | BOUND i => Int.toString i
+
+  val rec primToString =
+    fn V (v, _) <: _ => locallyToString Var.toString v
+     | APP (theta, es) <: _ =>
+         O.toString (locallyToString Sym.toString) theta
+           ^ "("
+           ^ ListSpine.pretty primToStringAbs "; " es
+           ^ ")"
+     | META ((X, tau), ps, ms) <: _ =>
+         "#" ^ locallyToString Metavar.toString X
+           ^ "{" ^ ListSpine.pretty (P.toString (locallyToString Sym.toString) o #1) ", " ps ^ "}"
+           ^ "[" ^ ListSpine.pretty primToString ", " ms ^ "]"
+  and primToStringAbs =
+    fn ABS (ssorts, vsorts, m) =>
+      "{" ^ ListSpine.pretty PS.toString ", " ssorts ^ "}"
+      ^ "[" ^ ListSpine.pretty S.toString ", " vsorts ^ "]"
+      ^ "." ^ primToString (Sc.unsafeReadBody m)
+
+
   type metaenv = abs Metavar.Ctx.dict
   type varenv = abt Var.Ctx.dict
   type symenv = param Sym.Ctx.dict
@@ -291,7 +313,9 @@ struct
             val needVars = case varIdxBound of SOME j' => j < j' | NONE => false
             val needMetas = case metaIdxBound of SOME k' => k < k' | NONE => false
           in
-            needSyms orelse needVars orelse needMetas
+            (* TODO: this logic was incorect!*)
+            true
+            (* needSyms orelse needVars orelse needMetas *)
           end
 
         fun instantiateMeta (i, j, k) ((((X, tau), rsX, msX) : meta_term) <: ann) =
@@ -537,14 +561,14 @@ struct
      | APP (theta, args) =>
        let
          val (vls, tau) = O.arity theta
-         val theta' = O.map (fn FREE u => P.ret u | _ => raise Fail "Did not expect bound symbol") theta
+         val theta' = O.map (fn FREE u => P.ret u | _ => raise Fail ("infer/App: Did not expect bound symbol in term " ^ primToString (term <: ann))) theta
          val args' = List.map outb args
        in
          (theta' $ args', tau)
        end
      | META ((FREE X, tau), rs, ms) =>
        let
-         val rs' = List.map (mapFst (P.map (fn FREE u => u | _ => raise Fail "Did not expect bound symbol"))) rs
+         val rs' = List.map (mapFst (P.map (fn FREE u => u | _ => raise Fail "infer/META: Did not expect bound symbol"))) rs
        in
          (X $# (rs', ms), tau)
        end
@@ -643,24 +667,4 @@ struct
   fun deepMapSubterms f m =
     mapSubterms (f o deepMapSubterms f) m
 
-  fun locallyToString f = 
-    fn FREE x => f x
-     | BOUND i => Int.toString i
-
-  val rec primToString =
-    fn V (v, _) <: _ => locallyToString Var.toString v
-     | APP (theta, es) <: _ =>
-         O.toString (locallyToString Sym.toString) theta
-           ^ "("
-           ^ ListSpine.pretty primToStringAbs "; " es
-           ^ ")"
-     | META ((X, tau), ps, ms) <: _ =>
-         "#" ^ locallyToString Metavar.toString X
-           ^ "{" ^ ListSpine.pretty (P.toString (locallyToString Sym.toString) o #1) ", " ps ^ "}"
-           ^ "[" ^ ListSpine.pretty primToString ", " ms ^ "]"
-  and primToStringAbs =
-    fn ABS (ssorts, vsorts, m) =>
-      "{" ^ ListSpine.pretty PS.toString ", " ssorts ^ "}"
-      ^ "[" ^ ListSpine.pretty S.toString ", " vsorts ^ "]"
-      ^ "." ^ primToString (Sc.unsafeReadBody m)
 end
