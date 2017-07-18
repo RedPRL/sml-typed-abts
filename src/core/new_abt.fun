@@ -476,6 +476,25 @@ struct
       in 
         accumAbt monoid kit (0,0,0)
       end
+
+    fun renameVars vrho = 
+      let
+        fun handleVar _ ((var, tau) <: ann) = 
+          case var of
+             FREE x =>
+             (case Var.Ctx.find vrho x of 
+                 SOME y => V (FREE y, tau) <: ann
+               | NONE => V (var, tau) <: ann)
+           | _ => V (var, tau) <: ann
+
+        val kit =
+          {handleSym = fn _ => fn (sym, tau) <: ann => P.ret sym,
+           handleVar = handleVar,
+           handleMeta = fn _ => fn meta <: ann => META meta <: ann,
+           shouldTraverse = fn _ => fn ({hasFreeVars, ...} : system_annotation) => hasFreeVars}
+      in
+        mapAbt kit (0,0,0)
+      end
   end
 
   exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
@@ -497,8 +516,6 @@ struct
 
   fun substMetavar (scope, X) =
     substMetaenv (Metavar.Ctx.singleton X scope)
-
-  fun renameVars _ = ?todo
 
   fun annotate _ = ?todo
   fun getAnnotation _ = ?todo
