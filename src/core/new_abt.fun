@@ -51,7 +51,7 @@ struct
      metaIdxBound: int option,
      freeVars: varctx,
      freeSyms: symctx,
-     hasFreeMetas: bool}
+     freeMetas: metactx}
 
   type annotation =
     {user: user_annotation option,
@@ -69,7 +69,7 @@ struct
      metaIdxBound = optionalIdxLub (#metaIdxBound ann1, #metaIdxBound ann2),
      freeVars = VarCtxUtil.union (#freeVars ann1, #freeVars ann2),
      freeSyms = SymCtxUtil.union (#freeSyms ann1, #freeSyms ann2),
-     hasFreeMetas = #hasFreeMetas ann1 orelse #hasFreeMetas ann2}
+     freeMetas = MetaCtxUtil.union (#freeMetas ann1, #freeMetas ann2)}
 
   datatype 'a annotated = <: of 'a * annotation
   infix <:
@@ -103,12 +103,12 @@ struct
   fun scopeReadAnn scope =
     let
       val Sc.\ ((us, xs), body <: ann) = Sc.unsafeRead scope
-      val {symIdxBound, varIdxBound, metaIdxBound, freeVars, freeSyms, hasFreeMetas} = #system ann
+      val {symIdxBound, varIdxBound, metaIdxBound, freeVars, freeSyms, freeMetas} = #system ann
       val symIdxBound' = Option.map (fn i => i - List.length us) symIdxBound
       val varIdxBound' = Option.map (fn i => i - List.length xs) varIdxBound
     in
       {user = #user ann,
-       system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', metaIdxBound = metaIdxBound, freeSyms = freeSyms, freeVars = freeVars, hasFreeMetas = hasFreeMetas}}
+       system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', metaIdxBound = metaIdxBound, freeSyms = freeSyms, freeVars = freeVars, freeMetas = freeMetas}}
     end
 
   fun makeVarTerm (var, tau) userAnn =
@@ -116,12 +116,12 @@ struct
        FREE x =>
          V (var, tau) <:
            {user = userAnn,
-            system = {symIdxBound = NONE,varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.singleton x tau, freeSyms = Sym.Ctx.empty, hasFreeMetas = false}}
+            system = {symIdxBound = NONE,varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.singleton x tau, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
 
      | BOUND i =>
          V (var, tau) <:
            {user = userAnn,
-            system = {symIdxBound = NONE, varIdxBound = SOME (i + 1), metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, hasFreeMetas = false}}
+            system = {symIdxBound = NONE, varIdxBound = SOME (i + 1), metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
 
   fun idxBoundForSyms support =
     List.foldr
@@ -143,7 +143,7 @@ struct
       val support = O.support theta
       val freeSyms = freeSymsForSupport support
       val symIdxBound = idxBoundForSyms support
-      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = freeSyms, hasFreeMetas = false}
+      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = freeSyms, freeMetas = Metavar.Ctx.empty}
       val systemAnn =
         List.foldr
           (fn (scope, ann) => systemAnnLub (ann, #system (scopeReadAnn scope)))
@@ -154,19 +154,23 @@ struct
     end
 
   val paramSystemAnn =
-    fn (P.VAR (FREE x), sigma) => {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.singleton x sigma, hasFreeMetas = false}
-     | (P.VAR (BOUND i), _) => {symIdxBound = SOME (i + 1), varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, hasFreeMetas = false}
+    fn (P.VAR (FREE x), sigma) => {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.singleton x sigma, freeMetas = Metavar.Ctx.empty}
+     | (P.VAR (BOUND i), _) => {symIdxBound = SOME (i + 1), varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}
      | (P.APP t, sigma) =>
         let
           val support = P.freeVars t
         in
-          {symIdxBound = idxBoundForSyms support, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, hasFreeMetas = false}
+          {symIdxBound = idxBoundForSyms support, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, freeMetas = Metavar.Ctx.empty}
         end
 
   fun makeMetaTerm (((meta, tau), rs, ms) : meta_term) userAnn =
     let
-      val (metaIdxBound, hasFreeMetas) = case meta of FREE _ => (NONE, true) | BOUND j => (SOME (j + 1), false)
-      val metaSystemAnn = {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = metaIdxBound, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, hasFreeMetas = hasFreeMetas}
+      val (metaIdxBound, freeMetas) =
+        case meta of
+           FREE X => (NONE, Metavar.Ctx.singleton X ((List.map #2 rs, List.map sort ms), tau))
+         | BOUND j => (SOME (j + 1), Metavar.Ctx.empty)
+
+      val metaSystemAnn = {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = metaIdxBound, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = freeMetas}
       val systemAnn =
         List.foldr
           (fn ((p, sigma), ann) => systemAnnLub (ann, paramSystemAnn (p, sigma)))
@@ -304,11 +308,11 @@ struct
 
     fun abstractAbt (i, j, k) (us, xs, Xs) =
       let
-        fun shouldTraverse (i, j, k) ({freeSyms, freeVars, hasFreeMetas, ...} : system_annotation) =
+        fun shouldTraverse (i, j, k) ({freeSyms, freeVars, freeMetas, ...} : system_annotation) =
           let
             val needSyms = case us of [] => false | _ => not (Sym.Ctx.isEmpty freeSyms)
             val needVars = case xs of [] => false | _ => not (Var.Ctx.isEmpty freeVars)
-            val needMetas = case Xs of [] => true | _ => hasFreeMetas
+            val needMetas = case Xs of [] => true | _ => not (Metavar.Ctx.isEmpty freeMetas)
           in
             needSyms orelse needVars orelse needMetas
           end
@@ -346,11 +350,11 @@ struct
 
     fun subst (srho: symenv, vrho : varenv, mrho : metaenv) =
       let
-        fun shouldTraverse _ ({freeVars, freeSyms, hasFreeMetas, ...} : system_annotation) =
+        fun shouldTraverse _ ({freeVars, freeSyms, freeMetas, ...} : system_annotation) =
           let
             val needSyms = not (Sym.Ctx.isEmpty freeSyms orelse Sym.Ctx.isEmpty srho)
             val needVars = not (Var.Ctx.isEmpty freeVars orelse Var.Ctx.isEmpty vrho)
-            val needMetas = hasFreeMetas andalso not (Metavar.Ctx.isEmpty mrho)
+            val needMetas = not (Metavar.Ctx.isEmpty freeMetas orelse Metavar.Ctx.isEmpty mrho)
           in
             needSyms orelse needVars orelse needMetas
           end
@@ -394,24 +398,8 @@ struct
     fun symctx (_ <: {system = {freeSyms, ...}, ...}) = 
       freeSyms
 
-    val metactx =
-      let
-        fun handleMeta _ =
-          fn (((FREE x, tau), rs, ms) : meta_term) <: _ => Metavar.Ctx.singleton x ((List.map #2 rs, List.map sort ms), tau)
-           | _ => Metavar.Ctx.empty
-
-        val monoid =
-          {unit = Metavar.Ctx.empty,
-           mul = MetaCtxUtil.union}
-
-        val alg =
-          {handleSym = fn _ => fn _ => Metavar.Ctx.empty,
-           handleVar = fn _ => fn _ => Metavar.Ctx.empty,
-           handleMeta = handleMeta,
-           shouldTraverse = fn _ => fn ({hasFreeMetas, ...} : system_annotation) => hasFreeMetas}
-      in
-        abtAccum monoid alg (0,0,0)
-      end
+    fun metactx (_ <: {system = {freeMetas, ...}, ...}) =
+      freeMetas
 
     val symOccurrences = 
       let
