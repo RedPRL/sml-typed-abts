@@ -83,7 +83,7 @@ struct
   withtype abt = abt_internal annotated
   and var_term = Var.t locally * sort
   and app_term = Sym.t locally O.t * abs list
-  and meta_term = (Metavar.t locally * sort) * (Sym.t locally P.term * psort) list * abt list
+  and meta_term = (Metavar.t locally * sort) * (Sym.t locally P.term * psort) list * abt_internal annotated list
 
   type metaenv = abs Metavar.Ctx.dict
   type varenv = abt Var.Ctx.dict
