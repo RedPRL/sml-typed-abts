@@ -26,11 +26,10 @@ struct
 
   fun liftAbstract abstract (i, j, k) (us, xs, Xs) ((us', xs') \ m) =
     let
-      val symCount = List.length us
-      val varCount = List.length xs
-      val metaCount = List.length Xs
+      val symCount = List.length us'
+      val varCount = List.length xs'
     in
-      (us', xs') \ abstract (i + symCount, j + varCount, k + metaCount) (us, xs, Xs) m
+      (us', xs') \ abstract (i + symCount, j + varCount, k) (us, xs, Xs) m
     end
 
   fun liftInstantiate instantiate (i, j, k) (rs, ms, scs)  ((us, xs) \ m) =
