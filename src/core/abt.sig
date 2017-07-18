@@ -143,17 +143,4 @@ sig
 
   val primToString : abt -> string 
   val primToStringAbs : abs -> string 
-
-  (* alpha unification *)
-  structure Unify :
-  sig
-    type renaming = metavariable Metavar.ctx * symbol Sym.ctx * variable Var.ctx
-
-    (* unify by synthesizing a renaming of metavariables and variables; raises
-    * [UnificationFailed] when no renaming can be synthesized. *)
-    val unify : abt * abt -> renaming
-    exception UnificationFailed
-
-    val unifyOpt :  abt * abt -> renaming option
-  end
 end
