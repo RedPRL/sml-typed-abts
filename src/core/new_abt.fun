@@ -538,6 +538,8 @@ struct
        let
          val (vls, tau) = O.arity theta
          val theta' = O.map (fn FREE u => P.ret u | _ => raise Fail "Did not expect bound symbol") theta
+
+         (* TODO: I don't think I need to do any of this checking below *)
          val args' =
            ListPair.map
              (fn (abs, vl) => 
@@ -549,7 +551,7 @@ struct
               end)
              (args, vls)
        in
-         (theta' $ ?todo, tau)
+         (theta' $ args', tau)
        end
      | META ((FREE X, tau), rs, ms) =>
        let
@@ -566,7 +568,7 @@ struct
       ((us, xs) \ m, ((ssorts, vsorts), sort m))
     end
 
-  and valence abs =
+  fun valence abs =
     #2 (inferb abs)
 
 
