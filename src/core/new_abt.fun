@@ -2,9 +2,11 @@ functor NewAbt
   (structure Sym : ABT_SYMBOL
    structure Var : ABT_SYMBOL
    structure Metavar : ABT_SYMBOL
-   structure O : ABT_OPERATOR
-   type user_annotation) =
+   structure O : ABT_OPERATOR where type 'a Ar.Vl.Sp.t = 'a list
+   type user_annotation) : ABT =
 struct
+
+  structure Sym = Sym and Var = Var and Metavar = Metavar and O = O
   type sort = O.Ar.Vl.S.t
   type psort = O.Ar.Vl.PS.t
 
@@ -16,8 +18,24 @@ struct
      FREE of 'a
    | BOUND of int
 
+  type symbol = Sym.t
+  type variable = Var.t
+  type metavariable = Metavar.t
+  type operator = symbol O.t
+  type valence = O.Ar.valence
   type varctx = sort Var.Ctx.dict
   type symctx = psort Sym.Ctx.dict
+  type metactx = valence Metavar.Ctx.dict
+
+  structure Views = AbtViews (ListSpine)
+  open Views
+
+  type 'a view = (param, psort, symbol, variable, metavariable, operator, 'a) termf
+  type 'a bview = (symbol, variable, 'a) bindf
+  type 'a appview = (symbol, variable, operator, 'a) appf
+
+  infixr 5 \
+  infix 5 $ $#
 
   type system_annotation =
     {symIdxBound: int option,
@@ -53,6 +71,11 @@ struct
   withtype var_term = Var.t locally * sort
   and app_term = Sym.t locally O.t * abt Sc.scope list
   and meta_term = (Metavar.t locally * sort) * (Sym.t locally P.term * psort) list * abt list
+
+  type abs = abt Sc.scope
+  type metaenv = abs Metavar.Ctx.dict
+  type varenv = abt Var.Ctx.dict
+  type symenv = param Sym.Ctx.dict
 
   infix <:
 
@@ -259,4 +282,51 @@ struct
   in
     val abtBindingSupport : abt binding_support = abtBindingSupport () 
   end
+
+  exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
+
+  exception todo
+  fun ?e = raise e
+
+  fun varctx _ = ?todo
+  fun symctx _ = ?todo
+  fun metactx _ = ?todo
+
+  fun symOccurrences _ = ?todo
+  fun varOccurrences _ = ?todo
+
+  fun substVar _ = ?todo
+  fun substSymbol _ = ?todo
+  fun substMetavar _ = ?todo
+  fun renameVars _ = ?todo
+  fun substVarenv _ = ?todo
+  fun substSymenv _ = ?todo
+  fun substMetaenv _ = ?todo
+  
+  fun annotate _ = ?todo
+  fun getAnnotation _ = ?todo
+  fun setAnnotation _ = ?todo
+  fun clearAnnotation _ = ?todo
+
+
+  fun unbind _ = ?todo
+  fun // _ = ?todo
+  fun $$ _ = ?todo
+
+  fun infer _ = ?todo
+  fun check _ = ?todo
+  fun out _ = ?todo
+  fun sort _ = ?todo
+  fun checkb _ = ?todo
+  fun eqAbs _ = ?todo
+  fun mapAbs _ = ?todo
+  fun abtToAbs _ = ?todo
+  fun mapSubterms _ = ?todo
+  fun deepMapSubterms _ = ?todo
+  fun eq _ = ?todo
+  fun inferb _ = ?todo
+  fun outb _ = ?todo
+  fun valence _ = ?todo
+  fun primToString _ = ?todo
+  fun primToStringAbs _ = ?todo
 end
