@@ -300,13 +300,26 @@ struct
   fun symOccurrences _ = ?todo
   fun varOccurrences _ = ?todo
 
-  fun substVar _ = ?todo
-  fun substSymbol _ = ?todo
-  fun substMetavar _ = ?todo
-  fun renameVars _ = ?todo
+
+  (* The following could be improved by fusing the abstract and instantiate traversals. Maybe there
+     is some way to do this using a CPS'd version of those functions? *)
+  fun substVar (m, x) =
+    instantiateAbt (0,0,0) ([], [m], [])
+      o abstractAbt (0,0,0) ([], [x], [])
+
+  fun substSymbol (r, u) =
+    instantiateAbt (0,0,0) ([P.map FREE r], [], [])
+      o abstractAbt (0,0,0) ([u], [], [])
+
+  fun substMetavar (scope, X) =
+    instantiateAbt (0,0,0) ([], [], [scope])
+      o abstractAbt (0,0,0) ([], [], [X])
+
   fun substVarenv _ = ?todo
   fun substSymenv _ = ?todo
   fun substMetaenv _ = ?todo
+
+  fun renameVars _ = ?todo
   
   fun annotate _ = ?todo
   fun getAnnotation _ = ?todo
