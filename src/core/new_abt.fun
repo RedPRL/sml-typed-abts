@@ -523,14 +523,55 @@ struct
   fun clearAnnotation _ = ?todo
 
 
+
+  (* A family of convenience functions for failing when things go wrong.
+   * These are internal checks and so they should raise Fail; people shouldn't
+   * be trying to catch these.
+   *)
+  fun assert msg b =
+    if b then () else raise Fail msg
+
+  structure S = O.Ar.Vl.S and PS = O.Ar.Vl.PS and Valence = O.Ar.Vl
+
+  fun assertSortEq (sigma, tau) =
+    assert
+      ("expected " ^ S.toString sigma ^ " == " ^ S.toString tau)
+      (S.eq (sigma, tau))
+
+  fun assertPSortEq (sigma, tau) =
+    assert
+      ("expected " ^ PS.toString sigma ^ " == " ^ PS.toString tau)
+      (PS.eq (sigma, tau))
+
+  fun assertValenceEq (v1, v2) =
+    assert
+      ("expected " ^ Valence.toString v1 ^ " == " ^ Valence.toString v2)
+      (Valence.eq (v1, v2))
+
+  val abtBindingSupport = 
+    {abstract = abstractAbt,
+     instantiate = instantiateAbt,
+     freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
+     freeSymbol = fn u => P.ret (FREE u)}
+
+  fun checkb ((us, xs) \ m, ((ssorts, vsorts), tau)) : abs =
+    let
+      val (_, tau') = infer m
+      val () = assertSortEq (tau, tau')
+    in
+      (* TODO: this doesn't check sort for these variables *)
+      Sc.intoScope (abtBindingSupport) (Sc.\ ((us, xs), m))
+    end
+
+  and infer _ = ?todo
+
+
   fun unbind _ = ?todo
   fun // _ = ?todo
   fun $$ _ = ?todo
 
-  fun infer _ = ?todo
   fun check _ = ?todo
   fun out _ = ?todo
-  fun checkb _ = ?todo
   fun eqAbs _ = ?todo
   fun mapAbs _ = ?todo
   fun abtToAbs _ = ?todo
