@@ -538,18 +538,7 @@ struct
        let
          val (vls, tau) = O.arity theta
          val theta' = O.map (fn FREE u => P.ret u | _ => raise Fail "Did not expect bound symbol") theta
-
-         (* TODO: I don't think I need to do any of this checking below *)
-         val args' =
-           ListPair.map
-             (fn (abs, vl) => 
-              let
-                val (arg, vl') = inferb abs
-              in
-                assertValenceEq (vl, vl');
-                arg
-              end)
-             (args, vls)
+         val args' = List.map outb args
        in
          (theta' $ args', tau)
        end
@@ -567,6 +556,9 @@ struct
     in
       ((us, xs) \ m, ((ssorts, vsorts), sort m))
     end
+  
+  and outb abs = 
+    #1 (inferb abs)
 
   fun valence abs =
     #2 (inferb abs)
