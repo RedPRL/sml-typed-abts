@@ -44,18 +44,18 @@ struct
      hasFreeVars: bool,
      hasFreeSyms: bool,
      hasFreeMetas: bool}
-  
-  type annotation = 
+
+  type annotation =
     {user: user_annotation option,
      system: system_annotation}
 
-  val optionalIdxLub = 
+  val optionalIdxLub =
     fn (SOME i, SOME j) => SOME (Int.max (i, j))
      | (SOME i, NONE) => SOME i
      | (NONE, SOME i) => SOME i
      | (NONE, NONE) => NONE
 
-  fun systemAnnLub (ann1 : system_annotation, ann2 : system_annotation) : system_annotation = 
+  fun systemAnnLub (ann1 : system_annotation, ann2 : system_annotation) : system_annotation =
     {symIdxBound = optionalIdxLub (#symIdxBound ann1, #symIdxBound ann2),
      varIdxBound = optionalIdxLub (#varIdxBound ann1, #varIdxBound ann2),
      metaIdxBound = optionalIdxLub (#metaIdxBound ann1, #metaIdxBound ann2),
@@ -66,7 +66,7 @@ struct
   datatype 'a annotated = <: of 'a * annotation
   infix <:
 
-  datatype abt_internal = 
+  datatype abt_internal =
      V of var_term
    | APP of app_term
    | META of meta_term
@@ -80,7 +80,7 @@ struct
   type varenv = abt Var.Ctx.dict
   type symenv = param Sym.Ctx.dict
 
-  val sort = 
+  val sort =
     fn V (_, tau) <: _ => tau
      | APP (theta, _) <: _ => #2 (O.arity theta)
      | META ((_, tau), _, _) <: _ => tau
@@ -92,19 +92,19 @@ struct
 
   type 'a binding_support = (abt, Sym.t locally P.term, 'a) Sc.binding_support
 
-  fun scopeReadAnn scope = 
+  fun scopeReadAnn scope =
     let
       val Sc.\ ((us, xs), body <: ann) = Sc.unsafeRead scope
       val {symIdxBound, varIdxBound, metaIdxBound, hasFreeVars, hasFreeSyms, hasFreeMetas} = #system ann
-      val symIdxBound' = Option.map (fn i => i - List.length us) symIdxBound 
+      val symIdxBound' = Option.map (fn i => i - List.length us) symIdxBound
       val varIdxBound' = Option.map (fn i => i - List.length xs) varIdxBound
     in
       {user = #user ann,
        system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', metaIdxBound = metaIdxBound, hasFreeSyms = hasFreeSyms, hasFreeVars = hasFreeVars, hasFreeMetas = hasFreeMetas}}
     end
 
-  fun makeVarTerm (var, tau) userAnn = 
-    case var of 
+  fun makeVarTerm (var, tau) userAnn =
+    case var of
        FREE x =>
          V (var, tau) <:
            {user = userAnn,
@@ -116,7 +116,7 @@ struct
            {user = userAnn,
             system = {symIdxBound = NONE, varIdxBound = SOME (i + 1), metaIdxBound = NONE, hasFreeVars = false, hasFreeSyms = false, hasFreeMetas = false}}
 
-  fun idxBoundForSyms support = 
+  fun idxBoundForSyms support =
     List.foldr
       (fn ((FREE _,_), oidx) => oidx
         | ((BOUND i, _), NONE) => SOME (i + 1)
@@ -124,8 +124,8 @@ struct
       NONE
       support
 
-  fun supportContainsFreeSyms support = 
-    Option.isSome (List.find (fn (FREE _, _) => true | _ => false) support)    
+  fun supportContainsFreeSyms support =
+    Option.isSome (List.find (fn (FREE _, _) => true | _ => false) support)
 
   fun makeAppTerm (theta, scopes) userAnn =
     let
@@ -143,22 +143,22 @@ struct
       APP (theta, scopes) <: {user = userAnn, system = systemAnn}
     end
 
-  val paramSystemAnn = 
+  val paramSystemAnn =
     fn P.VAR (FREE x) => {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = NONE, hasFreeVars = false, hasFreeSyms = true, hasFreeMetas = false}
      | P.VAR (BOUND i) => {symIdxBound = SOME (i + 1), varIdxBound = NONE, metaIdxBound = NONE, hasFreeVars = false, hasFreeSyms = false, hasFreeMetas = false}
-     | P.APP t => 
+     | P.APP t =>
         let
           val support = P.freeVars t
         in
           {symIdxBound = idxBoundForSyms support, varIdxBound = NONE, metaIdxBound = NONE, hasFreeVars = false, hasFreeSyms = supportContainsFreeSyms support, hasFreeMetas = false}
         end
-    
+
   fun makeMetaTerm (((meta, tau), rs, ms) : meta_term) userAnn =
     let
       val (metaIdxBound, hasFreeMetas) = case meta of FREE _ => (NONE, true) | BOUND j => (SOME (j + 1), false)
       val metaSystemAnn = {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = metaIdxBound, hasFreeVars = false, hasFreeSyms = false, hasFreeMetas = hasFreeMetas}
-      val systemAnn = 
-        List.foldr 
+      val systemAnn =
+        List.foldr
           (fn ((p, _), ann) => systemAnnLub (ann, paramSystemAnn p))
           metaSystemAnn
           rs
@@ -172,7 +172,7 @@ struct
     end
 
   local
-    fun indexOfFirst pred xs = 
+    fun indexOfFirst pred xs =
       let
         fun aux (i, []) = NONE
           | aux (i, x::xs) = if pred x then SOME i else aux (i + 1, xs)
@@ -180,13 +180,13 @@ struct
         aux (0, xs)
       end
 
-    fun mapFst f (x, y) = 
+    fun mapFst f (x, y) =
       (f x, y)
 
-    fun findInstantiation i items var = 
-      case var of 
+    fun findInstantiation i items var =
+      case var of
          FREE _ => NONE
-       | BOUND i' => 
+       | BOUND i' =>
          let
            val i'' = i' - i
          in
@@ -196,15 +196,15 @@ struct
              NONE
          end
 
-    type traverse_kit = 
+    type traverse_kit =
       {handleSym : int -> symbol locally -> symbol locally P.t,
        handleVar : int -> var_term annotated -> abt,
        handleMeta : int * int * int -> meta_term annotated -> abt,
        shouldTraverse : int * int * int -> system_annotation -> bool}
 
-    fun traverseAbt (kit : traverse_kit) (i, j, k) (term <: (ann as {user, system})) : abt = 
+    fun traverseAbt (kit : traverse_kit) (i, j, k) (term <: (ann as {user, system})) : abt =
       if not (#shouldTraverse kit (i, j, k) system) then term <: ann else
-      case term of 
+      case term of
          V (var, tau) => #handleVar kit j ((var, tau) <: ann)
        | APP (theta, args) =>
          let
@@ -213,7 +213,7 @@ struct
          in
            makeAppTerm (theta', args') user
          end
-       | META ((X, tau), rs, ms) => 
+       | META ((X, tau), rs, ms) =>
          let
            val rs' = List.map (mapFst (P.bind (#handleSym kit i))) rs
            val ms' = List.map (traverseAbt kit (i, j, k)) ms
@@ -226,16 +226,16 @@ struct
       let
         (* TODO: sort checking? *)
         fun instantiateSym i rs sym =
-          case findInstantiation i rs sym of 
+          case findInstantiation i rs sym of
              SOME r => r
            | NONE => P.ret sym
 
-        fun instantiateVar j ms ((var, tau) <: ann) = 
-          case findInstantiation j ms var of 
+        fun instantiateVar j ms ((var, tau) <: ann) =
+          case findInstantiation j ms var of
              SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
            | NONE => V (var, tau) <: ann
 
-        fun shouldTraverse (i, j, k) ({symIdxBound, varIdxBound, metaIdxBound, ...} : system_annotation) = 
+        fun shouldTraverse (i, j, k) ({symIdxBound, varIdxBound, metaIdxBound, ...} : system_annotation) =
           let
             (* TODO: check this logic. If there is no bound (sym, var, meta), then we have nothing to instantiate. does that make sense? *)
             val needSyms = case symIdxBound of SOME i' => i < i' | NONE => false
@@ -250,7 +250,7 @@ struct
              SOME scope => instantiateAbt (i, j, k) (List.map #1 rsX, msX, scopes) (Sc.unsafeReadBody scope)
            | NONE => makeMetaTerm ((X, tau), rsX, msX) (#user ann)
 
-        val kit = 
+        val kit =
           {handleSym = fn i => instantiateSym i rs,
            handleVar = fn j => instantiateVar j ms,
            handleMeta = instantiateMeta,
@@ -261,7 +261,7 @@ struct
 
     and abstractAbt (i, j, k) (us, xs, Xs) =
       let
-        fun shouldTraverse (i, j, k) ({hasFreeSyms, hasFreeVars, hasFreeMetas, ...} : system_annotation) = 
+        fun shouldTraverse (i, j, k) ({hasFreeSyms, hasFreeVars, hasFreeMetas, ...} : system_annotation) =
           let
             val needSyms = case us of [] => false | _ => hasFreeSyms
             val needVars = case xs of [] => false | _ => hasFreeVars
@@ -272,22 +272,22 @@ struct
 
         fun abstractSym i us =
           fn FREE u =>
-             (case indexOfFirst (fn v => Sym.eq (u, v)) us of 
+             (case indexOfFirst (fn v => Sym.eq (u, v)) us of
                  NONE => FREE u
                | SOME i' => BOUND (i + i'))
            | BOUND i' => BOUND i'
 
-        fun abstractVar j xs = 
-          fn (FREE x, tau) <: ann => 
+        fun abstractVar j xs =
+          fn (FREE x, tau) <: ann =>
              (case indexOfFirst (fn y => Var.eq (x, y)) xs of
                  NONE => V (FREE x, tau) <: ann
                | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
            | (BOUND j', tau) <: ann => V (BOUND j', tau) <: ann
 
         fun abstractMeta (i, j, k) ((((X, tau), rs, ms) : meta_term) <: ann) =
-          case X of 
+          case X of
               FREE X =>
-              (case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of 
+              (case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of
                  NONE => META ((FREE X, tau), rs, ms) <: ann
                | SOME k' => META ((BOUND (k + k'), tau), rs, ms) <: ann)
             | BOUND k' => META ((X, tau), rs, ms) <: ann
@@ -335,7 +335,7 @@ struct
   fun substMetaenv _ = ?todo
 
   fun renameVars _ = ?todo
-  
+
   fun annotate _ = ?todo
   fun getAnnotation _ = ?todo
   fun setAnnotation _ = ?todo
