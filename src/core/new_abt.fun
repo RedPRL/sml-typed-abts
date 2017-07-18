@@ -525,8 +525,8 @@ struct
       val vars = varctx m
     in
       assertSortEq (tau, tau');
-      ListPair.app (fn (u, sigma) => assertPSortEq (sigma, Option.getOpt (Sym.Ctx.find syms u, sigma))) (us, ssorts);
-      ListPair.app (fn (x, tau) => assertSortEq (tau, Option.getOpt (Var.Ctx.find vars x, tau))) (xs, vsorts);
+      ListPair.appEq (fn (u, sigma) => assertPSortEq (sigma, Option.getOpt (Sym.Ctx.find syms u, sigma))) (us, ssorts);
+      ListPair.appEq (fn (x, tau) => assertSortEq (tau, Option.getOpt (Var.Ctx.find vars x, tau))) (xs, vsorts);
       ABS (ssorts, vsorts, Sc.intoScope abtBindingSupport (Sc.\ ((us, xs), m)))
     end
 
@@ -560,23 +560,44 @@ struct
   and outb abs = 
     #1 (inferb abs)
 
-  fun valence abs =
-    #2 (inferb abs)
+  fun check (view, tau) = 
+    case view of 
+       `x => makeVarTerm (FREE x, tau) NONE
+     | theta $ args =>
+       let
+         val (vls, tau') = O.arity theta
+         val _ = assertSortEq (tau, tau')
 
+         val theta' = O.map (P.ret o FREE) theta
+         val args' = ListPair.mapEq checkb (args, vls)
+       in
+         makeAppTerm (theta', args') NONE
+       end
+     | X $# (rs, ms) =>
+       let
+         val ssorts = List.map #2 rs
+         val vsorts = List.map sort ms
+         val rs' = List.map (fn (p, sigma) => (P.map FREE p, sigma) before (P.check sigma p; ())) rs
+         fun chkInf (m, tau) = (assertSortEq (tau, sort m); m)
+         val ms' = ListPair.mapEq chkInf (ms, vsorts)
+       in
+         makeMetaTerm ((FREE X, tau), rs', ms') NONE
+       end
+
+  val outb = #1 o inferb
+  val valence = #2 o inferb
+  val out = #1 o infer
 
   fun unbind _ = ?todo
   fun // _ = ?todo
   fun $$ _ = ?todo
 
-  fun check _ = ?todo
-  fun out _ = ?todo
   fun eqAbs _ = ?todo
   fun mapAbs _ = ?todo
   fun abtToAbs _ = ?todo
   fun mapSubterms _ = ?todo
   fun deepMapSubterms _ = ?todo
   fun eq _ = ?todo
-  fun outb _ = ?todo
   fun primToString _ = ?todo
   fun primToStringAbs _ = ?todo
 end
