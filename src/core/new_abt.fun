@@ -206,10 +206,9 @@ struct
          SOME r => r
        | NONE => P.ret sym
 
-    (* TODO: sort checking? *)
     fun instantiateVar (i, j, k) (rs, ms, scopes) ((var, tau) <: ann) = 
       case findInstantiation j ms var of 
-         SOME m => m
+         SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
        | NONE => V (var, tau) <: ann
   in
     fun abtBindingSupport () : abt binding_support = 
