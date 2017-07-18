@@ -64,4 +64,5 @@ struct
     end
 
   fun unsafeRead sc = sc
+  fun unsafeReadBody (_ \ m) = m
 end

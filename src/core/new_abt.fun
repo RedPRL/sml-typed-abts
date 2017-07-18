@@ -180,6 +180,9 @@ struct
         aux (0, xs)
       end
 
+    fun mapFst f (x, y) = 
+      (f x, y)
+
     fun findInstantiation i items var = 
       case var of 
          FREE _ => NONE
@@ -193,7 +196,7 @@ struct
              NONE
          end
 
-    fun abstractSym (i, j, k) (us, xs, scopes) = 
+    fun abstractSym i us =
       fn FREE u =>
          (case indexOfFirst (fn v => Sym.eq (u, v)) us of 
              NONE => FREE u
@@ -237,16 +240,11 @@ struct
            end
          | META ((X, tau), rsX, msX) =>
            let
-             val rsX' = List.map (fn (r, sigma) => (P.bind (instantiateSym i rs) r, sigma)) rsX
+             val rsX' = List.map (mapFst (P.bind (instantiateSym i rs))) rsX
              val msX' = List.map (instantiateAbt (i, j, k) (rs, ms, scopes)) msX
            in
              case findInstantiation k scopes X of 
-                SOME scope =>
-                let
-                  val Sc.\ (_, m) = Sc.unsafeRead scope
-                in
-                  instantiateAbt (i, j, k) (List.map #1 rsX', msX', scopes) m
-                end
+                SOME scope => instantiateAbt (i, j, k) (List.map #1 rsX', msX', scopes) (Sc.unsafeReadBody scope)
               | NONE => makeMetaTerm ((X, tau), rsX', msX') (#user ann)
            end
       end
@@ -268,7 +266,7 @@ struct
          | APP (theta, scopes) =>
            let
              val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
-             val theta' = O.map (P.ret o abstractSym (i, j, k) (us, xs, Xs)) theta
+             val theta' = O.map (P.ret o abstractSym i us) theta
              val scopes' = List.map (#abstract scopeBindingSupport (i, j, k) (us, xs, Xs)) scopes
            in
              makeAppTerm (theta', scopes') (#user ann)
@@ -279,7 +277,7 @@ struct
                  case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of 
                     NONE => FREE X
                   | SOME k' => BOUND (k + k')
-               val rs' = List.map (fn (r, sigma) => (P.map (abstractSym (i, j, k) (us, xs, Xs)) r, sigma)) rs
+               val rs' = List.map (mapFst (P.map (abstractSym i us))) rs
                val ms' = List.map (abstractAbt (i, j, k) (us, xs, Xs)) ms
              in
                makeMetaTerm ((meta, tau), rs', ms') (#user ann)
