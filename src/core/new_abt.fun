@@ -201,7 +201,7 @@ struct
     type 'a monoid = {unit : 'a, mul : 'a * 'a -> 'a}
 
     type ('p, 'a) traverse_kit =
-      {handleSym : int -> symbol locally * psort -> 'p,
+      {handleSym : int -> (symbol locally * psort) annotated -> 'p,
        handleVar : int -> var_term annotated -> 'a,
        handleMeta : int * int * int -> meta_term annotated -> 'a,
        shouldTraverse : int * int * int -> system_annotation -> bool}
@@ -212,14 +212,14 @@ struct
          V (var, tau) => #handleVar kit j ((var, tau) <: ann)
        | APP (theta, args) =>
          let
-           val theta' = O.mapWithSort (#handleSym kit i) theta
+           val theta' = O.mapWithSort (fn (u, sigma) => #handleSym kit i ((u, sigma) <: ann)) theta
            val args' = List.map (Sc.liftTraversal (mapAbt kit) (i, j, k)) args
          in
            makeAppTerm (theta', args') user
          end
        | META ((X, tau), rs, ms) =>
          let
-           val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym kit i (u, sigma)) r, sigma)) rs
+           val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym kit i ((u, sigma) <: ann)) r, sigma)) rs
            val ms' = List.map (mapAbt kit (i, j, k)) ms
          in
            #handleMeta kit (i, j, k) (((X, tau), rs', ms') <: ann)
@@ -232,7 +232,7 @@ struct
        | APP (theta, args) =>
          let
            val support = O.support theta
-           val memo = List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym kit i (u, sigma), memo)) (#unit acc) support
+           val memo = List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym kit i ((u, sigma) <: ann), memo)) (#unit acc) support
          in
            List.foldr
              (fn (scope, memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (accumAbt acc kit) (i, j, k) scope), memo))
@@ -247,7 +247,7 @@ struct
                   let
                     val support = case r of P.VAR u => [(u, sigma)] | P.APP t => P.freeVars t
                   in
-                    List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym kit i (u, sigma), memo)) memo support
+                    List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym kit i ((u, sigma) <: ann), memo)) memo support
                   end)
                (#unit acc)
                rs
@@ -260,7 +260,7 @@ struct
     fun instantiateAbt (i, j, k) (rs, ms, scopes) =
       let
         (* TODO: sort checking? *)
-        fun instantiateSym i rs (sym, _) =
+        fun instantiateSym i rs ((sym, _) <: _) =
           case findInstantiation i rs sym of
              SOME r => r
            | NONE => P.ret sym
@@ -306,11 +306,11 @@ struct
           end
 
         fun abstractSym i us =
-          fn (FREE u, _) =>
+          fn (FREE u, _) <: _ =>
              (case indexOfFirst (fn v => Sym.eq (u, v)) us of
                  NONE => FREE u
                | SOME i' => BOUND (i + i'))
-           | (BOUND i', _)=> BOUND i'
+           | (BOUND i', _) <: _ => BOUND i'
 
         fun abstractVar j xs =
           fn (FREE x, tau) <: ann =>
@@ -347,7 +347,7 @@ struct
             needSyms orelse needVars orelse needMetas
           end
 
-        fun handleSym _ (sym, sigma) =
+        fun handleSym _ ((sym, sigma) <: _) =
           case sym of
              FREE u =>
              (case Sym.Ctx.find srho u of
@@ -402,7 +402,7 @@ struct
     fun symctx m =
       let
         fun handleSym _ =
-          fn (FREE x, sigma) => Sym.Ctx.singleton x sigma
+          fn (FREE x, sigma) <: _ => Sym.Ctx.singleton x sigma
            | _ => Sym.Ctx.empty
 
         val monoid =
