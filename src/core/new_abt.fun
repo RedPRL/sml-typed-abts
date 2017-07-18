@@ -200,42 +200,42 @@ struct
 
     type 'a monoid = {unit : 'a, mul : 'a * 'a -> 'a}
 
-    type ('p, 'a) traverse_kit =
+    type ('p, 'a) abt_algebra =
       {handleSym : int -> (symbol locally * psort) annotated -> 'p,
        handleVar : int -> var_term annotated -> 'a,
        handleMeta : int * int * int -> meta_term annotated -> 'a,
        shouldTraverse : int * int * int -> system_annotation -> bool}
 
-    fun mapAbt (kit : (symbol locally P.t, abt) traverse_kit) (i, j, k) (term <: (ann as {user, system})) : abt =
-      if not (#shouldTraverse kit (i, j, k) system) then term <: ann else
+    fun abtRec (alg : (symbol locally P.t, abt) abt_algebra) (i, j, k) (term <: (ann as {user, system})) : abt =
+      if not (#shouldTraverse alg (i, j, k) system) then term <: ann else
       case term of
-         V (var, tau) => #handleVar kit j ((var, tau) <: ann)
+         V (var, tau) => #handleVar alg j ((var, tau) <: ann)
        | APP (theta, args) =>
          let
-           val theta' = O.mapWithSort (fn (u, sigma) => #handleSym kit i ((u, sigma) <: ann)) theta
-           val args' = List.map (Sc.liftTraversal (mapAbt kit) (i, j, k)) args
+           val theta' = O.mapWithSort (fn (u, sigma) => #handleSym alg i ((u, sigma) <: ann)) theta
+           val args' = List.map (Sc.liftTraversal (abtRec alg) (i, j, k)) args
          in
            makeAppTerm (theta', args') user
          end
        | META ((X, tau), rs, ms) =>
          let
-           val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym kit i ((u, sigma) <: ann)) r, sigma)) rs
-           val ms' = List.map (mapAbt kit (i, j, k)) ms
+           val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym alg i ((u, sigma) <: ann)) r, sigma)) rs
+           val ms' = List.map (abtRec alg (i, j, k)) ms
          in
-           #handleMeta kit (i, j, k) (((X, tau), rs', ms') <: ann)
+           #handleMeta alg (i, j, k) (((X, tau), rs', ms') <: ann)
          end
 
-    fun accumAbt (acc : 'a monoid) (kit : ('a, 'a) traverse_kit) (i, j, k) (term <: (ann as {user, system})) : 'a =
-      if not (#shouldTraverse kit (i, j, k) system) then #unit acc else
+    fun abtAccum (acc : 'a monoid) (alg : ('a, 'a) abt_algebra) (i, j, k) (term <: (ann as {user, system})) : 'a =
+      if not (#shouldTraverse alg (i, j, k) system) then #unit acc else
       case term of
-         V var => #handleVar kit j (var <: ann)
+         V var => #handleVar alg j (var <: ann)
        | APP (theta, args) =>
          let
            val support = O.support theta
-           val memo = List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym kit i ((u, sigma) <: ann), memo)) (#unit acc) support
+           val memo = List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg i ((u, sigma) <: ann), memo)) (#unit acc) support
          in
            List.foldr
-             (fn (scope, memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (accumAbt acc kit) (i, j, k) scope), memo))
+             (fn (scope, memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (abtAccum acc alg) (i, j, k) scope), memo))
              memo
              args
          end
@@ -247,13 +247,13 @@ struct
                   let
                     val support = case r of P.VAR u => [(u, sigma)] | P.APP t => P.freeVars t
                   in
-                    List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym kit i ((u, sigma) <: ann), memo)) memo support
+                    List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg i ((u, sigma) <: ann), memo)) memo support
                   end)
                (#unit acc)
                rs
-           val memo' = List.foldr (fn (m, memo) => #mul acc (accumAbt acc kit (i, j, k) m, memo)) memo ms
+           val memo' = List.foldr (fn (m, memo) => #mul acc (abtAccum acc alg (i, j, k) m, memo)) memo ms
          in
-           #mul acc (#handleMeta kit (i, j, k) (((X, tau), rs, ms) <: ann), memo')
+           #mul acc (#handleMeta alg (i, j, k) (((X, tau), rs, ms) <: ann), memo')
          end
 
   in
@@ -285,13 +285,13 @@ struct
              SOME scope => instantiateAbt (i, j, k) (List.map #1 rsX, msX, scopes) (Sc.unsafeReadBody scope)
            | NONE => makeMetaTerm ((X, tau), rsX, msX) (#user ann)
 
-        val kit =
+        val alg =
           {handleSym = fn i => instantiateSym i rs,
            handleVar = fn j => instantiateVar j ms,
            handleMeta = instantiateMeta,
            shouldTraverse = shouldTraverse}
       in
-        mapAbt kit (i, j, k)
+        abtRec alg (i, j, k)
       end
 
     fun abstractAbt (i, j, k) (us, xs, Xs) =
@@ -327,13 +327,13 @@ struct
                | SOME k' => META ((BOUND (k + k'), tau), rs, ms) <: ann)
             | BOUND k' => META ((X, tau), rs, ms) <: ann
 
-        val kit =
+        val alg =
           {handleSym = fn i => P.ret o abstractSym i us,
            handleVar = fn j => abstractVar j xs,
            handleMeta = abstractMeta,
            shouldTraverse = shouldTraverse}
       in
-        mapAbt kit (i, j, k)
+        abtRec alg (i, j, k)
       end
 
     fun subst (srho: symenv, vrho : varenv, mrho : metaenv) =
@@ -371,13 +371,13 @@ struct
                | SOME scope => instantiateAbt (0,0,0) (List.map #1 rs, ms, []) (Sc.unsafeReadBody scope))
            | BOUND _ => META ((X, tau), rs, ms) <: ann
 
-        val kit =
+        val alg =
           {handleSym = handleSym,
            handleVar = handleVar,
            handleMeta = handleMeta,
            shouldTraverse = shouldTraverse}
       in
-        mapAbt kit (0,0,0)
+        abtRec alg (0,0,0)
       end
 
     val varctx =
@@ -390,13 +390,13 @@ struct
           {unit = Var.Ctx.empty,
            mul = fn (xs1, xs2) => Var.Ctx.union xs1 xs2 (fn (_, tau, _) => tau)}
 
-        val kit =
+        val alg =
           {handleSym = fn _ => fn _ => Var.Ctx.empty,
            handleVar = handleVar,
            handleMeta = fn _ => fn _ => Var.Ctx.empty,
            shouldTraverse = fn _ => fn ({hasFreeVars, ...} : system_annotation) => hasFreeVars}
       in
-        accumAbt monoid kit (0,0,0)
+        abtAccum monoid alg (0,0,0)
       end
 
     val symctx =
@@ -409,13 +409,13 @@ struct
           {unit = Sym.Ctx.empty,
            mul = fn (xs1, xs2) => Sym.Ctx.union xs1 xs2 (fn (_, sigma, _) => sigma)}
 
-        val kit =
+        val alg =
           {handleSym = handleSym,
            handleVar = fn _ => fn _ => Sym.Ctx.empty,
            handleMeta = fn _ => fn _ => Sym.Ctx.empty,
            shouldTraverse = fn _ => fn ({hasFreeSyms, ...} : system_annotation) => hasFreeSyms}
       in
-        accumAbt monoid kit (0,0,0)
+        abtAccum monoid alg (0,0,0)
       end
 
     val metactx =
@@ -428,13 +428,13 @@ struct
           {unit = Metavar.Ctx.empty,
            mul = fn (xs1, xs2) => Metavar.Ctx.union xs1 xs2 (fn (_, vl, _) => vl)}
 
-        val kit =
+        val alg =
           {handleSym = fn _ => fn _ => Metavar.Ctx.empty,
            handleVar = fn _ => fn _ => Metavar.Ctx.empty,
            handleMeta = handleMeta,
            shouldTraverse = fn _ => fn ({hasFreeMetas, ...} : system_annotation) => hasFreeMetas}
       in
-        accumAbt monoid kit (0,0,0)
+        abtAccum monoid alg (0,0,0)
       end
 
     val symOccurrences = 
@@ -448,13 +448,13 @@ struct
           {unit = Sym.Ctx.empty,
            mul = fn (xs1, xs2) => Sym.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
 
-        val kit =
+        val alg =
           {handleSym = handleSym,
            handleVar = fn _ => fn _ => Sym.Ctx.empty,
            handleMeta = fn _ => fn _ => Sym.Ctx.empty,
            shouldTraverse = fn _ => fn ({hasFreeSyms, ...} : system_annotation) => hasFreeSyms}
       in 
-        accumAbt monoid kit (0,0,0)
+        abtAccum monoid alg (0,0,0)
       end
 
     val varOccurrences = 
@@ -468,13 +468,13 @@ struct
           {unit = Var.Ctx.empty,
            mul = fn (xs1, xs2) => Var.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
 
-        val kit =
+        val alg =
           {handleSym = fn _ => fn _ => Var.Ctx.empty,
            handleVar = handleVar,
            handleMeta = fn _ => fn _ => Var.Ctx.empty,
            shouldTraverse = fn _ => fn ({hasFreeVars, ...} : system_annotation) => hasFreeVars}
       in 
-        accumAbt monoid kit (0,0,0)
+        abtAccum monoid alg (0,0,0)
       end
 
     fun renameVars vrho = 
@@ -487,13 +487,13 @@ struct
                | NONE => V (var, tau) <: ann)
            | _ => V (var, tau) <: ann
 
-        val kit =
+        val alg =
           {handleSym = fn _ => fn (sym, tau) <: ann => P.ret sym,
            handleVar = handleVar,
            handleMeta = fn _ => fn meta <: ann => META meta <: ann,
            shouldTraverse = fn _ => fn ({hasFreeVars, ...} : system_annotation) => hasFreeVars}
       in
-        mapAbt kit (0,0,0)
+        abtRec alg (0,0,0)
       end
   end
 
