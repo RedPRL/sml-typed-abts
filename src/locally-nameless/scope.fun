@@ -20,7 +20,7 @@ struct
 
   type ('m, 'p, 'a) binding_support = 
     {abstract: int * int * int -> symbol list * variable list * metavariable list -> 'a -> 'a,
-     instantiate: int * int * int -> 'a -> 'p list * 'm list * 'm scope list -> 'a,
+     instantiate: int * int * int -> 'p list * 'm list * 'm scope list -> 'a -> 'a,
      freeVariable : variable * sort -> 'm,
      freeSymbol : symbol -> 'p}
 
@@ -33,12 +33,12 @@ struct
       (us', xs') \ abstract (i + symCount, j + varCount, k + metaCount) (us, xs, Xs) m
     end
 
-  fun liftInstantiate instantiate (i, j, k) ((us, xs) \ m) (rs, ms, scs) =
+  fun liftInstantiate instantiate (i, j, k) (rs, ms, scs)  ((us, xs) \ m) =
     let
       val symCount = List.length us
       val varCount = List.length xs
     in
-      (us, xs) \ instantiate (i + symCount, j + varCount, k) m (rs, ms, scs)
+      (us, xs) \ instantiate (i + symCount, j + varCount, k) (rs, ms, scs) m
     end
 
   fun scopeBindingSupport (driver : ('m, 'p, 'a) binding_support) : ('m, 'p, 'a scope) binding_support =
@@ -60,7 +60,7 @@ struct
       val rs = List.map (#freeSymbol driver) us'
       val ms = ListPair.mapEq (#freeVariable driver) (xs', taus)
     in
-      (us', xs') \ #instantiate driver (0,0,0) m (rs, ms, [])
+      (us', xs') \ #instantiate driver (0,0,0) (rs, ms, []) m
     end
 
   fun unsafeRead sc = sc

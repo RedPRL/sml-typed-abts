@@ -14,7 +14,7 @@ sig
 
   type ('m, 'p, 'a) binding_support = 
     {abstract: int * int * int -> symbol list * variable list * metavariable list -> 'a -> 'a,
-     instantiate: int * int * int -> 'a -> 'p list * 'm list * 'm scope list -> 'a,
+     instantiate: int * int * int -> 'p list * 'm list * 'm scope list -> 'a -> 'a,
      freeVariable : variable * sort -> 'm,
      freeSymbol : symbol -> 'p}
 

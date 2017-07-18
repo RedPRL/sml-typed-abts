@@ -213,7 +213,7 @@ struct
        freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
        freeSymbol = P.ret o FREE}
 
-    and instantiateAbt (i, j, k) (term <: ann) (rs, ms, scopes) =
+    and instantiateAbt (i, j, k) (rs, ms, scopes) (term <: ann) =
       let
         val {symIdxBound, varIdxBound, metaIdxBound, ...} = #system ann
         (* if all the following things hold, then there would be no variable or symbol to instantiate *)
@@ -231,21 +231,21 @@ struct
            let
              val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
              val theta' = O.map (instantiateSym i rs) theta
-             val args' = List.map (fn sc => #instantiate scopeBindingSupport (i, j, k) sc (rs, ms, scopes)) args
+             val args' = List.map (#instantiate scopeBindingSupport (i, j, k) (rs, ms, scopes)) args
            in
              makeAppTerm (theta', args') (#user ann)
            end
          | META ((X, tau), rsX, msX) =>
            let
              val rsX' = List.map (fn (r, sigma) => (P.bind (instantiateSym i rs) r, sigma)) rsX
-             val msX' = List.map (fn m => instantiateAbt (i, j, k) m (rs, ms, scopes)) msX
+             val msX' = List.map (instantiateAbt (i, j, k) (rs, ms, scopes)) msX
            in
              case findInstantiation k scopes X of 
                 SOME scope =>
                 let
                   val Sc.\ (_, m) = Sc.unsafeRead scope
                 in
-                  instantiateAbt (i, j, k) m (List.map #1 rsX', msX', scopes)
+                  instantiateAbt (i, j, k) (List.map #1 rsX', msX', scopes) m
                 end
               | NONE => makeMetaTerm ((X, tau), rsX', msX') (#user ann)
            end
