@@ -87,7 +87,7 @@ struct
 
   fun locallyToString f = 
     fn FREE x => f x
-     | BOUND i => Int.toString i
+     | BOUND i => "<" ^ Int.toString i ^ ">"
 
   val rec primToString =
     fn V (v, _) <: _ => locallyToString Var.toString v
@@ -176,16 +176,14 @@ struct
       APP (theta, scopes) <: {user = userAnn, system = systemAnn}
     end
 
-  val paramSystemAnn =
-    fn (P.VAR (FREE x), sigma) => {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.singleton x sigma, freeMetas = Metavar.Ctx.empty}
-     | (P.VAR (BOUND i), _) => {symIdxBound = SOME (i + 1), varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}
-     | (P.APP t, sigma) =>
-        let
-          val support = P.freeVars t
-        in
-          {symIdxBound = idxBoundForSyms support, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, freeMetas = Metavar.Ctx.empty}
-        end
+  fun paramSystemAnn (r, sigma) =
+    let
+      val support = P.check sigma r
+    in
+      {symIdxBound = idxBoundForSyms support, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, freeMetas = Metavar.Ctx.empty}
+    end
 
+  (* For some reason, this is not setting the de-idx bounds properly in the system annotation *)
   fun makeMetaTerm (((meta, tau), rs, ms) : meta_term) userAnn =
     let
       val (metaIdxBound, freeMetas) =
@@ -220,19 +218,6 @@ struct
       in
         aux (0, xs)
       end
-
-    fun findInstantiation i items var =
-      case var of
-         FREE _ => NONE
-       | BOUND i' =>
-         let
-           val i'' = i' - i
-         in
-           if i'' >= 0 andalso i'' < List.length items then
-             SOME (List.nth (items, i''))
-           else
-             NONE
-         end
 
     type 'a monoid = {unit : 'a, mul : 'a * 'a -> 'a}
 
@@ -281,7 +266,7 @@ struct
              List.foldr
                (fn ((r, sigma), memo) =>
                   let
-                    val support = case r of P.VAR u => [(u, sigma)] | P.APP t => P.freeVars t
+                    val support = P.check sigma r
                   in
                     List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg i ((u, sigma) <: ann), memo)) memo support
                   end)
@@ -295,6 +280,19 @@ struct
   in
     fun instantiateAbt (i, j, k) (rs, ms, scopes) =
       let
+        fun findInstantiation i items var =
+          case var of
+             FREE _ => NONE
+           | BOUND i' =>
+             let
+               val i'' = i' - i
+             in
+               if i'' >= 0 andalso i'' < List.length items then
+                 SOME (List.nth (items, i''))
+               else
+                 NONE
+             end
+
         (* TODO: sort checking? *)
         fun instantiateSym i rs ((sym, _) <: _) =
           case findInstantiation i rs sym of
