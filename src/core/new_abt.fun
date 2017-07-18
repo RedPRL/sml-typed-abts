@@ -380,7 +380,7 @@ struct
         mapAbt kit (0,0,0)
       end
 
-    fun varctx m =
+    val varctx =
       let
         fun handleVar _ =
           fn (FREE x, tau) <: _ => Var.Ctx.singleton x tau
@@ -396,10 +396,10 @@ struct
            handleMeta = fn _ => fn _ => Var.Ctx.empty,
            shouldTraverse = fn _ => fn ({hasFreeVars, ...} : system_annotation) => hasFreeVars}
       in
-        accumAbt monoid kit (0,0,0) m
+        accumAbt monoid kit (0,0,0)
       end
 
-    fun symctx m =
+    val symctx =
       let
         fun handleSym _ =
           fn (FREE x, sigma) <: _ => Sym.Ctx.singleton x sigma
@@ -415,10 +415,10 @@ struct
            handleMeta = fn _ => fn _ => Sym.Ctx.empty,
            shouldTraverse = fn _ => fn ({hasFreeSyms, ...} : system_annotation) => hasFreeSyms}
       in
-        accumAbt monoid kit (0,0,0) m
+        accumAbt monoid kit (0,0,0)
       end
 
-    fun metactx m =
+    val metactx =
       let
         fun handleMeta _ =
           fn (((FREE x, tau), rs, ms) : meta_term) <: _ => Metavar.Ctx.singleton x ((List.map #2 rs, List.map sort ms), tau)
@@ -434,15 +434,51 @@ struct
            handleMeta = handleMeta,
            shouldTraverse = fn _ => fn ({hasFreeMetas, ...} : system_annotation) => hasFreeMetas}
       in
-        accumAbt monoid kit (0,0,0) m
+        accumAbt monoid kit (0,0,0)
+      end
+
+    val symOccurrences = 
+      let
+        fun handleSym _ ((sym, _) <: ann) =
+          case sym of 
+             FREE u => Sym.Ctx.singleton u [ann]
+           | _ => Sym.Ctx.empty
+
+        val monoid : annotation list Sym.Ctx.dict monoid =
+          {unit = Sym.Ctx.empty,
+           mul = fn (xs1, xs2) => Sym.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
+
+        val kit =
+          {handleSym = handleSym,
+           handleVar = fn _ => fn _ => Sym.Ctx.empty,
+           handleMeta = fn _ => fn _ => Sym.Ctx.empty,
+           shouldTraverse = fn _ => fn ({hasFreeSyms, ...} : system_annotation) => hasFreeSyms}
+      in 
+        accumAbt monoid kit (0,0,0)
+      end
+
+    val varOccurrences = 
+      let
+        fun handleVar _ ((var, _) <: ann) =
+          case var of 
+             FREE x => Var.Ctx.singleton x [ann]
+           | _ => Var.Ctx.empty
+
+        val monoid : annotation list Var.Ctx.dict monoid =
+          {unit = Var.Ctx.empty,
+           mul = fn (xs1, xs2) => Var.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
+
+        val kit =
+          {handleSym = fn _ => fn _ => Var.Ctx.empty,
+           handleVar = handleVar,
+           handleMeta = fn _ => fn _ => Var.Ctx.empty,
+           shouldTraverse = fn _ => fn ({hasFreeVars, ...} : system_annotation) => hasFreeVars}
+      in 
+        accumAbt monoid kit (0,0,0)
       end
   end
 
   exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
-
-  fun symOccurrences _ = ?todo
-  fun varOccurrences _ = ?todo
-
 
   fun substVarenv vrho =
     subst (Sym.Ctx.empty, vrho, Metavar.Ctx.empty)
