@@ -63,12 +63,15 @@ struct
      hasFreeSyms = #hasFreeSyms ann1 orelse #hasFreeSyms ann2,
      hasFreeMetas = #hasFreeMetas ann1 orelse #hasFreeMetas ann2}
 
+  datatype 'a annotated = <: of 'a * annotation
+  infix <:
+
   datatype abt_internal = 
      V of var_term
    | APP of app_term
    | META of meta_term
-  and abt = <: of abt_internal * annotation
-  withtype var_term = Var.t locally * sort
+  withtype abt = abt_internal annotated
+  and var_term = Var.t locally * sort
   and app_term = Sym.t locally O.t * abt Sc.scope list
   and meta_term = (Metavar.t locally * sort) * (Sym.t locally P.term * psort) list * abt list
 
@@ -77,7 +80,15 @@ struct
   type varenv = abt Var.Ctx.dict
   type symenv = param Sym.Ctx.dict
 
-  infix <:
+  val sort = 
+    fn V (_, tau) <: _ => tau
+     | APP (theta, _) <: _ => #2 (O.arity theta)
+     | META ((_, tau), _, _) <: _ => tau
+
+
+  (* TODO: add diagnostics *)
+  exception BadInstantiate
+
 
   type 'a binding_support = (abt, Sym.t locally P.term, 'a) Sc.binding_support
 
@@ -169,6 +180,38 @@ struct
         aux (0, xs)
       end
 
+    fun findInstantiation i items var = 
+      case var of 
+         FREE _ => NONE
+       | BOUND i' => 
+         let
+           val i'' = i' - i
+         in
+           if i'' >= 0 andalso i'' < List.length items then
+             SOME (List.nth (items, i''))
+           else
+             NONE
+         end
+
+    fun abstractSym (i, j, k) (us, xs, scopes) = 
+      fn FREE u =>
+         (case indexOfFirst (fn v => Sym.eq (u, v)) us of 
+             NONE => FREE u
+           | SOME k => BOUND (i + k))
+       | BOUND k => BOUND k
+
+    (* TODO: sort checking? *)
+    fun instantiateSym (i, j, k) (rs, ms, scopes) sym = 
+      case findInstantiation i rs sym of 
+         SOME r => r
+       | NONE => P.ret sym
+
+    (* TODO: sort checking? *)
+    fun instantiateVar (i, j, k) (rs, ms, scopes) ((var, tau) <: ann) = 
+      case findInstantiation j ms var of 
+         SOME m => m
+       | NONE => V (var, tau) <: ann
+  in
     fun abtBindingSupport () : abt binding_support = 
       {abstract = abstractAbt,
        instantiate = instantiateAbt,
@@ -184,17 +227,8 @@ struct
         val noNeedMetas = case metaIdxBound of SOME k' => k >= k' | NONE => false
       in
         if noNeedSyms andalso noNeedVars andalso noNeedMetas then term <: ann else
-        case term of 
-           V (BOUND j', _) =>
-           let
-             val j'' = j' - j
-           in
-             if j'' >= 0 andalso j'' < List.length ms then 
-               List.nth (ms, j'')
-             else
-               term <: ann
-           end
-         | V _ => term <: ann
+        case term of
+           V var => instantiateVar (i, j, k) (rs, ms, scopes) (var <: ann)
          | APP (theta, args) =>
            let
              val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
@@ -208,21 +242,14 @@ struct
              val rsX' = List.map (fn (r, sigma) => (P.bind (instantiateSym (i, j, k) (rs, ms, scopes)) r, sigma)) rsX
              val msX' = List.map (fn m => instantiateAbt (i, j, k) m (rs, ms, scopes)) msX
            in
-             case X of
-                FREE _ => makeMetaTerm ((X, tau), rsX', msX') (#user ann)
-              | BOUND k' =>
+             case findInstantiation k scopes X of 
+                SOME scope =>
                 let
-                  val k'' = k' - k
+                  val Sc.\ (_, m) = Sc.unsafeRead scope
                 in
-                  if k'' >= 0 andalso k'' < List.length scopes then
-                    let
-                      val Sc.\ (_, m) = Sc.unsafeRead (List.nth (scopes, k''))
-                    in
-                      instantiateAbt (i, j, k) m (List.map #1 rsX', msX', scopes)
-                    end
-                  else
-                    makeMetaTerm ((X, tau), rsX', msX') (#user ann)
+                  instantiateAbt (i, j, k) m (List.map #1 rsX', msX', scopes)
                 end
+              | NONE => makeMetaTerm ((X, tau), rsX', msX') (#user ann)
            end
       end
 
@@ -260,28 +287,8 @@ struct
                makeMetaTerm ((meta, tau), rs', ms') (#user ann)
              end
       end
-
-    and abstractSym (i, j, k) (us, xs, Xs) = 
-      fn FREE u =>
-         (case indexOfFirst (fn v => Sym.eq (u, v)) us of 
-             NONE => FREE u
-           | SOME k => BOUND (i + k))
-       | BOUND k => BOUND k
-
-    and instantiateSym (i, j, k) (rs, ms, Xs) = 
-      fn FREE u => P.ret (FREE u)
-       | BOUND i' => 
-         let
-           val i'' = i' - i
-         in
-           if i'' >= 0 andalso i'' < List.length rs then
-             List.nth (rs, i'')
-           else
-             P.ret (BOUND i')
-         end
-  in
-    val abtBindingSupport : abt binding_support = abtBindingSupport () 
   end
+
 
   exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
 
@@ -316,7 +323,6 @@ struct
   fun infer _ = ?todo
   fun check _ = ?todo
   fun out _ = ?todo
-  fun sort _ = ?todo
   fun checkb _ = ?todo
   fun eqAbs _ = ?todo
   fun mapAbs _ = ?todo
