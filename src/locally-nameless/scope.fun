@@ -24,6 +24,14 @@ struct
      freeVariable : variable * sort -> 'm,
      freeSymbol : symbol -> 'p}
 
+  fun liftTraversal f (i, j, k) ((us, xs) \ m) = 
+    let
+      val symCount = List.length us
+      val varCount = List.length xs
+    in
+      (us, xs) \ f (i + symCount, j + varCount, k) m
+    end
+
   fun liftAbstract abstract (i, j, k) (us, xs, Xs) ((us', xs') \ m) =
     let
       val symCount = List.length us'

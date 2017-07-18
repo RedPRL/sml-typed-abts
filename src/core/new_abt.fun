@@ -196,92 +196,106 @@ struct
              NONE
          end
 
-    fun abstractSym i us =
-      fn FREE u =>
-         (case indexOfFirst (fn v => Sym.eq (u, v)) us of 
-             NONE => FREE u
-           | SOME k => BOUND (i + k))
-       | BOUND k => BOUND k
 
-    (* TODO: sort checking? *)
-    fun instantiateSym i rs sym =
-      case findInstantiation i rs sym of 
-         SOME r => r
-       | NONE => P.ret sym
+    type traverse_kit = 
+      {handleSym : int -> symbol locally -> symbol locally P.t,
+       handleVar : int -> var_term annotated -> abt,
+       handleMeta : int * int * int -> meta_term annotated -> abt,
+       shouldTraverse : int * int * int -> system_annotation -> bool}
 
+    fun traverseAbt (kit : traverse_kit) (i, j, k) (term <: (ann as {user, system})) : abt = 
+      if not (#shouldTraverse kit (i, j, k) system) then term <: ann else
+      case term of 
+         V (var, tau) => #handleVar kit j ((var, tau) <: ann)
+       | APP (theta, args) =>
+         let
+           val theta' = O.map (#handleSym kit i) theta
+           val args' = List.map (Sc.liftTraversal (traverseAbt kit) (i, j, k)) args
+         in
+           makeAppTerm (theta', args') user
+         end
+       | META ((X, tau), rs, ms) => 
+         let
+           val rs' = List.map (mapFst (P.bind (#handleSym kit i))) rs
+           val ms' = List.map (traverseAbt kit (i, j, k)) ms
+         in
+           #handleMeta kit (i, j, k) (((X, tau), rs', ms') <: ann)
+         end
   in
-    fun abtBindingSupport () : abt binding_support = 
-      {abstract = abstractAbt,
-       instantiate = instantiateAbt,
-       freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
-       freeSymbol = P.ret o FREE}
-
-    and instantiateAbt (i, j, k) (rs, ms, scopes) (term <: ann) =
+    fun instantiateAbt (i, j, k) (rs, ms, scopes) =
       let
-        val {symIdxBound, varIdxBound, metaIdxBound, ...} = #system ann
-        (* if all the following things hold, then there would be no variable or symbol to instantiate *)
-        val noNeedSyms = case symIdxBound of SOME i' => i >= i' | NONE => false
-        val noNeedVars = case varIdxBound of SOME j' => j >= j' | NONE => false
-        val noNeedMetas = case metaIdxBound of SOME k' => k >= k' | NONE => false
+        (* TODO: sort checking? *)
+        fun instantiateSym i rs sym =
+          case findInstantiation i rs sym of 
+             SOME r => r
+           | NONE => P.ret sym
+
+        fun instantiateVar j ms ((var, tau) <: ann) = 
+          case findInstantiation j ms var of 
+             SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
+           | NONE => V (var, tau) <: ann
+
+        fun shouldTraverse (i, j, k) ({symIdxBound, varIdxBound, metaIdxBound, ...} : system_annotation) = 
+          let
+            (* TODO: check this logic. If there is no bound (sym, var, meta), then we have nothing to instantiate. does that make sense? *)
+            val needSyms = case symIdxBound of SOME i' => i < i' | NONE => false
+            val needVars = case varIdxBound of SOME j' => j < j' | NONE => false
+            val needMetas = case metaIdxBound of SOME k' => k < k' | NONE => false
+          in
+            needSyms orelse needVars orelse needMetas
+          end
+
+        fun instantiateMeta (i, j, k) ((((X, tau), rsX, msX) : meta_term) <: ann) =
+          case findInstantiation k scopes X of
+             SOME scope => instantiateAbt (i, j, k) (List.map #1 rsX, msX, scopes) (Sc.unsafeReadBody scope)
+           | NONE => makeMetaTerm ((X, tau), rsX, msX) (#user ann)
+
+        val kit = 
+          {handleSym = fn i => instantiateSym i rs,
+           handleVar = fn j => instantiateVar j ms,
+           handleMeta = instantiateMeta,
+           shouldTraverse = shouldTraverse}
       in
-        if noNeedSyms andalso noNeedVars andalso noNeedMetas then term <: ann else
-        case term of
-           V (var, tau) => 
-           (case findInstantiation j ms var of 
-               SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
-             | NONE => V (var, tau) <: ann)
-         | APP (theta, args) =>
-           let
-             val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
-             val theta' = O.map (instantiateSym i rs) theta
-             val args' = List.map (#instantiate scopeBindingSupport (i, j, k) (rs, ms, scopes)) args
-           in
-             makeAppTerm (theta', args') (#user ann)
-           end
-         | META ((X, tau), rsX, msX) =>
-           let
-             val rsX' = List.map (mapFst (P.bind (instantiateSym i rs))) rsX
-             val msX' = List.map (instantiateAbt (i, j, k) (rs, ms, scopes)) msX
-           in
-             case findInstantiation k scopes X of 
-                SOME scope => instantiateAbt (i, j, k) (List.map #1 rsX', msX', scopes) (Sc.unsafeReadBody scope)
-              | NONE => makeMetaTerm ((X, tau), rsX', msX') (#user ann)
-           end
+        traverseAbt kit (i, j, k)
       end
 
-    and abstractAbt (i, j, k) (us, xs, Xs) (term <: ann) =
+    and abstractAbt (i, j, k) (us, xs, Xs) =
       let
-        val {hasFreeSyms, hasFreeVars, hasFreeMetas, ...} = #system ann
-        val noNeedSyms = case us of [] => true | _ => not hasFreeSyms
-        val noNeedVars = case xs of [] => true | _ => not hasFreeVars
-        val noNeedMetas = case Xs of [] => true | _ => not hasFreeMetas
-      in
-        if noNeedSyms andalso noNeedVars andalso noNeedMetas then term <: ann else 
-        case term of
-           V (BOUND _, _) => term <: ann
-         | V (FREE x, tau) =>
-             (case indexOfFirst (fn y => Var.eq (x, y)) xs of 
-                 NONE => makeVarTerm (FREE x, tau) (#user ann)
+        fun shouldTraverse (i, j, k) ({hasFreeSyms, hasFreeVars, hasFreeMetas, ...} : system_annotation) = 
+          let
+            val needSyms = case us of [] => false | _ => hasFreeSyms
+            val needVars = case xs of [] => false | _ => hasFreeVars
+            val needMetas = case Xs of [] => true | _ => hasFreeMetas
+          in
+            needSyms orelse needVars orelse needMetas
+          end
+
+        fun abstractSym i us =
+          fn FREE u =>
+             (case indexOfFirst (fn v => Sym.eq (u, v)) us of 
+                 NONE => FREE u
+               | SOME i' => BOUND (i + i'))
+           | BOUND i' => BOUND i'
+
+        fun abstractVar j xs = 
+          fn (FREE x, tau) <: ann => 
+             (case indexOfFirst (fn y => Var.eq (x, y)) xs of
+                 NONE => V (FREE x, tau) <: ann
                | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
-         | APP (theta, scopes) =>
-           let
-             val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
-             val theta' = O.map (P.ret o abstractSym i us) theta
-             val scopes' = List.map (#abstract scopeBindingSupport (i, j, k) (us, xs, Xs)) scopes
-           in
-             makeAppTerm (theta', scopes') (#user ann)
-           end
-         | META ((FREE X, tau), rs, ms) =>
-             let
-               val meta = 
-                 case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of 
-                    NONE => FREE X
-                  | SOME k' => BOUND (k + k')
-               val rs' = List.map (mapFst (P.map (abstractSym i us))) rs
-               val ms' = List.map (abstractAbt (i, j, k) (us, xs, Xs)) ms
-             in
-               makeMetaTerm ((meta, tau), rs', ms') (#user ann)
-             end
+           | (BOUND j', tau) <: ann => V (BOUND j', tau) <: ann
+
+        fun abstractMeta (i, j, k) ((((X, tau), rs, ms) : meta_term) <: ann) =
+          case X of 
+              FREE a => raise Match
+            | BOUND k' => META ((X, tau), rs, ms) <: ann
+
+        val kit =
+          {handleSym = fn i => P.ret o abstractSym i us,
+           handleVar = fn j => abstractVar j xs,
+           handleMeta = abstractMeta,
+           shouldTraverse = shouldTraverse}
+      in
+        traverseAbt kit (i, j, k)
       end
   end
 

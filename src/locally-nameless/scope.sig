@@ -12,13 +12,14 @@ sig
 
   exception Instantiate
 
+  val liftTraversal : (int * int * int -> 'a -> 'a) -> int * int * int -> 'a scope -> 'a scope
+
+  (* TODO: delete? *)
   type ('m, 'p, 'a) binding_support = 
     {abstract: int * int * int -> symbol list * variable list * metavariable list -> 'a -> 'a,
      instantiate: int * int * int -> 'p list * 'm list * 'm scope list -> 'a -> 'a,
      freeVariable : variable * sort -> 'm,
      freeSymbol : symbol -> 'p}
-
-  val scopeBindingSupport : ('m, 'p, 'a) binding_support -> ('m, 'p, 'a scope) binding_support
 
   datatype ('s, 'v, 'a) scope_view = \ of ('s list * 'v list) * 'a
 
