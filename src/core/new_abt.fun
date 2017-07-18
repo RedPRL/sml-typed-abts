@@ -225,21 +225,21 @@ struct
            #handleMeta kit (i, j, k) (((X, tau), rs', ms') <: ann)
          end
 
-    fun accumAbt (acc : 'a monoid) (kit : ('a, 'a) traverse_kit) (i, j, k) (term <: (ann as {user, system})) : 'a = 
+    fun accumAbt (acc : 'a monoid) (kit : ('a, 'a) traverse_kit) (i, j, k) (term <: (ann as {user, system})) : 'a =
       if not (#shouldTraverse kit (i, j, k) system) then #unit acc else
-      case term of 
+      case term of
          V var => #handleVar kit j (var <: ann)
-       | APP (theta, args) => 
+       | APP (theta, args) =>
          let
            val support = O.support theta
            val memo = List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym kit i (u, sigma), memo)) (#unit acc) support
          in
            List.foldr
-             (fn (scope, memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (accumAbt acc kit) (i, j, k) scope), memo)) 
+             (fn (scope, memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (accumAbt acc kit) (i, j, k) scope), memo))
              memo
              args
          end
-       | META ((X, tau), rs, ms) => 
+       | META ((X, tau), rs, ms) =>
          let
            val memo =
              List.foldr
@@ -294,7 +294,7 @@ struct
         mapAbt kit (i, j, k)
       end
 
-    and abstractAbt (i, j, k) (us, xs, Xs) =
+    fun abstractAbt (i, j, k) (us, xs, Xs) =
       let
         fun shouldTraverse (i, j, k) ({hasFreeSyms, hasFreeVars, hasFreeMetas, ...} : system_annotation) =
           let
@@ -336,13 +336,57 @@ struct
         mapAbt kit (i, j, k)
       end
 
+    fun subst (srho: symenv, vrho : varenv, mrho : metaenv) =
+      let
+        fun shouldTraverse _ ({hasFreeVars, hasFreeSyms, hasFreeMetas, ...} : system_annotation) =
+          let
+            val needSyms = hasFreeSyms andalso not (Sym.Ctx.isEmpty srho)
+            val needVars = hasFreeVars andalso not (Var.Ctx.isEmpty vrho)
+            val needMetas = hasFreeMetas andalso not (Metavar.Ctx.isEmpty mrho)
+          in
+            needSyms orelse needVars orelse needMetas
+          end
+
+        fun handleSym _ (sym, sigma) =
+          case sym of
+             FREE u =>
+             (case Sym.Ctx.find srho u of
+                 NONE => P.ret sym
+               | SOME r => P.map FREE r)
+           | BOUND _ => P.ret sym
+
+        fun handleVar _ ((var, tau) <: ann) =
+          case var of
+             FREE x =>
+             (case Var.Ctx.find vrho x of
+                 NONE => V (var, tau) <: ann
+               | SOME m => m)
+           | BOUND _ => V (var, tau) <: ann
+
+        fun handleMeta _ (((X : metavariable locally, tau), rs, ms) <: ann) =
+          case X of
+             FREE X =>
+             (case Metavar.Ctx.find mrho X of
+                 NONE => META ((FREE X, tau), rs, ms) <: ann
+               | SOME scope => instantiateAbt (0,0,0) (List.map #1 rs, ms, []) (Sc.unsafeReadBody scope))
+           | BOUND _ => META ((X, tau), rs, ms) <: ann
+
+        val kit =
+          {handleSym = handleSym,
+           handleVar = handleVar,
+           handleMeta = raise Match,
+           shouldTraverse = shouldTraverse}
+      in
+        mapAbt kit (0,0,0)
+      end
+
     fun varctx m =
       let
         fun handleVar _ =
           fn (FREE x, tau) <: _ => Var.Ctx.singleton x tau
            | _ => Var.Ctx.empty
 
-        val monoid = 
+        val monoid =
           {unit = Var.Ctx.empty,
            mul = fn (xs1, xs2) => Var.Ctx.union xs1 xs2 (fn (_, tau, _) => tau)}
 
@@ -361,7 +405,7 @@ struct
           fn (FREE x, sigma) => Sym.Ctx.singleton x sigma
            | _ => Sym.Ctx.empty
 
-        val monoid = 
+        val monoid =
           {unit = Sym.Ctx.empty,
            mul = fn (xs1, xs2) => Sym.Ctx.union xs1 xs2 (fn (_, sigma, _) => sigma)}
 
@@ -380,7 +424,7 @@ struct
           fn (((FREE x, tau), rs, ms) : meta_term) <: _ => Metavar.Ctx.singleton x ((List.map #2 rs, List.map sort ms), tau)
            | _ => Metavar.Ctx.empty
 
-        val monoid = 
+        val monoid =
           {unit = Metavar.Ctx.empty,
            mul = fn (xs1, xs2) => Metavar.Ctx.union xs1 xs2 (fn (_, vl, _) => vl)}
 
@@ -401,23 +445,23 @@ struct
   fun varOccurrences _ = ?todo
 
 
-  (* The following could be improved by fusing the abstract and instantiate traversals. Maybe there
-     is some way to do this using a CPS'd version of those functions? *)
+  fun substVarenv vrho =
+    subst (Sym.Ctx.empty, vrho, Metavar.Ctx.empty)
+
+  fun substSymenv srho =
+    subst (srho, Var.Ctx.empty, Metavar.Ctx.empty)
+
+  fun substMetaenv mrho =
+    subst (Sym.Ctx.empty, Var.Ctx.empty, mrho)
+
   fun substVar (m, x) =
-    instantiateAbt (0,0,0) ([], [m], [])
-      o abstractAbt (0,0,0) ([], [x], [])
+    substVarenv (Var.Ctx.singleton x m)
 
   fun substSymbol (r, u) =
-    instantiateAbt (0,0,0) ([P.map FREE r], [], [])
-      o abstractAbt (0,0,0) ([u], [], [])
+    substSymenv (Sym.Ctx.singleton u r)
 
   fun substMetavar (scope, X) =
-    instantiateAbt (0,0,0) ([], [], [scope])
-      o abstractAbt (0,0,0) ([], [], [X])
-
-  fun substVarenv _ = ?todo
-  fun substSymenv _ = ?todo
-  fun substMetaenv _ = ?todo
+    substMetaenv (Metavar.Ctx.singleton X scope)
 
   fun renameVars _ = ?todo
 
