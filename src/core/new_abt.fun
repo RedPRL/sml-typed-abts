@@ -519,9 +519,13 @@ struct
   fun checkb ((us, xs) \ m, ((ssorts, vsorts), tau)) : abs =
     let
       val (_, tau') = infer m
-      val () = assertSortEq (tau, tau')
+
+      val syms = symctx m
+      val vars = varctx m
     in
-      (* TODO: this doesn't check sort for these variables *)
+      assertSortEq (tau, tau');
+      ListPair.app (fn (u, sigma) => assertPSortEq (sigma, Option.getOpt (Sym.Ctx.find syms u, sigma))) (us, ssorts);
+      ListPair.app (fn (x, tau) => assertSortEq (tau, Option.getOpt (Var.Ctx.find vars x, tau))) (xs, vsorts);
       Sc.intoScope (abtBindingSupport) (Sc.\ ((us, xs), m))
     end
 
