@@ -643,6 +643,24 @@ struct
   fun deepMapSubterms f m =
     mapSubterms (f o deepMapSubterms f) m
 
-  fun primToString _ = ?todo
-  fun primToStringAbs _ = ?todo
+  fun locallyToString f = 
+    fn FREE x => f x
+     | BOUND i => Int.toString i
+
+  val rec primToString =
+    fn V (v, _) <: _ => locallyToString Var.toString v
+     | APP (theta, es) <: _ =>
+         O.toString (locallyToString Sym.toString) theta
+           ^ "("
+           ^ ListSpine.pretty primToStringAbs "; " es
+           ^ ")"
+     | META ((X, tau), ps, ms) <: _ =>
+         "#" ^ locallyToString Metavar.toString X
+           ^ "{" ^ ListSpine.pretty (P.toString (locallyToString Sym.toString) o #1) ", " ps ^ "}"
+           ^ "[" ^ ListSpine.pretty primToString ", " ms ^ "]"
+  and primToStringAbs =
+    fn ABS (ssorts, vsorts, m) =>
+      "{" ^ ListSpine.pretty PS.toString ", " ssorts ^ "}"
+      ^ "[" ^ ListSpine.pretty S.toString ", " vsorts ^ "]"
+      ^ "." ^ primToString (Sc.unsafeReadBody m)
 end
