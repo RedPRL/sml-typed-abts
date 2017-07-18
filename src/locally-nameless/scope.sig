@@ -12,7 +12,7 @@ sig
 
   exception Instantiate
 
-  val liftTraversal : (int * int * int -> 'a -> 'a) -> int * int * int -> 'a scope -> 'a scope
+  val liftTraversal : (int * int * int -> 'a -> 'b) -> int * int * int -> 'a scope -> 'b scope
 
   (* TODO: delete? *)
   type ('m, 'p, 'a) binding_support = 
