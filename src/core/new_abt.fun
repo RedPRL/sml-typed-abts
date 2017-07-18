@@ -374,7 +374,7 @@ struct
         val kit =
           {handleSym = handleSym,
            handleVar = handleVar,
-           handleMeta = raise Match,
+           handleMeta = handleMeta,
            shouldTraverse = shouldTraverse}
       in
         mapAbt kit (0,0,0)
@@ -437,7 +437,6 @@ struct
         accumAbt monoid kit (0,0,0) m
       end
   end
-
 
   exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
 
