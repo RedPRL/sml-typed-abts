@@ -201,15 +201,11 @@ struct
        | BOUND k => BOUND k
 
     (* TODO: sort checking? *)
-    fun instantiateSym (i, j, k) (rs, ms, scopes) sym = 
+    fun instantiateSym i rs sym =
       case findInstantiation i rs sym of 
          SOME r => r
        | NONE => P.ret sym
 
-    fun instantiateVar (i, j, k) (rs, ms, scopes) ((var, tau) <: ann) = 
-      case findInstantiation j ms var of 
-         SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
-       | NONE => V (var, tau) <: ann
   in
     fun abtBindingSupport () : abt binding_support = 
       {abstract = abstractAbt,
@@ -227,18 +223,21 @@ struct
       in
         if noNeedSyms andalso noNeedVars andalso noNeedMetas then term <: ann else
         case term of
-           V var => instantiateVar (i, j, k) (rs, ms, scopes) (var <: ann)
+           V (var, tau) => 
+           (case findInstantiation j ms var of 
+               SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
+             | NONE => V (var, tau) <: ann)
          | APP (theta, args) =>
            let
              val scopeBindingSupport = Sc.scopeBindingSupport (abtBindingSupport ())
-             val theta' = O.map (instantiateSym (i, j, k) (rs, ms, scopes)) theta
+             val theta' = O.map (instantiateSym i rs) theta
              val args' = List.map (fn sc => #instantiate scopeBindingSupport (i, j, k) sc (rs, ms, scopes)) args
            in
              makeAppTerm (theta', args') (#user ann)
            end
          | META ((X, tau), rsX, msX) =>
            let
-             val rsX' = List.map (fn (r, sigma) => (P.bind (instantiateSym (i, j, k) (rs, ms, scopes)) r, sigma)) rsX
+             val rsX' = List.map (fn (r, sigma) => (P.bind (instantiateSym i rs) r, sigma)) rsX
              val msX' = List.map (fn m => instantiateAbt (i, j, k) m (rs, ms, scopes)) msX
            in
              case findInstantiation k scopes X of 
