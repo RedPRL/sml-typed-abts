@@ -3,7 +3,7 @@ functor NewAbt
    structure Var : ABT_SYMBOL
    structure Metavar : ABT_SYMBOL
    structure O : ABT_OPERATOR where type 'a Ar.Vl.Sp.t = 'a list
-   type user_annotation) : ABT =
+   type annotation) : ABT =
 struct
   exception todo
   fun ?e = raise e
@@ -53,8 +53,9 @@ struct
      freeSyms: symctx,
      freeMetas: metactx}
 
-  type annotation =
-    {user: user_annotation option,
+  type annotation = annotation
+  type internal_annotation =
+    {user: annotation option,
      system: system_annotation}
 
   val optionalIdxLub =
@@ -71,7 +72,7 @@ struct
      freeSyms = SymCtxUtil.union (#freeSyms ann1, #freeSyms ann2),
      freeMetas = MetaCtxUtil.union (#freeMetas ann1, #freeMetas ann2)}
 
-  datatype 'a annotated = <: of 'a * annotation
+  datatype 'a annotated = <: of 'a * internal_annotation
   infix <:
 
   datatype abt_internal =
@@ -402,11 +403,11 @@ struct
     fun metactx (_ <: {system = {freeMetas, ...}, ...}) =
       freeMetas
 
-    val symOccurrences = 
+    val symOccurrences : abt -> annotation list Sym.ctx = 
       let
-        fun handleSym _ ((sym, _) <: ann) =
-          case sym of 
-             FREE u => Sym.Ctx.singleton u [ann]
+        fun handleSym _ ((sym, _) <: {user, system}) =
+          case (sym, user) of 
+             (FREE u, SOME ann) => Sym.Ctx.singleton u [ann]
            | _ => Sym.Ctx.empty
 
         val monoid : annotation list Sym.Ctx.dict monoid =
@@ -424,9 +425,9 @@ struct
 
     val varOccurrences = 
       let
-        fun handleVar _ ((var, _) <: ann) =
-          case var of 
-             FREE x => Var.Ctx.singleton x [ann]
+        fun handleVar _ ((var, _) <: {user, system}) =
+          case (var, user) of 
+             (FREE x, SOME ann) => Var.Ctx.singleton x [ann]
            | _ => Var.Ctx.empty
 
         val monoid : annotation list Var.Ctx.dict monoid =
@@ -482,12 +483,11 @@ struct
   fun substMetavar (scope, X) =
     substMetaenv (Metavar.Ctx.singleton X scope)
 
-  fun annotate _ = ?todo
-  fun getAnnotation _ = ?todo
-  fun setAnnotation _ = ?todo
-  fun clearAnnotation _ = ?todo
 
-
+  fun annotate ann (m <: {system, ...}) = m <: {user = SOME ann, system = system}
+  fun getAnnotation (_ <: {user, ...}) = user
+  fun setAnnotation ann (m <: {system, ...}) = m <: {user = ann, system = system}
+  fun clearAnnotation (m <: {system, ...}) = m <: {user = NONE, system = system}
 
   (* A family of convenience functions for failing when things go wrong.
    * These are internal checks and so they should raise Fail; people shouldn't
@@ -623,10 +623,26 @@ struct
     fn (ABS (_, _, scope1), ABS (_, _, scope2)) =>
       Sc.eq eq (scope1, scope2)
 
-  fun mapAbs _ = ?todo
-  fun abtToAbs _ = ?todo
-  fun mapSubterms _ = ?todo
-  fun deepMapSubterms _ = ?todo
+  fun mapAbs f abs =
+    let
+      val ((us, xs) \ m, vl) = inferb abs
+    in
+      checkb ((us, xs) \ f m, vl)
+    end
+
+  fun abtToAbs m = 
+    ABS ([],[], Sc.intoScope abtBindingSupport (Sc.\ (([],[]), m)))
+
+  fun mapSubterms f m =
+    let
+      val (view, tau) = infer m
+    in
+      setAnnotation (getAnnotation m) (check (map f view, tau))
+    end
+
+  fun deepMapSubterms f m =
+    mapSubterms (f o deepMapSubterms f) m
+
   fun primToString _ = ?todo
   fun primToStringAbs _ = ?todo
 end
