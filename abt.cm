@@ -29,6 +29,7 @@ Library
   structure UnisortedAbtArity
   functor ContextUtil
   functor Abt
+  functor NewAbt
   functor SimpleAbt
   functor Ast
   functor AstUtil
@@ -69,5 +70,6 @@ is
   src/core/valence.fun
   src/core/arity.fun
   src/core/abt.fun
+  src/core/new_abt.fun
   src/core/ast.fun
 
