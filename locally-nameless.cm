@@ -13,6 +13,7 @@ Library
 is
   $/basis.cm
   basis/basis.cm
+  src/locally-nameless/symbol.sig
   src/locally-nameless/coord.sig
   src/locally-nameless/coord.sml
   src/locally-nameless/scope.sig

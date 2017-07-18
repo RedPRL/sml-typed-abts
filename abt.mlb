@@ -6,7 +6,6 @@ local
   lib/cmlib.mlb
   locally-nameless.mlb
 
-  src/core/symbol.sig
   src/core/symbol.fun
   src/core/context_util.sig
   src/core/context_util.fun
