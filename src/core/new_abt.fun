@@ -316,9 +316,10 @@ struct
             (* needSyms orelse needVars orelse needMetas *)
           end
 
+        (* It is weird that this has to be recursive at this spot *)
         fun instantiateMeta (i, j, k) ((((X, tau), rsX, msX) : meta_term) <: ann) =
           case findInstantiation k scopes X of
-             SOME scope => instantiateAbt (i, j, k) (List.map #1 rsX, msX, scopes) (Sc.unsafeReadBody scope)
+             SOME scope => instantiateAbt (0, 0, 0) (List.map #1 rsX, msX, scopes) (Sc.unsafeReadBody scope)
            | NONE => makeMetaTerm ((X, tau), rsX, msX) (#user ann)
 
         val alg =
