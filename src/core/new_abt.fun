@@ -182,7 +182,7 @@ struct
             system = {symIdxBound = 0, varIdxBound = i + 1, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, hasMetas = false}}
 
   fun idxBoundForSyms support =
-    List.foldr
+    List.foldl
       (fn ((FREE _,_), i) => i
         | ((BOUND i, _), j) => Int.max (i + 1, j))
       0
@@ -202,7 +202,7 @@ struct
       val symIdxBound = idxBoundForSyms support
       val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSyms, hasMetas = false}
       val systemAnn =
-        List.foldr
+        List.foldl
           (fn (ABS (_, _, scope), ann) => systemAnnLub (ann, #system (scopeReadAnn scope)))
           operatorAnn
           scopes
@@ -223,13 +223,13 @@ struct
       val metaSystemAnn = {symIdxBound = 0, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, hasMetas = true}
 
       val systemAnn =
-        List.foldr
+        List.foldl
           (fn ((p, sigma), ann) => systemAnnLub (ann, paramSystemAnn (p, sigma)))
           metaSystemAnn
           rs
 
       val systemAnn =
-        List.foldr
+        List.foldl
           (fn (_ <: termAnn, ann) => systemAnnLub (ann, #system termAnn))
           systemAnn
           ms
@@ -285,9 +285,9 @@ struct
        | APP (theta, args) =>
          let
            val support = O.support theta
-           val memo = List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg (#1 ixs) ((u, sigma) <: ann), memo)) (#unit acc) support
+           val memo = List.foldl (fn ((u, sigma), memo) => #mul acc (#handleSym alg (#1 ixs) ((u, sigma) <: ann), memo)) (#unit acc) support
          in
-           List.foldr
+           List.foldl
              (fn (ABS (_, _, scope), memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (abtAccum acc alg) ixs scope), memo))
              memo
              args
@@ -295,17 +295,17 @@ struct
        | META ((X, tau), rs, ms) =>
          let
            val memo =
-             List.foldr
+             List.foldl
                (fn ((r, sigma), memo) =>
                   let
                     val support = P.check sigma r
                   in
-                    List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg (#1 ixs) ((u, sigma) <: ann), memo)) memo support
+                    List.foldl (fn ((u, sigma), memo) => #mul acc (#handleSym alg (#1 ixs) ((u, sigma) <: ann), memo)) memo support
                   end)
                (#unit acc)
                rs
          in
-           List.foldr (fn (m, memo) => #mul acc (abtAccum acc alg ixs m, memo)) memo ms
+           List.foldl (fn (m, memo) => #mul acc (abtAccum acc alg ixs m, memo)) memo ms
          end
 
   in
@@ -445,9 +445,9 @@ struct
              in
                auxTerms metas' ms
              end
-        and auxArgs metas = List.foldr (fn (abs, metas) => auxAbs metas abs) metas
+        and auxArgs metas = List.foldl (fn (abs, metas) => auxAbs metas abs) metas
         and auxAbs metas (ABS (_, _, scope)) = aux metas (Sc.unsafeReadBody scope)
-        and auxTerms metas = List.foldr (fn (term, metas) => aux metas term) metas
+        and auxTerms metas = List.foldl (fn (term, metas) => aux metas term) metas
       in
         aux Metavar.Ctx.empty
       end
