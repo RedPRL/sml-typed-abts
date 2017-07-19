@@ -293,12 +293,12 @@ struct
                  NONE
              end
 
-        fun instantiateSym i rs ((sym, sigma) <: _) =
+        fun instantiateSym i ((sym, sigma) <: _) =
           case findInstantiation i rs sym of
              SOME r => (P.check sigma r; r)
            | NONE => P.ret sym
 
-        fun instantiateVar j ms ((var, tau) <: ann) =
+        fun instantiateVar j ((var, tau) <: ann) =
           case findInstantiation j ms var of
              SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
            | NONE => V (var, tau) <: ann
@@ -322,8 +322,8 @@ struct
            | NONE => makeMetaTerm ((X, tau), rsX, msX) (#user ann)
 
         val alg =
-          {handleSym = fn i => instantiateSym i rs,
-           handleVar = fn j => instantiateVar j ms,
+          {handleSym = instantiateSym,
+           handleVar = instantiateVar,
            handleMeta = instantiateMeta,
            shouldTraverse = shouldTraverse}
       in
@@ -341,14 +341,14 @@ struct
             needSyms orelse needVars orelse needMetas
           end
 
-        fun abstractSym i us =
+        fun abstractSym i =
           fn (FREE u, _) <: _ =>
              (case indexOfFirst (fn v => Sym.eq (u, v)) us of
-                 NONE => FREE u
-               | SOME i' => BOUND (i + i'))
-           | (BOUND i', _) <: _ => BOUND i'
+                 NONE => P.ret (FREE u)
+               | SOME i' => P.ret (BOUND (i + i')))
+           | (BOUND i', _) <: _ => P.ret (BOUND i')
 
-        fun abstractVar j xs =
+        fun abstractVar j =
           fn (vt as (FREE x, tau)) <: ann =>
              (case indexOfFirst (fn y => Var.eq (x, y)) xs of
                  NONE => V vt <: ann
@@ -364,8 +364,8 @@ struct
             | BOUND k' => META meta <: ann
 
         val alg =
-          {handleSym = fn i => P.ret o abstractSym i us,
-           handleVar = fn j => abstractVar j xs,
+          {handleSym = abstractSym,
+           handleVar = abstractVar,
            handleMeta = abstractMeta,
            shouldTraverse = shouldTraverse}
       in
