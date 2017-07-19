@@ -50,7 +50,7 @@ struct
      varIdxBound: int,
      freeVars: varctx,
      freeSyms: symctx,
-     freeMetas: metactx}
+     hasMetas: bool}
 
   type annotation = annotation
   type internal_annotation =
@@ -62,7 +62,7 @@ struct
      varIdxBound = Int.max (#varIdxBound ann1, #varIdxBound ann2),
      freeVars = VarCtxUtil.union (#freeVars ann1, #freeVars ann2),
      freeSyms = SymCtxUtil.union (#freeSyms ann1, #freeSyms ann2),
-     freeMetas = MetaCtxUtil.union (#freeMetas ann1, #freeMetas ann2)}
+     hasMetas = #hasMetas ann1 orelse #hasMetas ann2}
 
   datatype 'a annotated = <: of 'a * internal_annotation
   infix <:
@@ -161,12 +161,12 @@ struct
   fun scopeReadAnn scope =
     let
       val Sc.\ ((us, xs), body <: ann) = Sc.unsafeRead scope
-      val {symIdxBound, varIdxBound, freeVars, freeSyms, freeMetas} = #system ann
+      val {symIdxBound, varIdxBound, freeVars, freeSyms, hasMetas} = #system ann
       val symIdxBound' = symIdxBound - List.length us
       val varIdxBound' = varIdxBound - List.length xs
     in
       {user = #user ann,
-       system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', freeSyms = freeSyms, freeVars = freeVars, freeMetas = freeMetas}}
+       system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', freeSyms = freeSyms, freeVars = freeVars, hasMetas = hasMetas}}
     end
 
   fun makeVarTerm (var, tau) userAnn =
@@ -174,12 +174,12 @@ struct
        FREE x =>
          V (var, tau) <:
            {user = userAnn,
-            system = {symIdxBound = 0,varIdxBound = 0, freeVars = Var.Ctx.singleton x tau, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
+            system = {symIdxBound = 0,varIdxBound = 0, freeVars = Var.Ctx.singleton x tau, freeSyms = Sym.Ctx.empty, hasMetas = false}}
 
      | BOUND i =>
          V (var, tau) <:
            {user = userAnn,
-            system = {symIdxBound = 0, varIdxBound = i + 1, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
+            system = {symIdxBound = 0, varIdxBound = i + 1, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, hasMetas = false}}
 
   fun idxBoundForSyms support =
     List.foldr
@@ -200,7 +200,7 @@ struct
       val support = O.support theta
       val freeSyms = freeSymsForSupport support
       val symIdxBound = idxBoundForSyms support
-      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSyms, freeMetas = Metavar.Ctx.empty}
+      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSyms, hasMetas = false}
       val systemAnn =
         List.foldr
           (fn (ABS (_, _, scope), ann) => systemAnnLub (ann, #system (scopeReadAnn scope)))
@@ -214,14 +214,13 @@ struct
     let
       val support = P.check sigma r
     in
-      {symIdxBound = idxBoundForSyms support, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, freeMetas = Metavar.Ctx.empty}
+      {symIdxBound = idxBoundForSyms support, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, hasMetas = false}
     end
 
   (* For some reason, this is not setting the db-idx bounds properly in the system annotation *)
   fun makeMetaTerm (((X, tau), rs, ms) : meta_term) userAnn =
     let
-      val freeMetas = Metavar.Ctx.singleton X ((List.map #2 rs, List.map sort ms), tau)
-      val metaSystemAnn = {symIdxBound = 0, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = freeMetas}
+      val metaSystemAnn = {symIdxBound = 0, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, hasMetas = true}
 
       val systemAnn =
         List.foldr
@@ -353,7 +352,7 @@ struct
 
     fun abstractAbt ixs (us, xs) =
       let
-        fun shouldTraverse ixs ({freeSyms, freeVars, freeMetas, ...} : system_annotation) =
+        fun shouldTraverse ixs ({freeSyms, freeVars, hasMetas, ...} : system_annotation) =
           let
             val needSyms = case us of [] => false | _ => not (Sym.Ctx.isEmpty freeSyms)
             val needVars = case xs of [] => false | _ => not (Var.Ctx.isEmpty freeVars)
@@ -432,8 +431,26 @@ struct
     fun symctx (_ <: {system = {freeSyms, ...}, ...}) = 
       freeSyms
 
-    fun metactx (_ <: {system = {freeMetas, ...}, ...}) =
-      freeMetas
+    val metactx : abt -> metactx =
+      let
+        fun aux metas (term <: {system = {hasMetas, ...}, ...}) = 
+          if not hasMetas then metas else
+          case term of 
+             V _ => metas
+           | APP (_, args) => auxArgs metas args
+           | META ((X, tau), rs, ms) =>
+             let
+               val vl = ((List.map #2 rs, List.map sort ms), tau)
+               val metas' = Metavar.Ctx.insert metas X vl
+             in
+               auxTerms metas' ms
+             end
+        and auxArgs metas = List.foldr (fn (abs, metas) => auxAbs metas abs) metas
+        and auxAbs metas (ABS (_, _, scope)) = aux metas (Sc.unsafeReadBody scope)
+        and auxTerms metas = List.foldr (fn (term, metas) => aux metas term) metas
+      in
+        aux Metavar.Ctx.empty
+      end
 
     val symOccurrences : abt -> annotation list Sym.ctx = 
       let
@@ -665,9 +682,9 @@ struct
   fun deepMapSubterms f m =
     mapSubterms (f o deepMapSubterms f) m
 
-  fun substMetaenv mrho (term as _ <: {system = {freeMetas, ...}, ...}) =
-    if Metavar.Ctx.isEmpty freeMetas then term else
-    case infer term of 
+  fun substMetaenv mrho (term as _ <: {system = {hasMetas, ...}, ...}) =
+    if not hasMetas then term else
+    case infer term of
        (`_, _) => term
      | (theta $ args, tau) =>
        let
