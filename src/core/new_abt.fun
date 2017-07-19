@@ -336,17 +336,17 @@ struct
           let
             val needSyms = case us of [] => false | _ => not (Sym.Ctx.isEmpty freeSyms)
             val needVars = case xs of [] => false | _ => not (Var.Ctx.isEmpty freeVars)
-            val needMetas = case Xs of [] => true | _ => not (Metavar.Ctx.isEmpty freeMetas)
+            val needMetas = case Xs of [] => false | _ => not (Metavar.Ctx.isEmpty freeMetas)
           in
             needSyms orelse needVars orelse needMetas
           end
 
         fun abstractSym i =
-          fn (FREE u, _) <: _ =>
+          fn (sym as FREE u, _) <: _ =>
              (case indexOfFirst (fn v => Sym.eq (u, v)) us of
-                 NONE => P.ret (FREE u)
+                 NONE => P.ret sym
                | SOME i' => P.ret (BOUND (i + i')))
-           | (BOUND i', _) <: _ => P.ret (BOUND i')
+           | (sym, _) <: _ => P.ret sym
 
         fun abstractVar j =
           fn (vt as (FREE x, tau)) <: ann =>
