@@ -549,8 +549,7 @@ struct
 
   fun checkb ((us, xs) \ m, ((ssorts, vsorts), tau)) : abs =
     let
-      val (_, tau') = infer m
-
+      val tau' = sort m
       val syms = symctx m
       val vars = varctx m
     in
@@ -560,7 +559,7 @@ struct
       ABS (ssorts, vsorts, Sc.intoScope abtBindingSupport (Sc.\ ((us, xs), m)))
     end
 
-  and infer (term <: ann) =
+  fun infer (term <: ann) =
     case term of 
        V (FREE x, tau) => (`x, tau)
      | V _ => raise Fail "I am a number, not a free variable!!"
