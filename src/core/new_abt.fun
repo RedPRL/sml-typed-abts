@@ -83,23 +83,28 @@ struct
     fn FREE x => f x
      | BOUND i => "<" ^ Int.toString i ^ ">"
 
+  fun prettyList f l c r xs = 
+    case xs of 
+       [] => ""
+     | _ => l ^ ListSpine.pretty f c xs ^ r
+
   val rec primToString =
     fn V (v, _) <: _ => locallyToString Var.toString v
      | APP (theta, es) <: _ =>
          O.toString (locallyToString Sym.toString) theta
-           ^ "("
-           ^ ListSpine.pretty primToStringAbs "; " es
-           ^ ")"
-     | META ((X, tau), ps, ms) <: _ =>
-         "#" ^ locallyToString Metavar.toString X
-           ^ "{" ^ ListSpine.pretty (P.toString (locallyToString Sym.toString) o #1) ", " ps ^ "}"
-           ^ "[" ^ ListSpine.pretty primToString ", " ms ^ "]"
-  and primToStringAbs =
-    fn ABS (ssorts, vsorts, m) =>
-      "{" ^ ListSpine.pretty PS.toString ", " ssorts ^ "}"
-      ^ "[" ^ ListSpine.pretty S.toString ", " vsorts ^ "]"
-      ^ "." ^ primToString (Sc.unsafeReadBody m)
+           ^ prettyList primToStringAbs "(" "; " ")" es
 
+     | META ((X, tau), rs, ms) <: _ =>
+         "#" ^ locallyToString Metavar.toString X
+           ^ prettyList (P.toString (locallyToString Sym.toString) o #1) "{" ", " "}" rs
+           ^ prettyList primToString "[" ", " "]" ms
+
+  and primToStringAbs =
+    fn ABS ([], [], m) => primToString (Sc.unsafeReadBody m)
+     | ABS (ssorts, vsorts, m) => 
+         prettyList PS.toString "{" ", " "}" ssorts
+         ^ prettyList S.toString "[" ", " "]" vsorts
+         ^ "." ^ primToString (Sc.unsafeReadBody m)
 
   type metaenv = abs Metavar.Ctx.dict
   type varenv = abt Var.Ctx.dict
