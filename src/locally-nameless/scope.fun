@@ -32,28 +32,6 @@ struct
       (us, xs) \ f (i + symCount, j + varCount, k) m
     end
 
-  fun liftAbstract abstract (i, j, k) (us, xs, Xs) ((us', xs') \ m) =
-    let
-      val symCount = List.length us'
-      val varCount = List.length xs'
-    in
-      (us', xs') \ abstract (i + symCount, j + varCount, k) (us, xs, Xs) m
-    end
-
-  fun liftInstantiate instantiate (i, j, k) (rs, ms, scs)  ((us, xs) \ m) =
-    let
-      val symCount = List.length us
-      val varCount = List.length xs
-    in
-      (us, xs) \ instantiate (i + symCount, j + varCount, k) (rs, ms, scs) m
-    end
-
-  fun scopeBindingSupport (driver : ('m, 'p, 'a) binding_support) : ('m, 'p, 'a scope) binding_support =
-    {abstract = liftAbstract (#abstract driver),
-     instantiate = liftInstantiate (#instantiate driver),
-     freeVariable = #freeVariable driver,
-     freeSymbol = #freeSymbol driver}
-
   fun eq f (_ \ m, _ \ n) = 
     f (m, n)
 
