@@ -125,8 +125,31 @@ struct
            "." ^ primToString' (us @ us', xs @ xs') body
          end
 
-    val primToString = primToString' ([],[])
-    val primToStringAbs = primToStringAbs' ([],[])
+  val primToString = primToString' ([],[])
+  val primToStringAbs = primToStringAbs' ([],[])
+
+
+  (* A family of convenience functions for failing when things go wrong.
+   * These are internal checks and so they should raise Fail; people shouldn't
+   * be trying to catch these.
+   *)
+  fun assert msg b =
+    if b then () else raise Fail msg
+
+  fun assertSortEq (sigma, tau) =
+    assert
+      ("expected " ^ S.toString sigma ^ " == " ^ S.toString tau)
+      (S.eq (sigma, tau))
+
+  fun assertPSortEq (sigma, tau) =
+    assert
+      ("expected " ^ PS.toString sigma ^ " == " ^ PS.toString tau)
+      (PS.eq (sigma, tau))
+
+  fun assertValenceEq (v1, v2) =
+    assert
+      ("expected " ^ Valence.toString v1 ^ " == " ^ Valence.toString v2)
+      (Valence.eq (v1, v2))
 
   type metaenv = abs Metavar.Ctx.dict
   type varenv = abt Var.Ctx.dict
@@ -136,25 +159,6 @@ struct
     fn V (_, tau) <: _ => tau
      | APP (theta, _) <: _ => #2 (O.arity theta)
      | META ((_, tau), _, _) <: _ => tau
-
-  exception BoundVariable of string
-  fun assertHasNotBoundVariable msg i (m <: _) = 
-    case m of
-       V (BOUND j, _) => if j >= i then raise BoundVariable msg else ()
-     | APP (_, args) =>
-       let
-         fun onAbs (ABS (ssorts, vsorts, scope)) = 
-           assertHasNotBoundVariable msg (i + List.length vsorts) (Sc.unsafeReadBody scope)
-       in
-         List.app onAbs args
-       end
-     | META (_, _, ms) => List.app (assertHasNotBoundVariable msg i) ms
-     | _ => ()
-
-
-  (* TODO: add diagnostics *)
-  exception BadInstantiate
-
 
   type 'a binding_support = (abt, Sym.t locally P.term, 'a) Sc.binding_support
 
@@ -328,16 +332,14 @@ struct
 
         fun instantiateVar j ((vt as (var, tau)) <: ann) =
           case findInstantiation j ms var of
-             SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
+             SOME m => (assertSortEq (sort m, tau); m)
            | NONE => V vt <: ann
 
         fun shouldTraverse (ixs : int * int) ({symIdxBound, varIdxBound,  ...} : system_annotation) =
           let
-            (* TODO: check this logic. If there is no bound (sym, var, meta), then we have nothing to instantiate. does that make sense? *)
             val needSyms = #1 ixs < symIdxBound
             val needVars = #2 ixs < varIdxBound
           in
-            (* TODO: this logic was incorect!*)
             needSyms orelse needVars
           end
 
@@ -532,28 +534,6 @@ struct
   fun getAnnotation (_ <: {user, ...}) = user
   fun setAnnotation ann (m <: {system, ...}) = m <: {user = ann, system = system}
   fun clearAnnotation (m <: {system, ...}) = m <: {user = NONE, system = system}
-
-  (* A family of convenience functions for failing when things go wrong.
-   * These are internal checks and so they should raise Fail; people shouldn't
-   * be trying to catch these.
-   *)
-  fun assert msg b =
-    if b then () else raise Fail msg
-
-  fun assertSortEq (sigma, tau) =
-    assert
-      ("expected " ^ S.toString sigma ^ " == " ^ S.toString tau)
-      (S.eq (sigma, tau))
-
-  fun assertPSortEq (sigma, tau) =
-    assert
-      ("expected " ^ PS.toString sigma ^ " == " ^ PS.toString tau)
-      (PS.eq (sigma, tau))
-
-  fun assertValenceEq (v1, v2) =
-    assert
-      ("expected " ^ Valence.toString v1 ^ " == " ^ Valence.toString v2)
-      (Valence.eq (v1, v2))
 
 
   fun checkb ((us, xs) \ m, ((ssorts, vsorts), tau)) : abs =
