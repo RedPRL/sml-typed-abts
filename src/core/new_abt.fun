@@ -379,7 +379,7 @@ struct
      freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
      freeSymbol = fn u => P.ret (FREE u)}
 
-    fun subst (srho: symenv, vrho : varenv, mrho : metaenv) =
+    (* fun subst (srho: symenv, vrho : varenv, mrho : metaenv) =
       let
         fun shouldTraverse _ ({freeVars, freeSyms, freeMetas, ...} : system_annotation) =
           let
@@ -421,6 +421,16 @@ struct
            shouldTraverse = shouldTraverse}
       in
         abtRec alg (0,0,0)
+      end *)
+
+    fun subst (srho: symenv, vrho : varenv, mrho : metaenv) =
+      let
+        val (us, rs) = ListPair.unzip (Sym.Ctx.toList srho)
+        val (xs, ms) = ListPair.unzip (Var.Ctx.toList vrho)
+        val (Xs, bs) = ListPair.unzip (Metavar.Ctx.toList mrho)
+      in
+        instantiateAbt (0,0,0) (List.map (P.map FREE) rs, ms, List.map (fn ABS (_, _, scope) => scope) bs) o 
+          abstractAbt (0,0,0) (us, xs, Xs)
       end
 
     fun varctx (_ <: {system = {freeVars, ...}, ...}) = 
