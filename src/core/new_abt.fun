@@ -46,9 +46,9 @@ struct
   infix 5 $ $#
 
   type system_annotation =
-    {symIdxBound: int option,
-     varIdxBound: int option,
-     metaIdxBound: int option,
+    {symIdxBound: int,
+     varIdxBound: int,
+     metaIdxBound: int,
      freeVars: varctx,
      freeSyms: symctx,
      freeMetas: metactx}
@@ -58,16 +58,10 @@ struct
     {user: annotation option,
      system: system_annotation}
 
-  val optionalIdxLub =
-    fn (SOME i, SOME j) => SOME (Int.max (i, j))
-     | (SOME i, NONE) => SOME i
-     | (NONE, SOME i) => SOME i
-     | (NONE, NONE) => NONE
-
   fun systemAnnLub (ann1 : system_annotation, ann2 : system_annotation) : system_annotation =
-    {symIdxBound = optionalIdxLub (#symIdxBound ann1, #symIdxBound ann2),
-     varIdxBound = optionalIdxLub (#varIdxBound ann1, #varIdxBound ann2),
-     metaIdxBound = optionalIdxLub (#metaIdxBound ann1, #metaIdxBound ann2),
+    {symIdxBound = Int.max (#symIdxBound ann1, #symIdxBound ann2),
+     varIdxBound = Int.max (#varIdxBound ann1, #varIdxBound ann2),
+     metaIdxBound = Int.max (#metaIdxBound ann1, #metaIdxBound ann2),
      freeVars = VarCtxUtil.union (#freeVars ann1, #freeVars ann2),
      freeSyms = SymCtxUtil.union (#freeSyms ann1, #freeSyms ann2),
      freeMetas = MetaCtxUtil.union (#freeMetas ann1, #freeMetas ann2)}
@@ -127,8 +121,8 @@ struct
     let
       val Sc.\ ((us, xs), body <: ann) = Sc.unsafeRead scope
       val {symIdxBound, varIdxBound, metaIdxBound, freeVars, freeSyms, freeMetas} = #system ann
-      val symIdxBound' = Option.map (fn i => i - List.length us) symIdxBound
-      val varIdxBound' = Option.map (fn i => i - List.length xs) varIdxBound
+      val symIdxBound' = symIdxBound - List.length us
+      val varIdxBound' = varIdxBound - List.length xs
     in
       {user = #user ann,
        system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', metaIdxBound = metaIdxBound, freeSyms = freeSyms, freeVars = freeVars, freeMetas = freeMetas}}
@@ -139,19 +133,18 @@ struct
        FREE x =>
          V (var, tau) <:
            {user = userAnn,
-            system = {symIdxBound = NONE,varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.singleton x tau, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
+            system = {symIdxBound = 0,varIdxBound = 0, metaIdxBound = 0, freeVars = Var.Ctx.singleton x tau, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
 
      | BOUND i =>
          V (var, tau) <:
            {user = userAnn,
-            system = {symIdxBound = NONE, varIdxBound = SOME (i + 1), metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
+            system = {symIdxBound = 0, varIdxBound = i + 1, metaIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
 
   fun idxBoundForSyms support =
     List.foldr
-      (fn ((FREE _,_), oidx) => oidx
-        | ((BOUND i, _), NONE) => SOME (i + 1)
-        | ((BOUND i, _), SOME j) => SOME (Int.max (i, j)))
-      NONE
+      (fn ((FREE _,_), i) => i
+        | ((BOUND i, _), j) => Int.max (i + 1, j))
+      0
       support
 
   fun freeSymsForSupport support = 
@@ -166,7 +159,7 @@ struct
       val support = O.support theta
       val freeSyms = freeSymsForSupport support
       val symIdxBound = idxBoundForSyms support
-      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = freeSyms, freeMetas = Metavar.Ctx.empty}
+      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = 0, metaIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSyms, freeMetas = Metavar.Ctx.empty}
       val systemAnn =
         List.foldr
           (fn (ABS (_, _, scope), ann) => systemAnnLub (ann, #system (scopeReadAnn scope)))
@@ -180,7 +173,7 @@ struct
     let
       val support = P.check sigma r
     in
-      {symIdxBound = idxBoundForSyms support, varIdxBound = NONE, metaIdxBound = NONE, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, freeMetas = Metavar.Ctx.empty}
+      {symIdxBound = idxBoundForSyms support, varIdxBound = 0, metaIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, freeMetas = Metavar.Ctx.empty}
     end
 
   (* For some reason, this is not setting the de-idx bounds properly in the system annotation *)
@@ -188,15 +181,17 @@ struct
     let
       val (metaIdxBound, freeMetas) =
         case meta of
-           FREE X => (NONE, Metavar.Ctx.singleton X ((List.map #2 rs, List.map sort ms), tau))
-         | BOUND j => (SOME (j + 1), Metavar.Ctx.empty)
+           FREE X => (0, Metavar.Ctx.singleton X ((List.map #2 rs, List.map sort ms), tau))
+         | BOUND j => (j + 1, Metavar.Ctx.empty)
 
-      val metaSystemAnn = {symIdxBound = NONE, varIdxBound = NONE, metaIdxBound = metaIdxBound, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = freeMetas}
+      val metaSystemAnn = {symIdxBound = 0, varIdxBound = 0, metaIdxBound = metaIdxBound, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = freeMetas}
+
       val systemAnn =
         List.foldr
           (fn ((p, sigma), ann) => systemAnnLub (ann, paramSystemAnn (p, sigma)))
           metaSystemAnn
           rs
+
       val systemAnn =
         List.foldr
           (fn (_ <: termAnn, ann) => systemAnnLub (ann, #system termAnn))
@@ -306,9 +301,9 @@ struct
         fun shouldTraverse (i, j, k) ({symIdxBound, varIdxBound, metaIdxBound, ...} : system_annotation) =
           let
             (* TODO: check this logic. If there is no bound (sym, var, meta), then we have nothing to instantiate. does that make sense? *)
-            val needSyms = case symIdxBound of SOME i' => i < i' | NONE => false
-            val needVars = case varIdxBound of SOME j' => j < j' | NONE => false
-            val needMetas = case metaIdxBound of SOME k' => k < k' | NONE => false
+            val needSyms = i < symIdxBound
+            val needVars = j < varIdxBound
+            val needMetas = k < metaIdxBound
           in
             (* TODO: this logic was incorect!*)
             true
