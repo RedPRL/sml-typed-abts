@@ -2,31 +2,40 @@ functor Abt
   (structure Sym : ABT_SYMBOL
    structure Var : ABT_SYMBOL
    structure Metavar : ABT_SYMBOL
-   structure O : ABT_OPERATOR
+   structure O : ABT_OPERATOR where type 'a Ar.Vl.Sp.t = 'a list
    type annotation) : ABT =
 struct
-  structure Sym = Sym and Var = Var and Metavar = Metavar and O = O and Ar = O.Ar
-  structure S = Ar.Vl.S and PS = Ar.Vl.PS and Valence = Ar.Vl
-  structure Sp = Valence.Sp
+  exception todo
+  fun ?e = raise e
+
+  structure Sym = Sym and Var = Var and Metavar = Metavar and O = O
+
+  structure S = O.Ar.Vl.S and PS = O.Ar.Vl.PS and Valence = O.Ar.Vl
+  structure MetaCtxUtil = ContextUtil (structure Ctx = Metavar.Ctx and Elem = Valence)
+  structure VarCtxUtil = ContextUtil (structure Ctx = Var.Ctx and Elem = S)
+  structure SymCtxUtil = ContextUtil (structure Ctx = Sym.Ctx and Elem = PS)
+
+  type sort = O.Ar.Vl.S.t
+  type psort = O.Ar.Vl.PS.t
+
   structure P = O.P
+  type param = Sym.t P.term
 
-  structure MetaCtx = Metavar.Ctx
-  structure VarCtx = Var.Ctx
-  structure SymCtx = Sym.Ctx
+  structure Sc = LnScope (structure Sym = Sym and Var = Var and Metavar = Metavar type psort = psort type sort = sort)
+  datatype 'a locally =
+     FREE of 'a
+   | BOUND of int
 
-  type sort = S.t
-  type psort = PS.t
-  type valence = Valence.t
-  type coord = LnCoord.t
   type symbol = Sym.t
   type variable = Var.t
   type metavariable = Metavar.t
   type operator = symbol O.t
-  type param = symbol P.term
-  type 'a spine = 'a Sp.t
-  type annotation = annotation
+  type valence = O.Ar.valence
+  type varctx = sort Var.Ctx.dict
+  type symctx = psort Sym.Ctx.dict
+  type metactx = valence Metavar.Ctx.dict
 
-  structure Views = AbtViews (Sp)
+  structure Views = AbtViews (ListSpine)
   open Views
 
   type 'a view = (param, psort, symbol, variable, metavariable, operator, 'a) termf
@@ -36,111 +45,89 @@ struct
   infixr 5 \
   infix 5 $ $#
 
+  type system_annotation =
+    {symIdxBound: int,
+     varIdxBound: int,
+     freeVars: varctx,
+     freeSyms: symctx,
+     hasMetas: bool}
 
-  structure LN =
-  struct
-    local structure S = LocallyNameless (LnCoord) in open S end
-    type symbol = symbol t
-    type operator = symbol O.t
-    type variable = variable t
-  end
+  type annotation = annotation
+  type internal_annotation =
+    {user: annotation option,
+     system: system_annotation}
 
-  type metactx = valence MetaCtx.dict
-  type varctx = sort VarCtx.dict
-  type symctx = psort SymCtx.dict
+  fun systemAnnLub (ann1 : system_annotation, ann2 : system_annotation) : system_annotation =
+    {symIdxBound = Int.max (#symIdxBound ann1, #symIdxBound ann2),
+     varIdxBound = Int.max (#varIdxBound ann1, #varIdxBound ann2),
+     freeVars = VarCtxUtil.union (#freeVars ann1, #freeVars ann2),
+     freeSyms = SymCtxUtil.union (#freeSyms ann1, #freeSyms ann2),
+     hasMetas = #hasMetas ann1 orelse #hasMetas ann2}
 
-  structure Ctx =
-  struct
-    structure MetaCtxUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Valence)
-    structure VarCtxUtil = ContextUtil (structure Ctx = VarCtx and Elem = S)
-    structure SymCtxUtil = ContextUtil (structure Ctx = SymCtx and Elem = PS)
-
-    type ctx = metactx Susp.susp * symctx Susp.susp * varctx Susp.susp
-
-    val empty : ctx =
-      (Susp.delay (fn _ => MetaCtx.empty),
-       Susp.delay (fn _ => SymCtx.empty),
-       Susp.delay (fn _ => VarCtx.empty))
-
-    fun merge ((mctx1, sctx1, vctx1), (mctx2, sctx2, vctx2)) =
-      let
-        val mctx = Susp.delay (fn _ => MetaCtxUtil.union (Susp.force mctx1, Susp.force mctx2))
-        val sctx = Susp.delay (fn _ => SymCtxUtil.union (Susp.force sctx1, Susp.force sctx2))
-        val vctx = Susp.delay (fn _ => VarCtxUtil.union (Susp.force vctx1, Susp.force vctx2))
-      in
-        (mctx, sctx, vctx)
-      end
-
-    fun modifyMetas f (mctx, sctx, vctx) =
-      (Susp.delay (fn _ => f (Susp.force mctx)), sctx, vctx)
-
-    fun modifySyms f (mctx, sctx, vctx) =
-      (mctx, Susp.delay (fn _ => f (Susp.force sctx)), vctx)
-
-    fun modifyVars f (mctx, sctx, vctx) =
-      (mctx, sctx, Susp.delay (fn _ => f (Susp.force vctx)))
-  end
-
-  datatype 'a ctx_ann = <: of 'a * Ctx.ctx
+  datatype 'a annotated = <: of 'a * internal_annotation
   infix <:
 
-  datatype 'a ann = @: of 'a * annotation option
-  infix @:
-
-  structure Ann =
-  struct
-    fun map f (m @: ann) = f m @: ann
-    fun unAnn (m @: _) = m
-  end
-
-  (* Note that we use LN.variable so V may work with both free and bound
-   * variables and LN.operator/symbols to distinguish free and bound symbols.
-   * Otherwise this is almost the same as a pattern except that
-   * we annotate things with sorts/valences so that we can always determine sorts
-   * without a context
-   *)
   datatype abt_internal =
-      V of LN.variable * sort
-    | APP of LN.operator * abs spine ctx_ann
-    | META_APP of (metavariable * sort) * (LN.symbol P.term * psort) spine * abt spine ctx_ann
-  and abs = ABS of (string * psort) spine * (string * sort) spine * abt
-  withtype abt = abt_internal ann
+     V of var_term
+   | APP of app_term
+   | META of meta_term
+  and abs = ABS of psort list * sort list * abt Sc.scope
+  withtype abt = abt_internal annotated
+  and var_term = Var.t locally * sort
+  and app_term = Sym.t locally O.t * abs list
+  and meta_term = (Metavar.t * sort) * (Sym.t locally P.term * psort) list * abt_internal annotated list
 
-  fun annotate ann (m @: _) = m @: SOME ann
-  fun getAnnotation (_ @: ann) = ann
-  fun setAnnotation ann (m @: _) = m @: ann
-  fun clearAnnotation (m @: _) = m @: NONE
+  fun locallyToString f = 
+    fn FREE x => f x
+     | BOUND i => "<" ^ Int.toString i ^ ">"
+
+  fun prettyList f l c r xs = 
+    case xs of 
+       [] => ""
+     | _ => l ^ ListSpine.pretty f c xs ^ r
+
+  fun primVarToString xs = 
+    fn FREE x => Var.toString x
+     | BOUND i =>
+          if i < List.length xs then 
+            "!" ^ List.nth (xs, List.length xs - i - 1)
+          else
+            "%" ^ Int.toString i
+
+  fun primSymToString us = 
+    fn FREE u => Sym.toString u
+     | BOUND i => 
+          if i < List.length us then 
+            "!" ^ List.nth (us, List.length us - i - 1)
+          else
+            "%" ^ Int.toString i
 
 
-  val rec primToString =
-    fn V (v, _) @: _ => LN.toString Var.toString v
-     | APP (theta, es <: _) @: _ =>
-         O.toString (LN.toString Sym.toString) theta
-           ^ "("
-           ^ Sp.pretty primToStringAbs "; " es
-           ^ ")"
-     | META_APP ((x, tau), ps, ms <: _) @: _ =>
-         "#" ^ Metavar.toString x 
-           ^ "{" ^ Sp.pretty (P.toString (LN.toString Sym.toString) o #1) ", " ps ^ "}"
-           ^ "[" ^ Sp.pretty primToString ", " ms ^ "]"
-  and primToStringAbs =
-    fn ABS (upsilon, gamma, m) =>
-      "{" ^ Sp.pretty (PS.toString o #2) ", " upsilon ^ "}"
-      ^ "[" ^ Sp.pretty (S.toString o #2) ", " gamma ^ "]"
-      ^ "." ^ primToString m
+  fun primToString' (us, xs) =
+    fn V (v, _) <: _ => primVarToString xs v
+     | APP (theta, es) <: _ =>
+         O.toString (primSymToString us) theta
+           ^ prettyList (primToStringAbs' (us, xs)) "(" "; " ")" es
 
-  fun bindToString ((us, xs) \ m) = 
-    "{" ^ Sp.pretty Sym.toString ", " us ^ "}"
-      ^ "[" ^ Sp.pretty Var.toString ", " xs ^ "]."
-      ^ primToString m
-      
+     | META ((X, tau), rs, ms) <: _ =>
+         "#" ^ Metavar.toString X
+           ^ prettyList (P.toString (primSymToString us) o #1) "{" ", " "}" rs
+           ^ prettyList (primToString' (us, xs)) "[" ", " "]" ms
 
-  type metaenv = abs MetaCtx.dict
-  type varenv = abt VarCtx.dict
-  type symenv = param SymCtx.dict
+  and primToStringAbs' (us, xs) =
+    fn ABS ([], [], m) => primToString' (us, xs) (Sc.unsafeReadBody m)
+     | ABS (ssorts, vsorts, sc) => 
+         let
+           val Sc.\ ((us', xs'), body) = Sc.unsafeRead sc
+         in
+           prettyList (fn x => x) "{" ", " "}" us' ^ 
+           prettyList (fn x => x) "[" ", " "]" xs' ^ 
+           "." ^ primToString' (us @ us', xs @ xs') body
+         end
 
-  fun abtToAbs m =
-    ABS (Sp.empty (), Sp.empty (), m)
+  val primToString = primToString' ([],[])
+  val primToStringAbs = primToStringAbs' ([],[])
+
 
   (* A family of convenience functions for failing when things go wrong.
    * These are internal checks and so they should raise Fail; people shouldn't
@@ -164,348 +151,496 @@ struct
       ("expected " ^ Valence.toString v1 ^ " == " ^ Valence.toString v2)
       (Valence.eq (v1, v2))
 
-  (* All of the *ctx operations are implemented in much the same way. The
-   * term is traversed and each time we reach the object we're searching for
-   * (like (V (LN.FREE v, sigma))) we tack it on to the growing collection
-   * of previously found items. The actual algorithm for ensuring we don't
-   * duplicate everything is contained in [Union] or the implementation of
-   * MetaCtx.
-   *
-   * Note that we already have all the type information already lying around
-   * in the term so producing it is free! Also note that variables/symbols are
-   * locally marked as free or not so we needn't carry around a table to understand
-   * binding.
-   *)
+  type metaenv = abs Metavar.Ctx.dict
+  type varenv = abt Var.Ctx.dict
+  type symenv = param Sym.Ctx.dict
 
   val sort =
-    fn V (_, tau) @: _ => tau
-     | APP (theta, _) @: _ => #2 (O.arity theta)
-     | META_APP ((_, tau), _, _) @: _ => tau
+    fn V (_, tau) <: _ => tau
+     | APP (theta, _) <: _ => #2 (O.arity theta)
+     | META ((_, tau), _, _) <: _ => tau
 
-  val metactx =
-    fn V _ @: _ => MetaCtx.empty
-     | APP (theta, es <: (mctx, _, _)) @: _ => Susp.force mctx
-     | META_APP ((mv, tau), us, ms <: (mctx, _, _)) @: _ =>
-         let
-           val vl = ((Sp.map #2 us, Sp.map sort ms), tau)
-         in
-           Ctx.MetaCtxUtil.extend (Susp.force mctx) (mv, vl)
-         end
+  type 'a binding_support = (abt, Sym.t locally P.term, 'a) Sc.binding_support
 
-  val symctx =
-    fn V _ @: _ => SymCtx.empty
-     | APP (theta, es <: (_, sctx, _)) @: _ =>
-         List.foldr
-           (fn ((LN.FREE u, tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
-             | (_, memo) => memo)
-           (Susp.force sctx)
-           (O.support theta)
-     | META_APP (_, ps, ms <: (_, sctx, _)) @: _ =>
-         Sp.foldr
-           (fn ((P.VAR (LN.FREE u), tau), memo) => Ctx.SymCtxUtil.extend memo (u, tau)
-             | ((P.APP t, tau), memo) =>
-                 List.foldr
-                   (fn ((LN.FREE u,sigma), memo') => Ctx.SymCtxUtil.extend memo' (u, sigma)
-                     | (_, memo') => memo')
-                   memo
-                   (P.freeVars t)
-             | (_, memo) => memo)
-           (Susp.force sctx)
-           ps
+  fun scopeReadAnn scope =
+    let
+      val Sc.\ ((us, xs), body <: ann) = Sc.unsafeRead scope
+      val {symIdxBound, varIdxBound, freeVars, freeSyms, hasMetas} = #system ann
+      val symIdxBound' = symIdxBound - List.length us
+      val varIdxBound' = varIdxBound - List.length xs
+    in
+      {user = #user ann,
+       system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', freeSyms = freeSyms, freeVars = freeVars, hasMetas = hasMetas}}
+    end
 
-  val varctx =
-    fn V (LN.FREE x, sigma) @: _ => VarCtx.singleton x sigma
-     | V _ @: _ => VarCtx.empty
-     | APP (theta, es <: (_, _, vctx)) @: _ => Susp.force vctx
-     | META_APP (_, _, ms <: (_, _, vctx)) @: _ => Susp.force vctx
+  fun makeVarTerm (var, tau) userAnn =
+    case var of
+       FREE x =>
+         V (var, tau) <:
+           {user = userAnn,
+            system = {symIdxBound = 0,varIdxBound = 0, freeVars = Var.Ctx.singleton x tau, freeSyms = Sym.Ctx.empty, hasMetas = false}}
 
+     | BOUND i =>
+         V (var, tau) <:
+           {user = userAnn,
+            system = {symIdxBound = 0, varIdxBound = i + 1, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, hasMetas = false}}
+
+  fun idxBoundForSyms support =
+    List.foldl
+      (fn ((FREE _,_), i) => i
+        | ((BOUND i, _), j) => Int.max (i + 1, j))
+      0
+      support
+
+  fun freeSymsForSupport support = 
+    List.foldl
+      (fn ((FREE u, tau), ctx) => Sym.Ctx.insert ctx u tau
+        | (_, ctx) => ctx)
+      Sym.Ctx.empty
+      support
+
+  fun makeAppTerm (theta, scopes) userAnn =
+    let
+      val support = O.support theta
+      val freeSyms = freeSymsForSupport support
+      val symIdxBound = idxBoundForSyms support
+      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSyms, hasMetas = false}
+      val systemAnn =
+        List.foldl
+          (fn (ABS (_, _, scope), ann) => systemAnnLub (ann, #system (scopeReadAnn scope)))
+          operatorAnn
+          scopes
+    in
+      APP (theta, scopes) <: {user = userAnn, system = systemAnn}
+    end
+
+  fun paramSystemAnn (r, sigma) =
+    let
+      val support = P.check sigma r
+    in
+      {symIdxBound = idxBoundForSyms support, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, hasMetas = false}
+    end
+
+  (* For some reason, this is not setting the db-idx bounds properly in the system annotation *)
+  fun makeMetaTerm (((X, tau), rs, ms) : meta_term) userAnn =
+    let
+      val metaSystemAnn = {symIdxBound = 0, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, hasMetas = true}
+
+      val systemAnn =
+        List.foldl
+          (fn ((p, sigma), ann) => systemAnnLub (ann, paramSystemAnn (p, sigma)))
+          metaSystemAnn
+          rs
+
+      val systemAnn =
+        List.foldl
+          (fn (_ <: termAnn, ann) => systemAnnLub (ann, #system termAnn))
+          systemAnn
+          ms
+    in
+      META ((X, tau), rs, ms) <: {user = userAnn, system = systemAnn}
+    end
+
+
+  fun mapFst f (x, y) =
+    (f x, y)
 
   local
-    fun union c1 c2 = VarCtx.union c1 c2 (fn (_, l, r) => l @ r)
+    fun indexOfFirst pred xs =
+      let
+        fun aux (i, []) = NONE
+          | aux (i, x::xs) = if pred x then SOME i else aux (i + 1, xs)
+      in
+        aux (0, xs)
+      end
+
+    type 'a monoid = {unit : 'a, mul : 'a * 'a -> 'a}
+
+    type ('p, 'a) abt_algebra =
+      {debug: string,
+       handleSym : int -> (symbol locally * psort) annotated -> 'p,
+       handleVar : int -> var_term annotated -> 'a,
+       shouldTraverse : int * int -> system_annotation -> bool}
+
+    fun abtRec (alg : (symbol locally P.t, abt) abt_algebra) ixs (term <: (ann as {user, system})) : abt =
+      if not (#shouldTraverse alg ixs system) then term <: ann else 
+      case term of
+         V (var, tau) => #handleVar alg (#2 ixs) ((var, tau) <: ann)
+       | APP (theta, args) =>
+         let
+           val theta' = O.mapWithSort (fn (u, sigma) => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) theta
+           val args' = List.map (fn ABS (ssorts, vsorts, scope) => ABS (ssorts, vsorts, Sc.liftTraversal (abtRec alg) ixs scope)) args
+         in
+           makeAppTerm (theta', args') user
+         end
+       | META ((X, tau), rs, ms) =>
+         let
+           val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) r, sigma)) rs
+           val ms' = List.map (abtRec alg ixs) ms
+         in
+           makeMetaTerm ((X, tau), rs', ms') (#user ann)
+         end
+  
+
+    fun abtAccum (acc : 'a monoid) (alg : ('a, 'a) abt_algebra) ixs (term <: (ann as {user, system})) : 'a =
+      if not (#shouldTraverse alg ixs system) then #unit acc else 
+      case term of
+         V var => #handleVar alg (#2 ixs) (var <: ann)
+       | APP (theta, args) =>
+         let
+           val support = O.support theta
+           val memo = List.foldl (fn ((u, sigma), memo) => #mul acc (#handleSym alg (#1 ixs) ((u, sigma) <: ann), memo)) (#unit acc) support
+         in
+           List.foldl
+             (fn (ABS (_, _, scope), memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (abtAccum acc alg) ixs scope), memo))
+             memo
+             args
+         end
+       | META ((X, tau), rs, ms) =>
+         let
+           val memo =
+             List.foldl
+               (fn ((r, sigma), memo) =>
+                  let
+                    val support = P.check sigma r
+                  in
+                    List.foldl (fn ((u, sigma), memo) => #mul acc (#handleSym alg (#1 ixs) ((u, sigma) <: ann), memo)) memo support
+                  end)
+               (#unit acc)
+               rs
+         in
+           List.foldl (fn (m, memo) => #mul acc (abtAccum acc alg ixs m, memo)) memo ms
+         end
+
   in
-    val rec varOccurrences =
-      fn V (LN.FREE x, _) @: SOME m => VarCtx.singleton x [m]
-      (* Note: this silently ignores free variables without an annotation. *)
-      | V _ @: _ => VarCtx.empty
-      | APP (_, es <: _) @: _ =>
-        Sp.foldr (fn (ABS (_, _, m), ctx) => union ctx (varOccurrences m)) VarCtx.empty es
-      | META_APP (_, _, ms <: _) @: _ =>
-        Sp.foldr (fn (m, ctx) => union ctx (varOccurrences m)) VarCtx.empty ms
+ 
+    fun instantiateAbt (ixs : int * int) (rs, ms) : abt -> abt =
+      let
+        fun findInstantiation i items var =
+          case var of
+             FREE _ => NONE
+           | BOUND i' =>
+               if i' >= i andalso i' < i + List.length items then
+                 SOME (List.nth (items, i' - i))
+               else
+                 NONE
+
+        fun instantiateSym i ((sym, sigma) <: _) =
+          case findInstantiation i rs sym of
+             SOME r => (P.check sigma r; r)
+           | NONE => P.ret sym
+
+        fun instantiateVar j ((vt as (var, tau)) <: ann) =
+          case findInstantiation j ms var of
+             SOME m => (assertSortEq (sort m, tau); m)
+           | NONE => V vt <: ann
+
+        fun shouldTraverse (ixs : int * int) ({symIdxBound, varIdxBound,  ...} : system_annotation) =
+          let
+            val needSyms = #1 ixs < symIdxBound
+            val needVars = #2 ixs < varIdxBound
+          in
+            needSyms orelse needVars
+          end
+
+        val alg =
+          {debug = "instantiate",
+           handleSym = instantiateSym,
+           handleVar = instantiateVar,
+           shouldTraverse = shouldTraverse}
+      in
+        abtRec alg ixs
+      end
+
+    fun abstractAbt ixs (us, xs) =
+      let
+        fun shouldTraverse ixs ({freeSyms, freeVars, hasMetas, ...} : system_annotation) =
+          let
+            val needSyms = case us of [] => false | _ => not (Sym.Ctx.isEmpty freeSyms)
+            val needVars = case xs of [] => false | _ => not (Var.Ctx.isEmpty freeVars)
+          in
+            needSyms orelse needVars
+          end
+
+        fun abstractSym i =
+          fn (sym as FREE u, _) <: _ => P.ret
+             (case indexOfFirst (fn v => Sym.eq (u, v)) us of
+                 NONE => sym
+               | SOME i' => BOUND (i + i'))
+           | (sym, _) <: _ => P.ret sym
+
+        fun abstractVar j =
+          fn (vt as (FREE x, tau)) <: ann =>
+             (case indexOfFirst (fn y => Var.eq (x, y)) xs of
+                 NONE => V vt <: ann
+               | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
+           | vt <: ann => V vt <: ann
+
+        val alg =
+          {debug = "abstract",
+           handleSym = abstractSym,
+           handleVar = abstractVar,
+           shouldTraverse = shouldTraverse}
+      in
+        abtRec alg ixs
+      end
+
+
+   val abtBindingSupport : (abt, Sym.t locally P.t, abt) Sc.binding_support = 
+    {abstract = abstractAbt,
+     instantiate = instantiateAbt,
+     freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
+     freeSymbol = fn u => P.ret (FREE u)}
+
+     fun subst (srho: symenv, vrho : varenv) =
+      let
+        fun shouldTraverse _ ({freeVars, freeSyms, ...} : system_annotation) =
+          let
+            val needSyms = not (Sym.Ctx.isEmpty freeSyms orelse Sym.Ctx.isEmpty srho)
+            val needVars = not (Var.Ctx.isEmpty freeVars orelse Var.Ctx.isEmpty vrho)
+          in
+            needSyms orelse needVars
+          end
+
+        fun handleSym _ ((sym, sigma) <: _) =
+          case sym of
+             FREE u =>
+             (case Sym.Ctx.find srho u of
+                 NONE => P.ret sym
+               | SOME r => P.map FREE r)
+           | BOUND _ => P.ret sym
+
+        fun handleVar _ ((vt as (var, tau)) <: ann) =
+          case var of
+             FREE x =>
+             (case Var.Ctx.find vrho x of
+                 NONE => V vt <: ann
+               | SOME m => m)
+           | BOUND _ => V vt <: ann
+
+        val alg =
+          {debug = "subst",
+           handleSym = handleSym,
+           handleVar = handleVar,
+           shouldTraverse = shouldTraverse}
+      in
+        abtRec alg (0,0)
+      end
+
+    fun varctx (_ <: {system = {freeVars, ...}, ...}) = 
+      freeVars
+
+    fun symctx (_ <: {system = {freeSyms, ...}, ...}) = 
+      freeSyms
+
+    val metactx : abt -> metactx =
+      let
+        fun aux metas (term <: {system = {hasMetas, ...}, ...}) = 
+          if not hasMetas then metas else
+          case term of 
+             V _ => metas
+           | APP (_, args) => auxArgs metas args
+           | META ((X, tau), rs, ms) =>
+             let
+               val vl = ((List.map #2 rs, List.map sort ms), tau)
+               val metas' = Metavar.Ctx.insert metas X vl
+             in
+               auxTerms metas' ms
+             end
+        and auxArgs metas = List.foldl (fn (abs, metas) => auxAbs metas abs) metas
+        and auxAbs metas (ABS (_, _, scope)) = aux metas (Sc.unsafeReadBody scope)
+        and auxTerms metas = List.foldl (fn (term, metas) => aux metas term) metas
+      in
+        aux Metavar.Ctx.empty
+      end
+
+    val symOccurrences : abt -> annotation list Sym.ctx = 
+      let
+        fun handleSym _ ((sym, _) <: {user, system}) =
+          case (sym, user) of 
+             (FREE u, SOME ann) => Sym.Ctx.singleton u [ann]
+           | _ => Sym.Ctx.empty
+
+        val monoid : annotation list Sym.Ctx.dict monoid =
+          {unit = Sym.Ctx.empty,
+           mul = fn (xs1, xs2) => Sym.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
+
+        val alg =
+          {debug = "symOccurrences",
+           handleSym = handleSym,
+           handleVar = fn _ => fn _ => Sym.Ctx.empty,
+           shouldTraverse = fn _ => fn ({freeSyms, ...} : system_annotation) => not (Sym.Ctx.isEmpty freeSyms)}
+      in
+        abtAccum monoid alg (0,0)
+      end
+
+    val varOccurrences = 
+      let
+        fun handleVar _ ((var, _) <: {user, system}) =
+          case (var, user) of 
+             (FREE x, SOME ann) => Var.Ctx.singleton x [ann]
+           | _ => Var.Ctx.empty
+
+        val monoid : annotation list Var.Ctx.dict monoid =
+          {unit = Var.Ctx.empty,
+           mul = fn (xs1, xs2) => Var.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
+
+        val alg =
+          {debug = "varOccurrences",
+           handleSym = fn _ => fn _ => Var.Ctx.empty,
+           handleVar = handleVar,
+           shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
+      in 
+        abtAccum monoid alg (0,0)
+      end
+
+    fun renameVars vrho = 
+      let
+        fun handleVar _ ((var, tau) <: ann) = 
+          case var of
+             FREE x =>
+             (case Var.Ctx.find vrho x of 
+                 SOME y => V (FREE y, tau) <: ann
+               | NONE => V (var, tau) <: ann)
+           | _ => V (var, tau) <: ann
+
+        val alg =
+          {debug = "renameVars",
+           handleSym = fn _ => fn (sym, tau) <: ann => P.ret sym,
+           handleVar = handleVar,
+           shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
+      in
+        abtRec alg (0,0)
+      end
   end
 
-  local
-    fun union c1 c2 = SymCtx.union c1 c2 (fn (_, l, r) => l @ r)
-  in
-    val rec symOccurrences =
-      fn V _ @: _ => SymCtx.empty
-      | APP (theta, es <: _) @: m =>
-        (* The annotation mechanism is not fine-grained enough to give us
-         * positions of symbols themselves, but only of the applied operator.
-         * See the comment in abt.sig.
-         *)
-        let
-          val ctx0 =
-            case m of
-              NONE => SymCtx.empty
-            | SOME m =>
-              List.foldr
-                (fn ((LN.FREE u, tau), ctx) => union (SymCtx.singleton u [m]) ctx
-                  | (_, ctx) => ctx)
-                SymCtx.empty
-                (O.support theta)
-        in
-          Sp.foldr (fn (ABS (_, _, m), ctx) => union ctx (symOccurrences m)) ctx0 es
-        end
-      | META_APP (_, ps, ms <: _) @: m =>
-        let
-          val ctx0 =
-              case m of
-                NONE => SymCtx.empty
-              | SOME m =>
-                Sp.foldr
-                  (fn ((P.VAR (LN.FREE u), tau), ctx) => union (SymCtx.singleton u [m]) ctx
-                    | ((P.APP t, tau), ctx) =>
-                      List.foldr
-                        (fn ((LN.FREE u,sigma), ctx') => union (SymCtx.singleton u [m]) ctx'
-                          | (_, ctx') => ctx')
-                        ctx
-                        (P.freeVars t)
-                    | (_, ctx) => ctx)
-                  SymCtx.empty
-                  ps
-        in
-          Sp.foldr (fn (m, ctx) => union ctx (symOccurrences m)) ctx0 ms
-        end
-  end
+  exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
 
-  fun getCtx m : Ctx.ctx =
-    (Susp.delay (fn _ => metactx m),
-     Susp.delay (fn _ => symctx m),
-     Susp.delay (fn _ => varctx m))
+  fun substVarenv vrho =
+    subst (Sym.Ctx.empty, vrho)
 
-  fun mapAbs_ f (ABS (us, xs, m)) =
-    ABS (us, xs, f m)
+  fun substSymenv srho =
+    subst (srho, Var.Ctx.empty)
 
-  fun liftTraverseAbs f coord =
-    mapAbs_ (f (LnCoord.shiftRight coord))
 
-  fun makeApp theta es =
+  fun substVar (m, x) =
+    substVarenv (Var.Ctx.singleton x m)
+
+  fun substSymbol (r, u) =
+    substSymenv (Sym.Ctx.singleton u r)
+
+
+  fun annotate ann (m <: {system, ...}) = m <: {user = SOME ann, system = system}
+  fun getAnnotation (_ <: {user, ...}) = user
+  fun setAnnotation ann (m <: {system, ...}) = m <: {user = ann, system = system}
+  fun clearAnnotation (m <: {system, ...}) = m <: {user = NONE, system = system}
+
+
+  fun checkb ((us, xs) \ m, ((ssorts, vsorts), tau)) : abs =
     let
-      val ctx = Sp.foldr (fn (ABS (_, _, m), ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty es
-    in
-      APP (theta, es <: ctx)
-    end
-
-  fun makeMetaApp (mv, tau) us ms =
-    let
-      val ctx = Sp.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms
-    in
-      META_APP ((mv, tau), us, ms <: ctx)
-    end
-
-
-  (* This function takes a variable and its sort and switches it to a
-   * bound variable. In this process we also
-   *
-   *  - Check that the supplied sort is actually the correct sort of the variable
-   *  - Drag the coordinate given so that the bound variable is annotated with the
-   *    correct position in the term.
-   *)
-  fun imprisonVariable (v, tau) coord : abt_internal -> abt_internal =
-    fn m as V (LN.FREE v', sigma) =>
-         if Var.eq (v, v') then
-           (assertSortEq (sigma, tau);
-            V (LN.BOUND coord, sigma))
-         else
-           m
-     | V v => V v
-     | APP (theta, es <: ctx) =>
-         makeApp theta (Sp.map (liftTraverseAbs (imprisonVariableAnn (v, tau)) coord) es)
-     | META_APP (mv, us, ms <: ctx) =>
-         makeMetaApp mv us (Sp.map (imprisonVariableAnn (v, tau) coord) ms)
-
-  and imprisonVariableAnn (v, tau) =
-    Ann.map o imprisonVariable (v, tau)
-
-  fun imprisonSymbol (v, tau) coord : abt_internal -> abt_internal =
-    fn V v => V v
-     | APP (theta, es <: ctx) =>
-         let
-           fun rho v' = if Sym.eq (v, v') then LN.BOUND coord else LN.FREE v'
-           fun chk (LN.FREE v', tau') = if Sym.eq (v, v') then assertPSortEq (tau, tau') else ()
-             | chk _ = ()
-           val _ = List.app chk (O.support theta)
-           val theta' = O.map (P.ret o LN.bind rho) theta
-           val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
-         in
-           APP (theta', Sp.map (liftTraverseAbs (imprisonSymbolAnn (v,tau)) coord) es <: ctx')
-         end
-     | META_APP (m, ps, Ms <: ctx) =>
-         let
-           fun rho v' = if Sym.eq (v, v') then LN.BOUND coord else LN.FREE v'
-           fun rho' (p, s) = (P.map (LN.bind rho) p, s)
-           val vs = Sp.map rho' ps
-           val ctx' = Ctx.modifySyms (fn sctx => SymCtx.remove sctx v) ctx
-         in
-           META_APP (m, vs, Sp.map (imprisonSymbolAnn (v, tau) coord) Ms <: ctx')
-         end
-
-  and imprisonSymbolAnn (v, tau) =
-    Ann.map o imprisonSymbol (v, tau)
-
-  (* This is the reverse of the above, given a position we hunt around for
-   * a bound variable in the correct slot and switch out for a free one.
-   *)
-  fun liberateVariable (v, sigma) coord =
-    fn e as V (LN.FREE _, _) => e
-     | e as V (LN.BOUND coord', sigma) =>
-         if LnCoord.eq (coord, coord') then V (LN.FREE v, sigma) else e
-     | APP (theta, es <: ctx) =>
-         makeApp theta (Sp.map (liftTraverseAbs (liberateVariableAnn (v, sigma)) coord) es)
-     | META_APP ((x, tau), us, ms <: ctx) =>
-         makeMetaApp (x, tau) us (Sp.map (liberateVariableAnn (v, sigma) coord) ms)
-
-  and liberateVariableAnn (v, sigma) =
-    Ann.map o liberateVariable (v, sigma)
-
-  fun liberateSymbol (u, sigma) coord =
-    let
-      fun rho (LN.BOUND coord') = if LnCoord.eq (coord, coord') then LN.FREE u else LN.BOUND coord'
-        | rho u' = u'
-    in
-      fn e as V _ => e
-       | APP (theta, es <: ctx) =>
-           let
-             val theta' = O.map (P.ret o rho) theta
-             val fs = Sp.map (liftTraverseAbs (liberateSymbolAnn (u, sigma)) coord) es
-           in
-             makeApp theta' fs
-           end
-       | META_APP ((x, tau), ps, ms <: ctx) =>
-           let
-             val vs = Sp.map (fn (l, s) => (P.map rho l, s)) ps
-             val ns = Sp.map (liberateSymbolAnn (u, sigma) coord) ms
-             val ctx' = Ctx.modifySyms (fn sctx => SymCtx.insert sctx u sigma) ctx
-           in
-             makeMetaApp (x, tau) vs ns
-           end
-    end
-  and liberateSymbolAnn (u, sigma) =
-    Ann.map o liberateSymbol (u, sigma)
-
-  (* A pluralized version of all of the above functions. The foldStar
-   * machinery is used to propogate the coord correctly through
-   * all of these calls. The functions are set up so that each bound/freed
-   * variable comes from the same abstraction.
-   *)
-  local
-    structure ShiftFunCat : CATEGORY =
-    struct
-      type ('a, 'b) hom = (coord * 'a -> 'b)
-      fun id (_, x) = x
-      fun cmp (f, g) (coord, a) = f (coord, g (LnCoord.shiftDown coord, a))
-    end
-
-    structure ShiftFoldMap =
-      CategoryFoldMap
-        (structure C = ShiftFunCat
-         structure F = Sp)
-
-    fun foldStar f xs t =
-      ShiftFoldMap.foldMap
-        (fn v => fn (c, M) => f v c M)
-        xs
-        (LnCoord.origin, t)
-  in
-    val imprisonVariables = foldStar imprisonVariableAnn o Sp.Pair.zipEq
-    val imprisonSymbols = foldStar imprisonSymbolAnn o Sp.Pair.zipEq
-
-    val liberateVariables : (variable * sort) Sp.t -> abt -> abt =
-      foldStar liberateVariableAnn
-
-    val liberateSymbols : (symbol * psort) Sp.t -> abt -> abt =
-      foldStar liberateSymbolAnn
-  end
-
-
-  fun checkb ((us, xs) \ m, ((ssorts, vsorts), sigma)) =
-    let
-      val (_, tau) = infer m
-      val () = assertSortEq (sigma, tau)
-    in
-      ABS
-        (Sp.Pair.zipEq (Sp.map Sym.toString us, ssorts),
-         Sp.Pair.zipEq (Sp.map Var.toString xs, vsorts),
-         imprisonSymbols (us, ssorts) (imprisonVariables (xs, vsorts) m))
-    end
-
-  and infer (M @: _) =
-    case M of
-         V (x, tau) => (` (LN.getFree x), tau)
-       | APP (theta, Es <: _) =>
-         let
-           val (_, tau) = O.arity theta
-           val theta' = O.map (P.ret o LN.getFree) theta
-           val Es' = Sp.map (#1 o inferb) Es
-         in
-           (theta' $ Es', tau)
-         end
-       | META_APP ((mv, tau), ps, Ms <: _) =>
-         let
-           val ps' = Sp.map (fn (p, sigma) => (P.map LN.getFree p, sigma)) ps
-         in
-           (mv $# (ps', Ms), tau)
-         end
-
-  and inferb (ABS (upsilon, gamma, m)) =
-    let
+      val tau' = sort m
       val syms = symctx m
       val vars = varctx m
-
-      val us = Sp.map (fn (u, tau) => (Sym.fresh syms u, tau)) upsilon
-      val xs = Sp.map (fn (x, tau) => (Var.fresh vars x, tau)) gamma
-      val m' = liberateSymbols us (liberateVariables xs m)
-      val (_, tau) = infer m'
-      val valence = ((Sp.map #2 upsilon, Sp.map #2 gamma), tau)
     in
-      ((Sp.map #1 us, Sp.map #1 xs) \ m',
-       valence)
+      assertSortEq (tau, tau');
+      ListPair.appEq (fn (u, sigma) => assertPSortEq (sigma, Option.getOpt (Sym.Ctx.find syms u, sigma))) (us, ssorts);
+      ListPair.appEq (fn (x, tau) => assertSortEq (tau, Option.getOpt (Var.Ctx.find vars x, tau))) (xs, vsorts);
+      ABS (ssorts, vsorts, Sc.intoScope abtBindingSupport (Sc.\ ((us, xs), m)))
     end
 
-  val out = #1 o infer
+  fun infer (term <: ann) =
+    case term of 
+       V (FREE x, tau) => (`x, tau)
+     | V _ => raise Fail "I am a number, not a free variable!!"
+     | APP (theta, args) =>
+       let
+         val (vls, tau) = O.arity theta
+         val theta' = O.map (fn FREE u => P.ret u | _ => raise Fail ("infer/App: Did not expect bound symbol in term " ^ primToString (term <: ann))) theta
+         val args' = List.map outb args
+       in
+         (theta' $ args', tau)
+       end
+     | META ((X, tau), rs, ms) =>
+       let
+         val rs' = List.map (mapFst (P.map (fn FREE u => u | _ => raise Fail "infer/META: Did not expect bound symbol"))) rs
+       in
+         (X $# (rs', ms), tau)
+       end
+
+  and inferb (ABS (ssorts, vsorts, scope)) =
+    let
+      val Sc.\ ((us, xs), m) = Sc.outScope abtBindingSupport (ssorts, vsorts) scope
+    in
+      ((us, xs) \ m, ((ssorts, vsorts), sort m))
+    end
+  
+  and outb abs = 
+    #1 (inferb abs)
+
+  fun check (view, tau) = 
+    case view of 
+       `x => makeVarTerm (FREE x, tau) NONE
+     | theta $ args =>
+       let
+         val (vls, tau') = O.arity theta
+         val _ = assertSortEq (tau, tau')
+
+         val theta' = O.map (P.ret o FREE) theta
+         val args' = ListPair.mapEq checkb (args, vls)
+       in
+         makeAppTerm (theta', args') NONE
+       end
+     | X $# (rs, ms) =>
+       let
+         val ssorts = List.map #2 rs
+         val vsorts = List.map sort ms
+         val rs' = List.map (fn (p, sigma) => (P.map FREE p, sigma) before (P.check sigma p; ())) rs
+         fun chkInf (m, tau) = (assertSortEq (tau, sort m); m)
+         val ms' = ListPair.mapEq chkInf (ms, vsorts)
+       in
+         makeMetaTerm ((X, tau), rs', ms') NONE
+       end
+
   val outb = #1 o inferb
   val valence = #2 o inferb
+  val out = #1 o infer
 
-  fun check (m, sigma) =
-    case m of
-         `x => V (LN.FREE x, sigma) @: NONE
-       | theta $ es =>
-           let
-             val (valences, tau)  = O.arity theta
-             val () = assertSortEq (sigma, tau)
-             val theta' = O.map (P.ret o LN.FREE) theta
-             val es' = Sp.Pair.mapEq checkb (es, valences)
-           in
-             makeApp theta' es' @: NONE
-           end
-       | x $# (ps, ms) =>
-           let
-             val ssorts = Sp.map #2 ps
-             val vsorts = Sp.map sort ms
-             val ps' = Sp.map (fn (p, tau) => (P.map LN.FREE p, tau) before (P.check tau p; ())) ps
-             fun chkInf (m, tau) = (assertSortEq (tau, sort m); m)
-             val ms' = Sp.Pair.mapEq chkInf (ms, vsorts)
-             val ctx = Sp.foldr (fn (m, ctx) => Ctx.merge (ctx, getCtx m)) Ctx.empty ms'
-           in
-             makeMetaApp (x, sigma) ps' ms' @: NONE
-           end
-
-  fun $$ (theta, es) =
+  fun unbind (ABS (ssorts, vsorts, scope)) rs ms =
     let
-      val (_, tau) = O.arity theta
+      val rs' = ListPair.map (fn (r, sigma) => (P.check sigma r; P.map FREE r)) (rs, ssorts)
+      val _ = ListPair.app (fn (m, tau) => assertSortEq (sort m, tau)) (ms, vsorts)
+      val m = Sc.unsafeReadBody scope
     in
-      check (theta $ es, tau)
+      instantiateAbt (0,0) (rs', ms) m
     end
+
+  fun // (abs, (rs, ms)) =
+    unbind abs rs ms
+
+  infix //
+
+  fun $$ (theta, args) = 
+    check (theta $ args, #2 (O.arity theta))
+
+  fun locallyEq f = 
+    fn (FREE x, FREE y) => f (x, y)
+     | (BOUND i, BOUND j) => i = j
+     | _ => false
+
+  val rec eq = 
+    fn (V (x, _) <: _, V (y, _) <: _) => locallyEq Var.eq (x, y)
+     | (APP (theta1, args1) <: _, APP (theta2, args2) <: _) =>
+       O.eq (locallyEq Sym.eq) (theta1, theta2)
+         andalso ListPair.allEq eqAbs (args1, args2)
+     | (META ((X1, _), rs1, ms1) <: _, META ((X2, _), rs2, ms2) <: _) =>
+       Metavar.eq (X1, X2)
+         andalso ListPair.allEq (fn ((r1, _), (r2, _)) => P.eq (locallyEq Sym.eq) (r1, r2)) (rs1, rs2)
+         andalso ListPair.allEq eq (ms1, ms2)
+     | _ => false
+
+  and eqAbs = 
+    fn (ABS (_, _, scope1), ABS (_, _, scope2)) =>
+      Sc.eq eq (scope1, scope2)
 
   fun mapAbs f abs =
     let
@@ -514,136 +649,8 @@ struct
       checkb ((us, xs) \ f m, vl)
     end
 
-  local
-    structure OpLnEq = struct val eq = O.eq (LN.eq Sym.eq) end
-  in
-    (* While this looks simple by using locally nameless representations this
-     * implements alpha equivalence (and is very efficient!)
-     *)
-    fun eq (V (v, _) @: _, V (v', _) @: _) = LN.eq Var.eq (v, v')
-      | eq (APP (theta, es <: _) @: _, APP (theta', es' <: _) @: _) =
-          OpLnEq.eq (theta, theta') andalso Sp.Pair.allEq eqAbs (es, es')
-      | eq (META_APP ((mv, _), ps, ms <: _) @: _, META_APP ((mv', _), ps', ms' <: _) @: _) =
-          Metavar.eq (mv, mv')
-            andalso Sp.Pair.allEq (fn ((x, _), (y, _)) => P.eq (LN.eq Sym.eq) (x,y)) (ps, ps')
-            andalso Sp.Pair.allEq eq (ms, ms')
-      | eq _ = false
-    and eqAbs (ABS (_, _, m), ABS (_, _, m')) = eq (m, m')
-  end
-
-  fun metaenvToString (env : metaenv) : string = 
-    let
-      val assignments = Metavar.Ctx.toList env
-      fun f (x, abs) = Metavar.toString x ^ " := " ^ primToStringAbs abs
-    in
-      "{" ^ ListSpine.pretty f "; " assignments ^ "}"
-    end
-
-  exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
-
-  fun substMetaenv rho m =
-    let
-      val ann = getAnnotation m
-      val (view, tau) = infer m
-    in
-      setAnnotation ann
-        (case view of
-             `x => m
-           | theta $ es =>
-               check (theta $ Sp.map (mapBind (substMetaenv rho)) es, tau)
-           | mv $# (ps, ms) =>
-               let
-                 val ms' = Sp.map (substMetaenv rho) ms
-               in
-                 case MetaCtx.find rho mv of
-                      NONE =>
-                        check (mv $# (ps, ms'), tau)
-                    | SOME abs =>
-                        let
-                          val (us , xs) \ m = outb abs
-                          val srho =
-                            Sp.foldr
-                              (fn ((u, (p, _)), r) => SymCtx.insert r u p)
-                              SymCtx.empty
-                              (Sp.Pair.zipEq (us, ps))
-                          val vrho =
-                            Sp.foldr
-                              (fn ((x,m), rho) => VarCtx.insert rho x m)
-                              VarCtx.empty
-                              (Sp.Pair.zipEq (xs, ms'))
-                        in
-                          substVarenv vrho (substSymenv srho m)
-                        end
-               end)
-        handle Sp.Pair.UnequalLengths => 
-          raise BadSubstMetaenv
-            {metaenv = rho,
-             term = m,
-             description = "Tried to substitute " ^ metaenvToString rho ^ " in " ^ primToString m}
-    end
-
-  and substVarenv rho =
-    Ann.map
-      (fn m as V (LN.FREE x, sigma) => getOpt (Option.map Ann.unAnn (VarCtx.find rho x), m)
-        | m as V _ => m
-        | APP (theta, es <: _) => makeApp theta (Sp.map (mapAbs_ (substVarenv rho)) es)
-        | META_APP (mv, us, ms <: _) => makeMetaApp mv us (Sp.map (substVarenv rho) ms))
-
-  and renameVars rho =
-    Ann.map
-      (fn m as V (LN.FREE x, sigma) => V (LN.FREE (getOpt (VarCtx.find rho x, x)), sigma)
-        | m as V _ => m
-        | APP (theta, es <: _) => makeApp theta (Sp.map (mapAbs_ (renameVars rho)) es)
-        | META_APP (mv, us, ms <: _) => makeMetaApp mv us (Sp.map (renameVars rho) ms))
-
-
-  and substSymenv rho =
-    let
-      val substp =
-        fn LN.FREE a => P.map LN.pure (getOpt (SymCtx.find rho a, P.ret a))
-         | u => P.ret u
-    in
-      Ann.map
-        (fn m as V _ => m
-          | APP (theta, es <: _) =>
-              let
-                val theta' = O.map substp theta
-              in
-                makeApp theta' (Sp.map (mapAbs_ (substSymenv rho)) es)
-              end
-          | META_APP (mv, ps, ms <: _) =>
-              let
-                fun ren' (p, s) = (P.bind substp p, s)
-              in
-                makeMetaApp mv (Sp.map ren' ps) (Sp.map (substSymenv rho) ms)
-              end)
-    end
-
-
-  fun unbind abs ps ms =
-    let
-      val (vs, xs) \ m = outb abs
-      val srho =
-        Sp.foldr
-          (fn ((v,p), rho) => SymCtx.insert rho v p)
-          SymCtx.empty
-          (Sp.Pair.zipEq (vs, ps))
-      val vrho =
-        Sp.foldr
-          (fn ((x,m), rho) => VarCtx.insert rho x m)
-          VarCtx.empty
-          (Sp.Pair.zipEq (xs, ms))
-    in
-      substVarenv vrho (substSymenv srho m)
-    end
-
-  fun // (abs, (ps, ms)) =
-    unbind abs ps ms
-
-
-  fun substVar (n, x) = substVarenv (VarCtx.insert VarCtx.empty x n)
-  fun substMetavar (e, mv) = substMetaenv (MetaCtx.insert MetaCtx.empty mv e)
-  fun substSymbol (p, u) = substSymenv (SymCtx.insert SymCtx.empty u p)
+  fun abtToAbs m = 
+    ABS ([],[], Sc.intoScope abtBindingSupport (Sc.\ (([],[]), m)))
 
   fun mapSubterms f m =
     let
@@ -655,104 +662,32 @@ struct
   fun deepMapSubterms f m =
     mapSubterms (f o deepMapSubterms f) m
 
-  structure Unify =
-  struct
-    type renaming = metavariable MetaCtx.dict * symbol SymCtx.dict * variable VarCtx.dict
+  fun substMetaenv mrho (term as _ <: {system = {hasMetas, ...}, ...}) =
+    if not hasMetas then term else
+    case infer term of
+       (`_, _) => term
+     | (theta $ args, tau) =>
+       let
+         fun aux ((us, xs) \ m) = (us,xs) \ substMetaenv mrho m
+         val args' = List.map aux args
+       in
+         check (theta $ args', tau)
+       end
+     | (X $# (rs, ms), tau) =>
+       let
+         val ms' = List.map (substMetaenv mrho) ms
+       in
+         case Metavar.Ctx.find mrho X of 
+            NONE => check (X $# (rs, ms'), tau)
+          | SOME abs => abs // (List.map #1 rs, ms')
+       end
 
-    exception UnificationFailed
-
-    structure MetaRenUtil = ContextUtil (structure Ctx = MetaCtx and Elem = Metavar)
-    structure SymRenUtil = ContextUtil (structure Ctx = SymCtx and Elem = Sym)
-    structure VarRenUtil = ContextUtil (structure Ctx = VarCtx and Elem = Var)
-
-    fun unifySymbols (u, v, rho) =
-      case (u, v) of
-          (LN.FREE u', LN.FREE v') =>
-            SymRenUtil.extend rho (u', v')
-        | (LN.BOUND i, LN.BOUND j) =>
-            if LnCoord.eq (i, j) then
-              rho
-            else
-              raise UnificationFailed
-        | _ => raise UnificationFailed
-
-    fun unifyParams (p, q, rho) =
-      case (p, q) of
-         (P.VAR u, P.VAR v) => unifySymbols (u, v, rho)
-       | (P.APP t1, P.APP t2) =>
-           (* check if the head operators are equal *)
-           if P.Sig.eq (fn _ => true) (t1, t2) then
-             (* unify subterms *)
-             ListPair.foldrEq unifyParams rho (P.collectSubterms t1, P.collectSubterms t2)
-           else
-             raise UnificationFailed
-       | _ => raise UnificationFailed
-
-    fun unifyOperator rho (theta1 : LN.operator, theta2 : LN.operator) : symbol SymCtx.dict =
-      if O.eq (fn _ => true) (theta1, theta2) then
-        let
-          val us = List.map #1 (O.support theta1)
-          val vs = List.map #1 (O.support theta2)
-        in
-          ListPair.foldlEq unifySymbols rho (us, vs)
-        end
-      else
-        raise UnificationFailed
-
-    local
-      fun go (mrho, srho, vrho) =
-        fn (V (LN.FREE x, sigma) @: _, V (LN.FREE y, tau) @: _) =>
-             if S.eq (sigma, tau) then
-               (mrho, srho, VarRenUtil.extend vrho (x, y))
-             else
-               raise UnificationFailed
-         | (V (LN.BOUND i, _) @: _, V (LN.BOUND j, _) @: _) =>
-             if LnCoord.eq (i, j) then
-               (mrho, srho, vrho)
-             else
-               raise UnificationFailed
-         | (APP (theta1, es1 <: _) @: _, APP (theta2, es2 <: _) @: _) =>
-             let
-               val srho' = unifyOperator srho (theta1, theta2)
-             in
-               Sp.foldr
-                 (fn ((ABS (_, _, m1), ABS (_, _, m2)), acc) => go acc (m1, m2))
-                 (mrho, srho', vrho)
-                 (Sp.Pair.zipEq (es1, es2))
-             end
-         | (META_APP ((x1, tau1), ps1, ms1 <: _) @: _, META_APP ((x2, tau2), ps2, ms2 <: _) @: _) =>
-             let
-               val _ = if S.eq (tau1, tau2) then () else raise UnificationFailed
-               val mrho' = MetaRenUtil.extend mrho (x1, x2)
-               val srho' =
-                 Sp.foldr
-                   (fn (((p, _), (q, _)), rho) => unifyParams (p, q, rho))
-                   srho
-                   (Sp.Pair.zipEq (ps1, ps2))
-             in
-               Sp.foldr
-                 (fn ((m1, m2), acc) => go acc (m1, m2))
-                 (mrho', srho', vrho)
-                 (Sp.Pair.zipEq (ms1, ms2))
-             end
-         | _ => raise UnificationFailed
-    in
-      fun unify (m,n) =
-        go (MetaCtx.empty, SymCtx.empty, VarCtx.empty) (m,n)
-        handle MetaRenUtil.MergeFailure => raise UnificationFailed
-             | SymRenUtil.MergeFailure => raise UnificationFailed
-             | VarRenUtil.MergeFailure => raise UnificationFailed
-             | e => raise e
-    end
-
-    fun unifyOpt (m, n) =
-      SOME (unify (m, n))
-      handle UnificationFailed => NONE
-  end
+  fun substMetavar (scope, X) =
+    substMetaenv (Metavar.Ctx.singleton X scope)
 
 end
 
-functor SimpleAbt (O : ABT_OPERATOR) =
+functor SimpleAbt (O : ABT_OPERATOR where type 'a Ar.Vl.Sp.t = 'a list) =
   Abt (structure Sym = AbtSymbol ()
        structure Var = AbtSymbol ()
        structure Metavar = AbtSymbol ()

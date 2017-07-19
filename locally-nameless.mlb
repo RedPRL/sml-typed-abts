@@ -3,19 +3,9 @@ local
   lib/cmlib.mlb
   basis/basis.mlb
   src/locally-nameless/symbol.sig
-  src/locally-nameless/coord.sig
-  src/locally-nameless/coord.sml
   src/locally-nameless/scope.sig
   src/locally-nameless/scope.fun
-  src/locally-nameless/locally_nameless.sig
-  src/locally-nameless/locally_nameless.fun
 in
-  signature LN_COORD
-  structure LnCoord
-
-  signature LOCALLY_NAMELESS
-  functor LocallyNameless
-
   signature LN_SCOPE
   functor LnScope
 
