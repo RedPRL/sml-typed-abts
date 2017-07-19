@@ -293,10 +293,9 @@ struct
                  NONE
              end
 
-        (* TODO: sort checking? *)
-        fun instantiateSym i rs ((sym, _) <: _) =
+        fun instantiateSym i rs ((sym, sigma) <: _) =
           case findInstantiation i rs sym of
-             SOME r => r
+             SOME r => (P.check sigma r; r)
            | NONE => P.ret sym
 
         fun instantiateVar j ms ((var, tau) <: ann) =
