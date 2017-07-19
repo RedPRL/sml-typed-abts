@@ -92,7 +92,7 @@ struct
     fn FREE x => Var.toString x
      | BOUND i =>
           if i < List.length xs then 
-            "!" ^ List.nth (xs, i)
+            "!" ^ List.nth (xs, List.length xs - i - 1)
           else
             "%" ^ Int.toString i
 
@@ -100,7 +100,7 @@ struct
     fn FREE u => Sym.toString u
      | BOUND i => 
           if i < List.length us then 
-            "!" ^ List.nth (us, i)
+            "!" ^ List.nth (us, List.length us - i - 1)
           else
             "%" ^ Int.toString i
 
