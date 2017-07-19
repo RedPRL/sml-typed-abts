@@ -350,19 +350,19 @@ struct
            | (BOUND i', _) <: _ => BOUND i'
 
         fun abstractVar j xs =
-          fn (FREE x, tau) <: ann =>
+          fn (vt as (FREE x, tau)) <: ann =>
              (case indexOfFirst (fn y => Var.eq (x, y)) xs of
-                 NONE => V (FREE x, tau) <: ann
+                 NONE => V vt <: ann
                | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
-           | (BOUND j', tau) <: ann => V (BOUND j', tau) <: ann
+           | vt <: ann => V vt <: ann
 
-        fun abstractMeta (i, j, k) ((((X, tau), rs, ms) : meta_term) <: ann) =
+        fun abstractMeta (i, j, k) ((meta as (((X, tau), rs, ms) : meta_term)) <: ann) =
           case X of
               FREE X =>
               (case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of
-                 NONE => META ((FREE X, tau), rs, ms) <: ann
+                 NONE => META meta <: ann
                | SOME k' => META ((BOUND (k + k'), tau), rs, ms) <: ann)
-            | BOUND k' => META ((X, tau), rs, ms) <: ann
+            | BOUND k' => META meta <: ann
 
         val alg =
           {handleSym = fn i => P.ret o abstractSym i us,
@@ -372,6 +372,13 @@ struct
       in
         abtRec alg (i, j, k)
       end
+
+
+   val abtBindingSupport = 
+    {abstract = abstractAbt,
+     instantiate = instantiateAbt,
+     freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
+     freeSymbol = fn u => P.ret (FREE u)}
 
     fun subst (srho: symenv, vrho : varenv, mrho : metaenv) =
       let
@@ -392,21 +399,21 @@ struct
                | SOME r => P.map FREE r)
            | BOUND _ => P.ret sym
 
-        fun handleVar _ ((var, tau) <: ann) =
+        fun handleVar _ ((vt as (var, tau)) <: ann) =
           case var of
              FREE x =>
              (case Var.Ctx.find vrho x of
-                 NONE => V (var, tau) <: ann
+                 NONE => V vt <: ann
                | SOME m => m)
-           | BOUND _ => V (var, tau) <: ann
+           | BOUND _ => V vt <: ann
 
-        fun handleMeta _ (((X : metavariable locally, tau), rs, ms) <: ann) =
+        fun handleMeta (i, j, k) ((meta as ((X : metavariable locally, tau), rs, ms)) <: ann) =
           case X of
              FREE X =>
              (case Metavar.Ctx.find mrho X of
-                 NONE => META ((FREE X, tau), rs, ms) <: ann
+                 NONE => META meta <: ann
                | SOME (ABS (_, _, scope)) => instantiateAbt (0,0,0) (List.map #1 rs, ms, []) (Sc.unsafeReadBody scope))
-           | BOUND _ => META ((X, tau), rs, ms) <: ann
+           | BOUND _ => META meta <: ann
 
         val alg =
           {handleSym = handleSym,
@@ -534,11 +541,6 @@ struct
       ("expected " ^ Valence.toString v1 ^ " == " ^ Valence.toString v2)
       (Valence.eq (v1, v2))
 
-  val abtBindingSupport = 
-    {abstract = abstractAbt,
-     instantiate = instantiateAbt,
-     freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
-     freeSymbol = fn u => P.ret (FREE u)}
 
   fun checkb ((us, xs) \ m, ((ssorts, vsorts), tau)) : abs =
     let
