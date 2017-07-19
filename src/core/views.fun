@@ -1,6 +1,6 @@
-functor AbtViews (Sp : SPINE) : ABT_VIEWS =
+structure AbtViews : ABT_VIEWS =
 struct
-  type 'a spine = 'a Sp.t
+  type 'a spine = 'a list
 
   datatype ('s, 'v, 'a) bindf =
      \ of ('s spine * 'v spine) * 'a
@@ -21,11 +21,11 @@ struct
   fun map f =
     fn `x => `x
      | theta $ es =>
-         theta $ Sp.map (mapBind f) es
+         theta $ List.map (mapBind f) es
      | mv $# (us, ms) =>
-         mv $# (us, Sp.map f ms)
+         mv $# (us, List.map f ms)
 
   fun mapApp f (theta `$ es) =
-    theta `$ Sp.map (mapBind f) es
+    theta `$ List.map (mapBind f) es
 
 end

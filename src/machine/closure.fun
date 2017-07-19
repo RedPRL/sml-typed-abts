@@ -1,6 +1,6 @@
 functor AbtClosure (Abt : ABT) : ABT_CLOSURE =
 struct
-  structure Abt = Abt and Sp = Abt.O.Ar.Vl.Sp and P = Abt.O.P
+  structure Abt = Abt and P = Abt.O.P
 
   type 'a env = {params : Abt.symenv, terms : 'a Abt.Var.Ctx.dict}
   type ('a, 'b) tensor = 'a * 'b env
@@ -28,15 +28,15 @@ struct
              | NONE => tm)
        | (x $# (ps, ms), tau) =>
            let
-             val ps' = Sp.map (map1 (P.bind (sym env))) ps
-             val ms' = Sp.map (force o close env) ms
+             val ps' = List.map (map1 (P.bind (sym env))) ps
+             val ms' = List.map (force o close env) ms
            in
              setAnnotation (getAnnotation tm) (Abt.check (x $# (ps', ms'), tau))
            end
        | (theta $ es, tau) =>
            let
              val theta' = O.map (sym env) theta
-             val es' = Sp.map (mapBind (force o close env)) es
+             val es' = List.map (mapBind (force o close env)) es
            in
              setAnnotation (getAnnotation tm) (theta' $$ es')
            end

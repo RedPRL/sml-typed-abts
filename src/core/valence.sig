@@ -12,11 +12,10 @@ sig
   structure PS : ABT_SORT
 
   structure S : ABT_SORT
-  structure Sp : SPINE
 
   type sort = S.t
   type psort = PS.t
-  type 'a spine = 'a Sp.t
+  type 'a spine = 'a list
 
   (* bindings are spines of symbol sorts and variable sorts respectively *)
   type bindings = psort spine * sort spine
@@ -31,7 +30,6 @@ sig
   include ABT_VALENCE
     where type S.t = unit
     where type PS.t = unit
-    where type 'a Sp.t = 'a list
 
   val make : int * int -> t
 end

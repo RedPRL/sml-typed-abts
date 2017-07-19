@@ -50,7 +50,7 @@ sig
   type abs
 
   (* Patterns for abstract binding trees. *)
-  include ABT_VIEWS where type 'a spine = 'a O.Ar.Vl.Sp.t
+  include ABT_VIEWS
   type 'a view = (param, psort, symbol, variable, metavariable, operator, 'a) termf
   type 'a bview = (symbol, variable, 'a) bindf
   type 'a appview = (symbol, variable, operator, 'a) appf

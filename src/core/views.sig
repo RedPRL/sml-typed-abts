@@ -1,6 +1,6 @@
 signature ABT_VIEWS =
 sig
-  type 'a spine
+  type 'a spine = 'a list
 
   (* A [bindf] is a view of a abstraction. This is NOT an abt;
    * a binding is a spine of symbols and variables as well as the

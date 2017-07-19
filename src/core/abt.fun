@@ -2,7 +2,7 @@ functor Abt
   (structure Sym : ABT_SYMBOL
    structure Var : ABT_SYMBOL
    structure Metavar : ABT_SYMBOL
-   structure O : ABT_OPERATOR where type 'a Ar.Vl.Sp.t = 'a list
+   structure O : ABT_OPERATOR
    type annotation) : ABT =
 struct
   exception todo
@@ -35,7 +35,7 @@ struct
   type symctx = psort Sym.Ctx.dict
   type metactx = valence Metavar.Ctx.dict
 
-  structure Views = AbtViews (ListSpine)
+  structure Views = AbtViews
   open Views
 
   type 'a view = (param, psort, symbol, variable, metavariable, operator, 'a) termf
@@ -687,7 +687,7 @@ struct
 
 end
 
-functor SimpleAbt (O : ABT_OPERATOR where type 'a Ar.Vl.Sp.t = 'a list) =
+functor SimpleAbt (O : ABT_OPERATOR) =
   Abt (structure Sym = AbtSymbol ()
        structure Var = AbtSymbol ()
        structure Metavar = AbtSymbol ()
