@@ -139,6 +139,20 @@ struct
      | APP (theta, _) <: _ => #2 (O.arity theta)
      | META ((_, tau), _, _) <: _ => tau
 
+  exception BoundVariable of string
+  fun assertHasNotBoundVariable msg i (m <: _) = 
+    case m of
+       V (BOUND j, _) => if j >= i then raise BoundVariable msg else ()
+     | APP (_, args) =>
+       let
+         fun onAbs (ABS (ssorts, vsorts, scope)) = 
+           assertHasNotBoundVariable msg (i + List.length vsorts) (Sc.unsafeReadBody scope)
+       in
+         List.app onAbs args
+       end
+     | META (_, _, ms) => List.app (assertHasNotBoundVariable msg i) ms
+     | _ => ()
+
 
   (* TODO: add diagnostics *)
   exception BadInstantiate
@@ -246,32 +260,48 @@ struct
     type 'a monoid = {unit : 'a, mul : 'a * 'a -> 'a}
 
     type ('p, 'a) abt_algebra =
-      {handleSym : int -> (symbol locally * psort) annotated -> 'p,
+      {debug: string,
+       handleSym : int -> (symbol locally * psort) annotated -> 'p,
        handleVar : int -> var_term annotated -> 'a,
-       handleMeta : int -> meta_term annotated -> 'a,
+       handleMeta : int * int * int-> meta_term annotated -> 'a,
        shouldTraverse : int * int * int -> system_annotation -> bool}
 
-    fun abtRec (alg : (symbol locally P.t, abt) abt_algebra) ixs (term <: (ann as {user, system})) : abt =
-      if not (#shouldTraverse alg ixs system) then term <: ann else
+    fun abtRec' (alg : (symbol locally P.t, abt) abt_algebra) ixs (term <: (ann as {user, system})) : abt =
+      let
+      in
+      (* if not (#shouldTraverse alg ixs system) then term <: ann else *)
       case term of
          V (var, tau) => #handleVar alg (#2 ixs) ((var, tau) <: ann)
        | APP (theta, args) =>
          let
            val theta' = O.mapWithSort (fn (u, sigma) => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) theta
-           val args' = List.map (fn ABS (ssorts, vsorts, scope) => ABS (ssorts, vsorts, Sc.liftTraversal (abtRec alg) ixs scope)) args
+           val args' = List.map (fn ABS (ssorts, vsorts, scope) => ABS (ssorts, vsorts, Sc.liftTraversal (abtRec' alg) ixs scope)) args
          in
            makeAppTerm (theta', args') user
          end
        | META ((X, tau), rs, ms) =>
          let
            val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) r, sigma)) rs
-           val ms' = List.map (abtRec alg ixs) ms
+           val ms' = List.map (abtRec' alg ixs) ms
          in
-           #handleMeta alg (#3 ixs) (((X, tau), rs', ms') <: ann)
+           #handleMeta alg ixs (((X, tau), rs', ms') <: ann)
          end
+      end
+  
+    and abtRec alg ixs (term as _ <: {system, ...}) = 
+      (* if not (#shouldTraverse alg ixs system) then term else *)
+      let
+        val result = abtRec' alg ixs term
+
+        val ixsString = "[" ^ Int.toString (#1 ixs) ^ "," ^ Int.toString (#2 ixs) ^ "," ^ Int.toString (#3 ixs) ^ "]"
+        val debugString = #debug alg ^ " / " ^ ixsString ^ ":\n          " ^ primToString term ^ "\n   ====>  " ^ primToString result ^ "\n\n"
+        val _ = if Substring.isSubstring "ap(" (Substring.full debugString) then print debugString else ()
+      in
+        result
+      end
 
     fun abtAccum (acc : 'a monoid) (alg : ('a, 'a) abt_algebra) ixs (term <: (ann as {user, system})) : 'a =
-      if not (#shouldTraverse alg ixs system) then #unit acc else
+      (* if not (#shouldTraverse alg ixs system) then #unit acc else *)
       case term of
          V var => #handleVar alg (#2 ixs) (var <: ann)
        | APP (theta, args) =>
@@ -298,24 +328,21 @@ struct
                rs
            val memo' = List.foldr (fn (m, memo) => #mul acc (abtAccum acc alg ixs m, memo)) memo ms
          in
-           #mul acc (#handleMeta alg (#3 ixs) (((X, tau), rs, ms) <: ann), memo')
+           #mul acc (#handleMeta alg ixs (((X, tau), rs, ms) <: ann), memo')
          end
 
   in
+ 
     fun instantiateAbt ixs (rs, ms, scopes) =
       let
         fun findInstantiation i items var =
           case var of
              FREE _ => NONE
            | BOUND i' =>
-             let
-               val i'' = i' - i
-             in
-               if i'' >= 0 andalso i'' < List.length items then
-                 SOME (List.nth (items, i''))
+               if i' >= i andalso i' < i + List.length items then
+                 SOME (List.nth (items, i' - i))
                else
                  NONE
-             end
 
         fun instantiateSym i ((sym, sigma) <: _) =
           case findInstantiation i rs sym of
@@ -340,13 +367,30 @@ struct
           end
 
         (* It is weird that this has to be recursive at this spot *)
-        fun instantiateMeta k ((((X, tau), rsX, msX) : meta_term) <: ann) =
+        fun instantiateMeta (i, j, k) ((((X, tau), rsX, msX) : meta_term) <: ann) =
           case findInstantiation k scopes X of
-             SOME scope => instantiateAbt (0, 0, 0) (List.map #1 rsX, msX, scopes) (Sc.unsafeReadBody scope)
+             SOME scope => 
+               let
+                 val Sc.\ ((us, xs), body) = Sc.unsafeRead scope
+                 val _ = assertHasNotBoundVariable "instantiateMeta" (List.length xs) body
+               in
+                 (* At this point, we have a closed scope which we want to instantiate with rsX, msX. *)
+                 instantiateAbt (0,0,0) (List.map #1 rsX, msX, []) body
+               end
            | NONE => makeMetaTerm ((X, tau), rsX, msX) (#user ann)
 
+        val debugString = 
+          "instantiate("
+            ^ "[" ^ ListSpine.pretty (P.toString (locallyToString Sym.toString)) "," rs ^ "]"
+            ^ "; "
+            ^ "[" ^ ListSpine.pretty primToString "," ms ^ "]"
+            ^ "; "
+            ^ "[" ^ ListSpine.pretty (primToString o Sc.unsafeReadBody) "," scopes ^ "]"
+            ^ ")"
+
         val alg =
-          {handleSym = instantiateSym,
+          {debug = debugString,
+           handleSym = instantiateSym,
            handleVar = instantiateVar,
            handleMeta = instantiateMeta,
            shouldTraverse = shouldTraverse}
@@ -380,7 +424,7 @@ struct
                | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
            | vt <: ann => V vt <: ann
 
-        fun abstractMeta k ((meta as (((X, tau), rs, ms) : meta_term)) <: ann) =
+        fun abstractMeta (i, j, k) ((meta as (((X, tau), rs, ms) : meta_term)) <: ann) =
           case X of
               FREE X =>
               (case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of
@@ -388,8 +432,18 @@ struct
                | SOME k' => META ((BOUND (k + k'), tau), rs, ms) <: ann)
             | BOUND k' => META meta <: ann
 
+        val debugString = 
+          "abstract("
+            ^ "[" ^ ListSpine.pretty Sym.toString "," us ^ "]"
+            ^ "; "
+            ^ "[" ^ ListSpine.pretty Var.toString "," xs ^ "]"
+            ^ "; "
+            ^ "[" ^ ListSpine.pretty Metavar.toString "," Xs ^ "]"
+            ^ ")"
+
         val alg =
-          {handleSym = abstractSym,
+          {debug = debugString,
+           handleSym = abstractSym,
            handleVar = abstractVar,
            handleMeta = abstractMeta,
            shouldTraverse = shouldTraverse}
@@ -479,7 +533,8 @@ struct
            mul = fn (xs1, xs2) => Sym.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
 
         val alg =
-          {handleSym = handleSym,
+          {debug = "symOccurrences",
+           handleSym = handleSym,
            handleVar = fn _ => fn _ => Sym.Ctx.empty,
            handleMeta = fn _ => fn _ => Sym.Ctx.empty,
            shouldTraverse = fn _ => fn ({freeSyms, ...} : system_annotation) => not (Sym.Ctx.isEmpty freeSyms)}
@@ -499,7 +554,8 @@ struct
            mul = fn (xs1, xs2) => Var.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
 
         val alg =
-          {handleSym = fn _ => fn _ => Var.Ctx.empty,
+          {debug = "varOccurrences",
+           handleSym = fn _ => fn _ => Var.Ctx.empty,
            handleVar = handleVar,
            handleMeta = fn _ => fn _ => Var.Ctx.empty,
            shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
@@ -518,7 +574,8 @@ struct
            | _ => V (var, tau) <: ann
 
         val alg =
-          {handleSym = fn _ => fn (sym, tau) <: ann => P.ret sym,
+          {debug = "renameVars",
+           handleSym = fn _ => fn (sym, tau) <: ann => P.ret sym,
            handleVar = handleVar,
            handleMeta = fn _ => fn meta <: ann => META meta <: ann,
            shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
