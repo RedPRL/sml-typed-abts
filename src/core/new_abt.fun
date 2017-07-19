@@ -259,42 +259,28 @@ struct
        handleVar : int -> var_term annotated -> 'a,
        shouldTraverse : int * int -> system_annotation -> bool}
 
-    fun abtRec' (alg : (symbol locally P.t, abt) abt_algebra) ixs (term <: (ann as {user, system})) : abt =
-      let
-      in
-      (* if not (#shouldTraverse alg ixs system) then term <: ann else *)
+    fun abtRec (alg : (symbol locally P.t, abt) abt_algebra) ixs (term <: (ann as {user, system})) : abt =
+      if not (#shouldTraverse alg ixs system) then term <: ann else 
       case term of
          V (var, tau) => #handleVar alg (#2 ixs) ((var, tau) <: ann)
        | APP (theta, args) =>
          let
            val theta' = O.mapWithSort (fn (u, sigma) => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) theta
-           val args' = List.map (fn ABS (ssorts, vsorts, scope) => ABS (ssorts, vsorts, Sc.liftTraversal (abtRec' alg) ixs scope)) args
+           val args' = List.map (fn ABS (ssorts, vsorts, scope) => ABS (ssorts, vsorts, Sc.liftTraversal (abtRec alg) ixs scope)) args
          in
            makeAppTerm (theta', args') user
          end
        | META ((X, tau), rs, ms) =>
          let
            val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) r, sigma)) rs
-           val ms' = List.map (abtRec' alg ixs) ms
+           val ms' = List.map (abtRec alg ixs) ms
          in
            makeMetaTerm ((X, tau), rs', ms') (#user ann)
          end
-      end
   
-    and abtRec alg ixs (term as _ <: {system, ...}) = 
-      (* if not (#shouldTraverse alg ixs system) then term else *)
-      let
-        val result = abtRec' alg ixs term
-
-        val ixsString = "[" ^ Int.toString (#1 ixs) ^ "," ^ Int.toString (#2 ixs) ^ "]"
-        val debugString = #debug alg ^ " / " ^ ixsString ^ ":\n          " ^ primToString term ^ "\n   ====>  " ^ primToString result ^ "\n\n"
-        val _ = if Substring.isSubstring "ap(" (Substring.full debugString) then print debugString else ()
-      in
-        result
-      end
 
     fun abtAccum (acc : 'a monoid) (alg : ('a, 'a) abt_algebra) ixs (term <: (ann as {user, system})) : 'a =
-      (* if not (#shouldTraverse alg ixs system) then #unit acc else *)
+      if not (#shouldTraverse alg ixs system) then #unit acc else 
       case term of
          V var => #handleVar alg (#2 ixs) (var <: ann)
        | APP (theta, args) =>
@@ -353,19 +339,11 @@ struct
             val needVars = #2 ixs < varIdxBound
           in
             (* TODO: this logic was incorect!*)
-            true
-            (* needSyms orelse needVars orelse needMetas *)
+            needSyms orelse needVars
           end
 
-        val debugString = 
-          "instantiate("
-            ^ "[" ^ ListSpine.pretty (P.toString (locallyToString Sym.toString)) "," rs ^ "]"
-            ^ "; "
-            ^ "[" ^ ListSpine.pretty primToString "," ms ^ "]"
-            ^ ")"
-
         val alg =
-          {debug = debugString,
+          {debug = "instantiate",
            handleSym = instantiateSym,
            handleVar = instantiateVar,
            shouldTraverse = shouldTraverse}
@@ -380,8 +358,7 @@ struct
             val needSyms = case us of [] => false | _ => not (Sym.Ctx.isEmpty freeSyms)
             val needVars = case xs of [] => false | _ => not (Var.Ctx.isEmpty freeVars)
           in
-            true
-            (* needSyms orelse needVars orelse needMetas *)
+            needSyms orelse needVars
           end
 
         fun abstractSym i =
@@ -398,15 +375,8 @@ struct
                | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
            | vt <: ann => V vt <: ann
 
-        val debugString = 
-          "abstract("
-            ^ "[" ^ ListSpine.pretty Sym.toString "," us ^ "]"
-            ^ "; "
-            ^ "[" ^ ListSpine.pretty Var.toString "," xs ^ "]"
-            ^ ")"
-
         val alg =
-          {debug = debugString,
+          {debug = "abstract",
            handleSym = abstractSym,
            handleVar = abstractVar,
            shouldTraverse = shouldTraverse}
@@ -421,15 +391,14 @@ struct
      freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
      freeSymbol = fn u => P.ret (FREE u)}
 
-    (* fun subst (srho: symenv, vrho : varenv, mrho : metaenv) =
+     fun subst (srho: symenv, vrho : varenv) =
       let
-        fun shouldTraverse _ ({freeVars, freeSyms, freeMetas, ...} : system_annotation) =
+        fun shouldTraverse _ ({freeVars, freeSyms, ...} : system_annotation) =
           let
             val needSyms = not (Sym.Ctx.isEmpty freeSyms orelse Sym.Ctx.isEmpty srho)
             val needVars = not (Var.Ctx.isEmpty freeVars orelse Var.Ctx.isEmpty vrho)
-            val needMetas = not (Metavar.Ctx.isEmpty freeMetas orelse Metavar.Ctx.isEmpty mrho)
           in
-            needSyms orelse needVars orelse needMetas
+            needSyms orelse needVars
           end
 
         fun handleSym _ ((sym, sigma) <: _) =
@@ -448,30 +417,13 @@ struct
                | SOME m => m)
            | BOUND _ => V vt <: ann
 
-        fun handleMeta (i, j, k) ((meta as ((X : metavariable locally, tau), rs, ms)) <: ann) =
-          case X of
-             FREE X =>
-             (case Metavar.Ctx.find mrho X of
-                 NONE => META meta <: ann
-               | SOME (ABS (_, _, scope)) => instantiateAbt (0,0,0) (List.map #1 rs, ms, []) (Sc.unsafeReadBody scope))
-           | BOUND _ => META meta <: ann
-
         val alg =
-          {handleSym = handleSym,
+          {debug = "subst",
+           handleSym = handleSym,
            handleVar = handleVar,
-           handleMeta = handleMeta,
            shouldTraverse = shouldTraverse}
       in
-        abtRec alg (0,0,0)
-      end *)
-
-    fun subst (srho: symenv, vrho : varenv) =
-      let
-        val (us, rs) = ListPair.unzip (Sym.Ctx.toList srho)
-        val (xs, ms) = ListPair.unzip (Var.Ctx.toList vrho)
-      in
-        instantiateAbt (0,0) (List.map (P.map FREE) rs, ms) o 
-          abstractAbt (0,0) (us, xs)
+        abtRec alg (0,0)
       end
 
     fun varctx (_ <: {system = {freeVars, ...}, ...}) = 
@@ -713,7 +665,8 @@ struct
   fun deepMapSubterms f m =
     mapSubterms (f o deepMapSubterms f) m
 
-  fun substMetaenv mrho term =
+  fun substMetaenv mrho (term as _ <: {system = {freeMetas, ...}, ...}) =
+    if Metavar.Ctx.isEmpty freeMetas then term else
     case infer term of 
        (`_, _) => term
      | (theta $ args, tau) =>
