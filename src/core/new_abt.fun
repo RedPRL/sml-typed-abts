@@ -48,7 +48,6 @@ struct
   type system_annotation =
     {symIdxBound: int,
      varIdxBound: int,
-     metaIdxBound: int,
      freeVars: varctx,
      freeSyms: symctx,
      freeMetas: metactx}
@@ -61,7 +60,6 @@ struct
   fun systemAnnLub (ann1 : system_annotation, ann2 : system_annotation) : system_annotation =
     {symIdxBound = Int.max (#symIdxBound ann1, #symIdxBound ann2),
      varIdxBound = Int.max (#varIdxBound ann1, #varIdxBound ann2),
-     metaIdxBound = Int.max (#metaIdxBound ann1, #metaIdxBound ann2),
      freeVars = VarCtxUtil.union (#freeVars ann1, #freeVars ann2),
      freeSyms = SymCtxUtil.union (#freeSyms ann1, #freeSyms ann2),
      freeMetas = MetaCtxUtil.union (#freeMetas ann1, #freeMetas ann2)}
@@ -77,7 +75,7 @@ struct
   withtype abt = abt_internal annotated
   and var_term = Var.t locally * sort
   and app_term = Sym.t locally O.t * abs list
-  and meta_term = (Metavar.t locally * sort) * (Sym.t locally P.term * psort) list * abt_internal annotated list
+  and meta_term = (Metavar.t * sort) * (Sym.t locally P.term * psort) list * abt_internal annotated list
 
   fun locallyToString f = 
     fn FREE x => f x
@@ -112,7 +110,7 @@ struct
            ^ prettyList (primToStringAbs' (us, xs)) "(" "; " ")" es
 
      | META ((X, tau), rs, ms) <: _ =>
-         "#" ^ locallyToString Metavar.toString X
+         "#" ^ Metavar.toString X
            ^ prettyList (P.toString (primSymToString us) o #1) "{" ", " "}" rs
            ^ prettyList (primToString' (us, xs)) "[" ", " "]" ms
 
@@ -163,12 +161,12 @@ struct
   fun scopeReadAnn scope =
     let
       val Sc.\ ((us, xs), body <: ann) = Sc.unsafeRead scope
-      val {symIdxBound, varIdxBound, metaIdxBound, freeVars, freeSyms, freeMetas} = #system ann
+      val {symIdxBound, varIdxBound, freeVars, freeSyms, freeMetas} = #system ann
       val symIdxBound' = symIdxBound - List.length us
       val varIdxBound' = varIdxBound - List.length xs
     in
       {user = #user ann,
-       system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', metaIdxBound = metaIdxBound, freeSyms = freeSyms, freeVars = freeVars, freeMetas = freeMetas}}
+       system = {symIdxBound = symIdxBound', varIdxBound = varIdxBound', freeSyms = freeSyms, freeVars = freeVars, freeMetas = freeMetas}}
     end
 
   fun makeVarTerm (var, tau) userAnn =
@@ -176,12 +174,12 @@ struct
        FREE x =>
          V (var, tau) <:
            {user = userAnn,
-            system = {symIdxBound = 0,varIdxBound = 0, metaIdxBound = 0, freeVars = Var.Ctx.singleton x tau, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
+            system = {symIdxBound = 0,varIdxBound = 0, freeVars = Var.Ctx.singleton x tau, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
 
      | BOUND i =>
          V (var, tau) <:
            {user = userAnn,
-            system = {symIdxBound = 0, varIdxBound = i + 1, metaIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
+            system = {symIdxBound = 0, varIdxBound = i + 1, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = Metavar.Ctx.empty}}
 
   fun idxBoundForSyms support =
     List.foldr
@@ -202,7 +200,7 @@ struct
       val support = O.support theta
       val freeSyms = freeSymsForSupport support
       val symIdxBound = idxBoundForSyms support
-      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = 0, metaIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSyms, freeMetas = Metavar.Ctx.empty}
+      val operatorAnn = {symIdxBound = symIdxBound, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSyms, freeMetas = Metavar.Ctx.empty}
       val systemAnn =
         List.foldr
           (fn (ABS (_, _, scope), ann) => systemAnnLub (ann, #system (scopeReadAnn scope)))
@@ -216,18 +214,14 @@ struct
     let
       val support = P.check sigma r
     in
-      {symIdxBound = idxBoundForSyms support, varIdxBound = 0, metaIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, freeMetas = Metavar.Ctx.empty}
+      {symIdxBound = idxBoundForSyms support, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = freeSymsForSupport support, freeMetas = Metavar.Ctx.empty}
     end
 
-  (* For some reason, this is not setting the de-idx bounds properly in the system annotation *)
-  fun makeMetaTerm (((meta, tau), rs, ms) : meta_term) userAnn =
+  (* For some reason, this is not setting the db-idx bounds properly in the system annotation *)
+  fun makeMetaTerm (((X, tau), rs, ms) : meta_term) userAnn =
     let
-      val (metaIdxBound, freeMetas) =
-        case meta of
-           FREE X => (0, Metavar.Ctx.singleton X ((List.map #2 rs, List.map sort ms), tau))
-         | BOUND j => (j + 1, Metavar.Ctx.empty)
-
-      val metaSystemAnn = {symIdxBound = 0, varIdxBound = 0, metaIdxBound = metaIdxBound, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = freeMetas}
+      val freeMetas = Metavar.Ctx.singleton X ((List.map #2 rs, List.map sort ms), tau)
+      val metaSystemAnn = {symIdxBound = 0, varIdxBound = 0, freeVars = Var.Ctx.empty, freeSyms = Sym.Ctx.empty, freeMetas = freeMetas}
 
       val systemAnn =
         List.foldr
@@ -241,7 +235,7 @@ struct
           systemAnn
           ms
     in
-      META ((meta, tau), rs, ms) <: {user = userAnn, system = systemAnn}
+      META ((X, tau), rs, ms) <: {user = userAnn, system = systemAnn}
     end
 
 
@@ -263,8 +257,7 @@ struct
       {debug: string,
        handleSym : int -> (symbol locally * psort) annotated -> 'p,
        handleVar : int -> var_term annotated -> 'a,
-       handleMeta : int * int * int-> meta_term annotated -> 'a,
-       shouldTraverse : int * int * int -> system_annotation -> bool}
+       shouldTraverse : int * int -> system_annotation -> bool}
 
     fun abtRec' (alg : (symbol locally P.t, abt) abt_algebra) ixs (term <: (ann as {user, system})) : abt =
       let
@@ -284,7 +277,7 @@ struct
            val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) r, sigma)) rs
            val ms' = List.map (abtRec' alg ixs) ms
          in
-           #handleMeta alg ixs (((X, tau), rs', ms') <: ann)
+           makeMetaTerm ((X, tau), rs', ms') (#user ann)
          end
       end
   
@@ -293,7 +286,7 @@ struct
       let
         val result = abtRec' alg ixs term
 
-        val ixsString = "[" ^ Int.toString (#1 ixs) ^ "," ^ Int.toString (#2 ixs) ^ "," ^ Int.toString (#3 ixs) ^ "]"
+        val ixsString = "[" ^ Int.toString (#1 ixs) ^ "," ^ Int.toString (#2 ixs) ^ "]"
         val debugString = #debug alg ^ " / " ^ ixsString ^ ":\n          " ^ primToString term ^ "\n   ====>  " ^ primToString result ^ "\n\n"
         val _ = if Substring.isSubstring "ap(" (Substring.full debugString) then print debugString else ()
       in
@@ -326,14 +319,13 @@ struct
                   end)
                (#unit acc)
                rs
-           val memo' = List.foldr (fn (m, memo) => #mul acc (abtAccum acc alg ixs m, memo)) memo ms
          in
-           #mul acc (#handleMeta alg ixs (((X, tau), rs, ms) <: ann), memo')
+           List.foldr (fn (m, memo) => #mul acc (abtAccum acc alg ixs m, memo)) memo ms
          end
 
   in
  
-    fun instantiateAbt ixs (rs, ms, scopes) =
+    fun instantiateAbt (ixs : int * int) (rs, ms) : abt -> abt =
       let
         fun findInstantiation i items var =
           case var of
@@ -354,57 +346,39 @@ struct
              SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
            | NONE => V vt <: ann
 
-        fun shouldTraverse (ixs : int * int * int) ({symIdxBound, varIdxBound, metaIdxBound, ...} : system_annotation) =
+        fun shouldTraverse (ixs : int * int) ({symIdxBound, varIdxBound,  ...} : system_annotation) =
           let
             (* TODO: check this logic. If there is no bound (sym, var, meta), then we have nothing to instantiate. does that make sense? *)
             val needSyms = #1 ixs < symIdxBound
             val needVars = #2 ixs < varIdxBound
-            val needMetas = #3 ixs < metaIdxBound
           in
             (* TODO: this logic was incorect!*)
             true
             (* needSyms orelse needVars orelse needMetas *)
           end
 
-        (* It is weird that this has to be recursive at this spot *)
-        fun instantiateMeta (i, j, k) ((((X, tau), rsX, msX) : meta_term) <: ann) =
-          case findInstantiation k scopes X of
-             SOME scope => 
-               let
-                 val Sc.\ ((us, xs), body) = Sc.unsafeRead scope
-                 val _ = assertHasNotBoundVariable "instantiateMeta" (List.length xs) body
-               in
-                 (* At this point, we have a closed scope which we want to instantiate with rsX, msX. *)
-                 instantiateAbt (0,0,0) (List.map #1 rsX, msX, []) body
-               end
-           | NONE => makeMetaTerm ((X, tau), rsX, msX) (#user ann)
-
         val debugString = 
           "instantiate("
             ^ "[" ^ ListSpine.pretty (P.toString (locallyToString Sym.toString)) "," rs ^ "]"
             ^ "; "
             ^ "[" ^ ListSpine.pretty primToString "," ms ^ "]"
-            ^ "; "
-            ^ "[" ^ ListSpine.pretty (primToString o Sc.unsafeReadBody) "," scopes ^ "]"
             ^ ")"
 
         val alg =
           {debug = debugString,
            handleSym = instantiateSym,
            handleVar = instantiateVar,
-           handleMeta = instantiateMeta,
            shouldTraverse = shouldTraverse}
       in
         abtRec alg ixs
       end
 
-    fun abstractAbt ixs (us, xs, Xs) =
+    fun abstractAbt ixs (us, xs) =
       let
         fun shouldTraverse ixs ({freeSyms, freeVars, freeMetas, ...} : system_annotation) =
           let
             val needSyms = case us of [] => false | _ => not (Sym.Ctx.isEmpty freeSyms)
             val needVars = case xs of [] => false | _ => not (Var.Ctx.isEmpty freeVars)
-            val needMetas = case Xs of [] => false | _ => not (Metavar.Ctx.isEmpty freeMetas)
           in
             true
             (* needSyms orelse needVars orelse needMetas *)
@@ -424,35 +398,24 @@ struct
                | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
            | vt <: ann => V vt <: ann
 
-        fun abstractMeta (i, j, k) ((meta as (((X, tau), rs, ms) : meta_term)) <: ann) =
-          case X of
-              FREE X =>
-              (case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of
-                 NONE => META meta <: ann
-               | SOME k' => META ((BOUND (k + k'), tau), rs, ms) <: ann)
-            | BOUND k' => META meta <: ann
-
         val debugString = 
           "abstract("
             ^ "[" ^ ListSpine.pretty Sym.toString "," us ^ "]"
             ^ "; "
             ^ "[" ^ ListSpine.pretty Var.toString "," xs ^ "]"
-            ^ "; "
-            ^ "[" ^ ListSpine.pretty Metavar.toString "," Xs ^ "]"
             ^ ")"
 
         val alg =
           {debug = debugString,
            handleSym = abstractSym,
            handleVar = abstractVar,
-           handleMeta = abstractMeta,
            shouldTraverse = shouldTraverse}
       in
         abtRec alg ixs
       end
 
 
-   val abtBindingSupport = 
+   val abtBindingSupport : (abt, Sym.t locally P.t, abt) Sc.binding_support = 
     {abstract = abstractAbt,
      instantiate = instantiateAbt,
      freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
@@ -502,14 +465,13 @@ struct
         abtRec alg (0,0,0)
       end *)
 
-    fun subst (srho: symenv, vrho : varenv, mrho : metaenv) =
+    fun subst (srho: symenv, vrho : varenv) =
       let
         val (us, rs) = ListPair.unzip (Sym.Ctx.toList srho)
         val (xs, ms) = ListPair.unzip (Var.Ctx.toList vrho)
-        val (Xs, bs) = ListPair.unzip (Metavar.Ctx.toList mrho)
       in
-        instantiateAbt (0,0,0) (List.map (P.map FREE) rs, ms, List.map (fn ABS (_, _, scope) => scope) bs) o 
-          abstractAbt (0,0,0) (us, xs, Xs)
+        instantiateAbt (0,0) (List.map (P.map FREE) rs, ms) o 
+          abstractAbt (0,0) (us, xs)
       end
 
     fun varctx (_ <: {system = {freeVars, ...}, ...}) = 
@@ -536,10 +498,9 @@ struct
           {debug = "symOccurrences",
            handleSym = handleSym,
            handleVar = fn _ => fn _ => Sym.Ctx.empty,
-           handleMeta = fn _ => fn _ => Sym.Ctx.empty,
            shouldTraverse = fn _ => fn ({freeSyms, ...} : system_annotation) => not (Sym.Ctx.isEmpty freeSyms)}
       in
-        abtAccum monoid alg (0,0,0)
+        abtAccum monoid alg (0,0)
       end
 
     val varOccurrences = 
@@ -557,10 +518,9 @@ struct
           {debug = "varOccurrences",
            handleSym = fn _ => fn _ => Var.Ctx.empty,
            handleVar = handleVar,
-           handleMeta = fn _ => fn _ => Var.Ctx.empty,
            shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
       in 
-        abtAccum monoid alg (0,0,0)
+        abtAccum monoid alg (0,0)
       end
 
     fun renameVars vrho = 
@@ -577,32 +537,26 @@ struct
           {debug = "renameVars",
            handleSym = fn _ => fn (sym, tau) <: ann => P.ret sym,
            handleVar = handleVar,
-           handleMeta = fn _ => fn meta <: ann => META meta <: ann,
            shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
       in
-        abtRec alg (0,0,0)
+        abtRec alg (0,0)
       end
   end
 
   exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
 
   fun substVarenv vrho =
-    subst (Sym.Ctx.empty, vrho, Metavar.Ctx.empty)
+    subst (Sym.Ctx.empty, vrho)
 
   fun substSymenv srho =
-    subst (srho, Var.Ctx.empty, Metavar.Ctx.empty)
+    subst (srho, Var.Ctx.empty)
 
-  fun substMetaenv mrho =
-    subst (Sym.Ctx.empty, Var.Ctx.empty, mrho)
 
   fun substVar (m, x) =
     substVarenv (Var.Ctx.singleton x m)
 
   fun substSymbol (r, u) =
     substSymenv (Sym.Ctx.singleton u r)
-
-  fun substMetavar (scope, X) =
-    substMetaenv (Metavar.Ctx.singleton X scope)
 
 
   fun annotate ann (m <: {system, ...}) = m <: {user = SOME ann, system = system}
@@ -657,13 +611,12 @@ struct
        in
          (theta' $ args', tau)
        end
-     | META ((FREE X, tau), rs, ms) =>
+     | META ((X, tau), rs, ms) =>
        let
          val rs' = List.map (mapFst (P.map (fn FREE u => u | _ => raise Fail "infer/META: Did not expect bound symbol"))) rs
        in
          (X $# (rs', ms), tau)
        end
-     | META _ => raise Fail "I am a number, not a free metavariable!!"
 
   and inferb (ABS (ssorts, vsorts, scope)) =
     let
@@ -696,7 +649,7 @@ struct
          fun chkInf (m, tau) = (assertSortEq (tau, sort m); m)
          val ms' = ListPair.mapEq chkInf (ms, vsorts)
        in
-         makeMetaTerm ((FREE X, tau), rs', ms') NONE
+         makeMetaTerm ((X, tau), rs', ms') NONE
        end
 
   val outb = #1 o inferb
@@ -709,11 +662,13 @@ struct
       val _ = ListPair.app (fn (m, tau) => assertSortEq (sort m, tau)) (ms, vsorts)
       val m = Sc.unsafeReadBody scope
     in
-      instantiateAbt (0,0,0) (rs', ms, []) m
+      instantiateAbt (0,0) (rs', ms) m
     end
 
   fun // (abs, (rs, ms)) =
     unbind abs rs ms
+
+  infix //
 
   fun $$ (theta, args) = 
     check (theta $ args, #2 (O.arity theta))
@@ -729,7 +684,7 @@ struct
        O.eq (locallyEq Sym.eq) (theta1, theta2)
          andalso ListPair.allEq eqAbs (args1, args2)
      | (META ((X1, _), rs1, ms1) <: _, META ((X2, _), rs2, ms2) <: _) =>
-       locallyEq Metavar.eq (X1, X2)
+       Metavar.eq (X1, X2)
          andalso ListPair.allEq (fn ((r1, _), (r2, _)) => P.eq (locallyEq Sym.eq) (r1, r2)) (rs1, rs2)
          andalso ListPair.allEq eq (ms1, ms2)
      | _ => false
@@ -757,5 +712,27 @@ struct
 
   fun deepMapSubterms f m =
     mapSubterms (f o deepMapSubterms f) m
+
+  fun substMetaenv mrho term =
+    case infer term of 
+       (`_, _) => term
+     | (theta $ args, tau) =>
+       let
+         fun aux ((us, xs) \ m) = (us,xs) \ substMetaenv mrho m
+         val args' = List.map aux args
+       in
+         check (theta $ args', tau)
+       end
+     | (X $# (rs, ms), tau) =>
+       let
+         val ms' = List.map (substMetaenv mrho) ms
+       in
+         case Metavar.Ctx.find mrho X of 
+            NONE => check (X $# (rs, ms'), tau)
+          | SOME abs => abs // (List.map #1 rs, ms')
+       end
+
+  fun substMetavar (scope, X) =
+    substMetaenv (Metavar.Ctx.singleton X scope)
 
 end

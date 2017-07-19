@@ -2,7 +2,6 @@ signature LN_SCOPE =
 sig
   type 'a scope
 
-  type metavariable
   type variable
   type symbol
 
@@ -11,12 +10,12 @@ sig
 
   exception Instantiate
 
-  val liftTraversal : (int * int * int -> 'a -> 'b) -> int * int * int -> 'a scope -> 'b scope
+  val liftTraversal : (int * int -> 'a -> 'b) -> int * int -> 'a scope -> 'b scope
 
   (* TODO: delete? *)
   type ('m, 'p, 'a) binding_support = 
-    {abstract: int * int * int -> symbol list * variable list * metavariable list -> 'a -> 'a,
-     instantiate: int * int * int -> 'p list * 'm list * 'm scope list -> 'a -> 'a,
+    {abstract: int * int -> symbol list * variable list -> 'a -> 'a,
+     instantiate: int * int -> 'p list * 'm list -> 'a -> 'a,
      freeVariable : variable * sort -> 'm,
      freeSymbol : symbol -> 'p}
 
