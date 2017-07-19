@@ -219,39 +219,39 @@ struct
     type ('p, 'a) abt_algebra =
       {handleSym : int -> (symbol locally * psort) annotated -> 'p,
        handleVar : int -> var_term annotated -> 'a,
-       handleMeta : int * int * int -> meta_term annotated -> 'a,
+       handleMeta : int -> meta_term annotated -> 'a,
        shouldTraverse : int * int * int -> system_annotation -> bool}
 
-    fun abtRec (alg : (symbol locally P.t, abt) abt_algebra) (i, j, k) (term <: (ann as {user, system})) : abt =
-      if not (#shouldTraverse alg (i, j, k) system) then term <: ann else
+    fun abtRec (alg : (symbol locally P.t, abt) abt_algebra) ixs (term <: (ann as {user, system})) : abt =
+      if not (#shouldTraverse alg ixs system) then term <: ann else
       case term of
-         V (var, tau) => #handleVar alg j ((var, tau) <: ann)
+         V (var, tau) => #handleVar alg (#2 ixs) ((var, tau) <: ann)
        | APP (theta, args) =>
          let
-           val theta' = O.mapWithSort (fn (u, sigma) => #handleSym alg i ((u, sigma) <: ann)) theta
-           val args' = List.map (fn ABS (ssorts, vsorts, scope) => ABS (ssorts, vsorts, Sc.liftTraversal (abtRec alg) (i, j, k) scope)) args
+           val theta' = O.mapWithSort (fn (u, sigma) => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) theta
+           val args' = List.map (fn ABS (ssorts, vsorts, scope) => ABS (ssorts, vsorts, Sc.liftTraversal (abtRec alg) ixs scope)) args
          in
            makeAppTerm (theta', args') user
          end
        | META ((X, tau), rs, ms) =>
          let
-           val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym alg i ((u, sigma) <: ann)) r, sigma)) rs
-           val ms' = List.map (abtRec alg (i, j, k)) ms
+           val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) r, sigma)) rs
+           val ms' = List.map (abtRec alg ixs) ms
          in
-           #handleMeta alg (i, j, k) (((X, tau), rs', ms') <: ann)
+           #handleMeta alg (#3 ixs) (((X, tau), rs', ms') <: ann)
          end
 
-    fun abtAccum (acc : 'a monoid) (alg : ('a, 'a) abt_algebra) (i, j, k) (term <: (ann as {user, system})) : 'a =
-      if not (#shouldTraverse alg (i, j, k) system) then #unit acc else
+    fun abtAccum (acc : 'a monoid) (alg : ('a, 'a) abt_algebra) ixs (term <: (ann as {user, system})) : 'a =
+      if not (#shouldTraverse alg ixs system) then #unit acc else
       case term of
-         V var => #handleVar alg j (var <: ann)
+         V var => #handleVar alg (#2 ixs) (var <: ann)
        | APP (theta, args) =>
          let
            val support = O.support theta
-           val memo = List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg i ((u, sigma) <: ann), memo)) (#unit acc) support
+           val memo = List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg (#1 ixs) ((u, sigma) <: ann), memo)) (#unit acc) support
          in
            List.foldr
-             (fn (ABS (_, _, scope), memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (abtAccum acc alg) (i, j, k) scope), memo))
+             (fn (ABS (_, _, scope), memo) => #mul acc (Sc.unsafeReadBody (Sc.liftTraversal (abtAccum acc alg) ixs scope), memo))
              memo
              args
          end
@@ -263,17 +263,17 @@ struct
                   let
                     val support = P.check sigma r
                   in
-                    List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg i ((u, sigma) <: ann), memo)) memo support
+                    List.foldr (fn ((u, sigma), memo) => #mul acc (#handleSym alg (#1 ixs) ((u, sigma) <: ann), memo)) memo support
                   end)
                (#unit acc)
                rs
-           val memo' = List.foldr (fn (m, memo) => #mul acc (abtAccum acc alg (i, j, k) m, memo)) memo ms
+           val memo' = List.foldr (fn (m, memo) => #mul acc (abtAccum acc alg ixs m, memo)) memo ms
          in
-           #mul acc (#handleMeta alg (i, j, k) (((X, tau), rs, ms) <: ann), memo')
+           #mul acc (#handleMeta alg (#3 ixs) (((X, tau), rs, ms) <: ann), memo')
          end
 
   in
-    fun instantiateAbt (i, j, k) (rs, ms, scopes) =
+    fun instantiateAbt ixs (rs, ms, scopes) =
       let
         fun findInstantiation i items var =
           case var of
@@ -293,17 +293,17 @@ struct
              SOME r => (P.check sigma r; r)
            | NONE => P.ret sym
 
-        fun instantiateVar j ((var, tau) <: ann) =
+        fun instantiateVar j ((vt as (var, tau)) <: ann) =
           case findInstantiation j ms var of
              SOME m => if O.Ar.Vl.S.eq (sort m, tau) then m else raise BadInstantiate
-           | NONE => V (var, tau) <: ann
+           | NONE => V vt <: ann
 
-        fun shouldTraverse (i, j, k) ({symIdxBound, varIdxBound, metaIdxBound, ...} : system_annotation) =
+        fun shouldTraverse (ixs : int * int * int) ({symIdxBound, varIdxBound, metaIdxBound, ...} : system_annotation) =
           let
             (* TODO: check this logic. If there is no bound (sym, var, meta), then we have nothing to instantiate. does that make sense? *)
-            val needSyms = i < symIdxBound
-            val needVars = j < varIdxBound
-            val needMetas = k < metaIdxBound
+            val needSyms = #1 ixs < symIdxBound
+            val needVars = #2 ixs < varIdxBound
+            val needMetas = #3 ixs < metaIdxBound
           in
             (* TODO: this logic was incorect!*)
             true
@@ -311,7 +311,7 @@ struct
           end
 
         (* It is weird that this has to be recursive at this spot *)
-        fun instantiateMeta (i, j, k) ((((X, tau), rsX, msX) : meta_term) <: ann) =
+        fun instantiateMeta k ((((X, tau), rsX, msX) : meta_term) <: ann) =
           case findInstantiation k scopes X of
              SOME scope => instantiateAbt (0, 0, 0) (List.map #1 rsX, msX, scopes) (Sc.unsafeReadBody scope)
            | NONE => makeMetaTerm ((X, tau), rsX, msX) (#user ann)
@@ -322,25 +322,26 @@ struct
            handleMeta = instantiateMeta,
            shouldTraverse = shouldTraverse}
       in
-        abtRec alg (i, j, k)
+        abtRec alg ixs
       end
 
-    fun abstractAbt (i, j, k) (us, xs, Xs) =
+    fun abstractAbt ixs (us, xs, Xs) =
       let
-        fun shouldTraverse (i, j, k) ({freeSyms, freeVars, freeMetas, ...} : system_annotation) =
+        fun shouldTraverse ixs ({freeSyms, freeVars, freeMetas, ...} : system_annotation) =
           let
             val needSyms = case us of [] => false | _ => not (Sym.Ctx.isEmpty freeSyms)
             val needVars = case xs of [] => false | _ => not (Var.Ctx.isEmpty freeVars)
             val needMetas = case Xs of [] => false | _ => not (Metavar.Ctx.isEmpty freeMetas)
           in
-            needSyms orelse needVars orelse needMetas
+            true
+            (* needSyms orelse needVars orelse needMetas *)
           end
 
         fun abstractSym i =
-          fn (sym as FREE u, _) <: _ =>
+          fn (sym as FREE u, _) <: _ => P.ret
              (case indexOfFirst (fn v => Sym.eq (u, v)) us of
-                 NONE => P.ret sym
-               | SOME i' => P.ret (BOUND (i + i')))
+                 NONE => sym
+               | SOME i' => BOUND (i + i'))
            | (sym, _) <: _ => P.ret sym
 
         fun abstractVar j =
@@ -350,7 +351,7 @@ struct
                | SOME j' => makeVarTerm (BOUND (j + j'), tau) (#user ann))
            | vt <: ann => V vt <: ann
 
-        fun abstractMeta (i, j, k) ((meta as (((X, tau), rs, ms) : meta_term)) <: ann) =
+        fun abstractMeta k ((meta as (((X, tau), rs, ms) : meta_term)) <: ann) =
           case X of
               FREE X =>
               (case indexOfFirst (fn Y => Metavar.eq (X, Y)) Xs of
@@ -364,7 +365,7 @@ struct
            handleMeta = abstractMeta,
            shouldTraverse = shouldTraverse}
       in
-        abtRec alg (i, j, k)
+        abtRec alg ixs
       end
 
 
