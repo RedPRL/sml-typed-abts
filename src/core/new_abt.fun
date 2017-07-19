@@ -88,23 +88,47 @@ struct
        [] => ""
      | _ => l ^ ListSpine.pretty f c xs ^ r
 
-  val rec primToString =
-    fn V (v, _) <: _ => locallyToString Var.toString v
+  fun primVarToString xs = 
+    fn FREE x => Var.toString x
+     | BOUND i =>
+          if i < List.length xs then 
+            "!" ^ List.nth (xs, i)
+          else
+            "%" ^ Int.toString i
+
+  fun primSymToString us = 
+    fn FREE u => Sym.toString u
+     | BOUND i => 
+          if i < List.length us then 
+            "!" ^ List.nth (us, i)
+          else
+            "%" ^ Int.toString i
+
+
+  fun primToString' (us, xs) =
+    fn V (v, _) <: _ => primVarToString xs v
      | APP (theta, es) <: _ =>
-         O.toString (locallyToString Sym.toString) theta
-           ^ prettyList primToStringAbs "(" "; " ")" es
+         O.toString (primSymToString us) theta
+           ^ prettyList (primToStringAbs' (us, xs)) "(" "; " ")" es
 
      | META ((X, tau), rs, ms) <: _ =>
          "#" ^ locallyToString Metavar.toString X
-           ^ prettyList (P.toString (locallyToString Sym.toString) o #1) "{" ", " "}" rs
-           ^ prettyList primToString "[" ", " "]" ms
+           ^ prettyList (P.toString (primSymToString us) o #1) "{" ", " "}" rs
+           ^ prettyList (primToString' (us, xs)) "[" ", " "]" ms
 
-  and primToStringAbs =
-    fn ABS ([], [], m) => primToString (Sc.unsafeReadBody m)
-     | ABS (ssorts, vsorts, m) => 
-         prettyList PS.toString "{" ", " "}" ssorts
-         ^ prettyList S.toString "[" ", " "]" vsorts
-         ^ "." ^ primToString (Sc.unsafeReadBody m)
+  and primToStringAbs' (us, xs) =
+    fn ABS ([], [], m) => primToString' (us, xs) (Sc.unsafeReadBody m)
+     | ABS (ssorts, vsorts, sc) => 
+         let
+           val Sc.\ ((us', xs'), body) = Sc.unsafeRead sc
+         in
+           prettyList (fn x => x) "{" ", " "}" us' ^ 
+           prettyList (fn x => x) "[" ", " "]" xs' ^ 
+           "." ^ primToString' (us @ us', xs @ xs') body
+         end
+
+    val primToString = primToString' ([],[])
+    val primToStringAbs = primToStringAbs' ([],[])
 
   type metaenv = abs Metavar.Ctx.dict
   type varenv = abt Var.Ctx.dict
