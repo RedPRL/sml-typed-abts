@@ -9,12 +9,12 @@ struct
   type t = valence spine * sort
 
   fun eq ((valences, sigma), (valences', sigma')) =
-    Vl.Sp.Pair.allEq Vl.eq (valences, valences')
+    ListPair.allEq Vl.eq (valences, valences')
       andalso S.eq (sigma, sigma')
 
   fun toString (valences, sigma) =
       let
-        val valences' = Vl.Sp.pretty Vl.toString ", " valences
+        val valences' = ListSpine.pretty Vl.toString ", " valences
         val sigma' = S.toString sigma
       in
         "(" ^ valences' ^ ")" ^ sigma'

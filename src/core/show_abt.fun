@@ -10,33 +10,29 @@ struct
   open Abt infix $ $# infixr \
   type t = abt
 
-  structure Sp = Abt.O.Ar.Vl.Sp
-
   fun toString M =
     case #1 (infer M) of
          `x => ShowVar.toString x
+       | theta $ [] => O.toString ShowSym.toString theta
        | theta $ es =>
-           if Sp.isEmpty es then
-             O.toString ShowSym.toString theta
-           else
-             O.toString ShowSym.toString theta
-                ^ "(" ^ Sp.pretty toStringB "; " es ^ ")"
+          O.toString ShowSym.toString theta
+            ^ "(" ^ ListSpine.pretty toStringB "; " es ^ ")"
        | mv $# (ps, ms) =>
            let
-             val ps' = Sp.pretty (Abt.O.P.toString Sym.toString o #1) "," ps
-             val ms' = Sp.pretty toString "," ms
+             val ps' = ListSpine.pretty (Abt.O.P.toString Sym.toString o #1) "," ps
+             val ms' = ListSpine.pretty toString "," ms
            in
              "#" ^ Abt.Metavar.toString mv
-                 ^ (if Sp.isEmpty ps then "" else "{" ^ ps' ^ "}")
-                 ^ (if Sp.isEmpty ms then "" else "[" ^ ms' ^ "]")
+                 ^ (if ListSpine.isEmpty ps then "" else "{" ^ ps' ^ "}")
+                 ^ (if ListSpine.isEmpty ms then "" else "[" ^ ms' ^ "]")
            end
 
   and toStringB ((us, xs) \ M) =
     let
-      val symEmpty = Sp.isEmpty us
-      val varEmpty = Sp.isEmpty xs
-      val us' = Sp.pretty ShowSym.toString "," us
-      val xs' = Sp.pretty ShowVar.toString "," xs
+      val symEmpty = ListSpine.isEmpty us
+      val varEmpty = ListSpine.isEmpty xs
+      val us' = ListSpine.pretty ShowSym.toString "," us
+      val xs' = ListSpine.pretty ShowVar.toString "," xs
     in
       (if symEmpty then "" else "{" ^ us' ^ "}")
         ^ (if varEmpty then "" else "[" ^ xs' ^ "]")

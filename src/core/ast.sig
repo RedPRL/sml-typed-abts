@@ -2,7 +2,7 @@ signature AST =
 sig
   type 'i operator
   type 'i param
-  type 'a spine
+  type 'a spine = 'a list
 
   type symbol = string
   type variable = string
@@ -43,7 +43,6 @@ sig
   structure Ast : AST
 
   sharing type Ast.operator = Abt.O.t
-  sharing type Ast.spine = Abt.O.Ar.Vl.Sp.t
   sharing type Ast.annotation = Abt.annotation
   sharing type Ast.param = Abt.O.P.term
 end

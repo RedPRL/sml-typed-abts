@@ -1,9 +1,0 @@
-Library
-  signature UNPARSE_ABT
-  functor UnparseAbt
-is
-  abt.cm
-  basis/basis.cm
-  $libs/sml-unparse/unparse.cm
-  src/unparser/unparse_abt.sig
-  src/unparser/unparse_abt.fun

@@ -1,14 +1,14 @@
 local
   $(SML_LIB)/basis/basis.mlb
+  lib/cmlib.mlb
   basis/basis.mlb
-  src/locally-nameless/coord.sig
-  src/locally-nameless/coord.sml
-  src/locally-nameless/locally_nameless.sig
-  src/locally-nameless/locally_nameless.fun
+  src/locally-nameless/symbol.sig
+  src/locally-nameless/scope.sig
+  src/locally-nameless/scope.fun
 in
-  signature LN_COORD
-  structure LnCoord
+  signature LN_SCOPE
+  functor LnScope
 
-  signature LOCALLY_NAMELESS
-  functor LocallyNameless
+  signature ABT_SYMBOL
+  signature ABT_IMPERATIVE_SYMBOL
 end

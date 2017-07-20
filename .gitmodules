@@ -1,9 +1,6 @@
 [submodule "lib/cmlib"]
 	path = lib/cmlib
 	url = https://github.com/standardml/cmlib.git
-[submodule "lib/sml-unparse"]
-	path = lib/sml-unparse
-	url = https://github.com/redprl/sml-unparse.git
 [submodule "lib/sml-json"]
 	path = lib/sml-json
 	url = https://github.com/RedPRL/sml-json.git

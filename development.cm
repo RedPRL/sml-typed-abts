@@ -1,0 +1,39 @@
+Group is
+  $/basis.cm
+  lib/sml-cats/cats.cm
+  basis/basis.cm
+  lib/cmlib.cm
+
+  src/locally-nameless/coord.sig
+  src/locally-nameless/coord.sml
+  src/locally-nameless/scope.sig
+  src/locally-nameless/scope.fun
+  src/locally-nameless/locally_nameless.sig
+  src/locally-nameless/locally_nameless.fun
+  src/locally-nameless/symbol.sig
+
+  src/core/symbol.fun
+  src/core/context_util.sig
+  src/core/context_util.fun
+  src/core/sort.sig
+  src/core/sort.sml
+  src/core/valence.sig
+  src/core/spine.sig
+  src/core/spine.sml
+  src/core/views.sig
+  src/core/views.fun
+  src/core/arity.sig
+  src/core/parameter.sig
+  src/core/parameter.fun
+  src/core/operator.sig
+  src/core/operator.fun
+  src/core/ast.sig
+  src/core/abt.sig
+  src/core/new_abt.fun
+
+  src/core/show_abt.fun
+  src/core/valence.fun
+  src/core/arity.fun
+  src/core/abt.fun
+  src/core/ast.fun
+

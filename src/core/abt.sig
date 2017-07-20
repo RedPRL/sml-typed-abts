@@ -50,7 +50,7 @@ sig
   type abs
 
   (* Patterns for abstract binding trees. *)
-  include ABT_VIEWS where type 'a spine = 'a O.Ar.Vl.Sp.t
+  include ABT_VIEWS
   type 'a view = (param, psort, symbol, variable, metavariable, operator, 'a) termf
   type 'a bview = (symbol, variable, 'a) bindf
   type 'a appview = (symbol, variable, operator, 'a) appf
@@ -94,8 +94,8 @@ sig
   val varOccurrences : abt -> annotation list Var.ctx
   val symOccurrences : abt -> annotation list Sym.ctx
 
-  val unbind : abs -> symbol spine -> abt spine -> abt
-  val // : abs * (symbol spine * abt spine) -> abt
+  val unbind : abs -> param spine -> abt spine -> abt
+  val // : abs * (param spine * abt spine) -> abt
 
   (* Substitution of metavariables instantiates the bound variables and
    * symbols of the abstraction with the operands of applications of
@@ -143,17 +143,4 @@ sig
 
   val primToString : abt -> string 
   val primToStringAbs : abs -> string 
-
-  (* alpha unification *)
-  structure Unify :
-  sig
-    type renaming = metavariable Metavar.ctx * symbol Sym.ctx * variable Var.ctx
-
-    (* unify by synthesizing a renaming of metavariables and variables; raises
-    * [UnificationFailed] when no renaming can be synthesized. *)
-    val unify : abt * abt -> renaming
-    exception UnificationFailed
-
-    val unifyOpt :  abt * abt -> renaming option
-  end
 end

@@ -15,7 +15,7 @@ end
 
 signature ABT_JSON_KIT =
 sig
-  structure Abt : ABT where type 'a O.Ar.Vl.Sp.t = 'a list
+  structure Abt : ABT
 
   val encodeParamSort : Abt.psort -> Json.json_value
   val decodeParamSort : Json.json_value -> Abt.psort option

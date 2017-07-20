@@ -4,7 +4,7 @@ sig
   (* Client-provided global signature *)
   type sign
 
-  structure S : ABT_MACHINE_STATE where type 'a Cl.Abt.O.Ar.Vl.Sp.t = 'a list
+  structure S : ABT_MACHINE_STATE
 
   (* How shall a focused term compute? See the documentation for M.step. *)
   val step : sign -> S.abt S.app_closure -> S.abt S.step

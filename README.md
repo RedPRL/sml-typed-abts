@@ -18,10 +18,6 @@ respects:
   symbols. *Symbols are necessary in order to correctly implement assignables and
   exceptions.*
 
-- Finally, the structure of terms has been generalized to support encodings
-  other than lists for bindings & spines; in general, the ABT framework may be
-  instantiated at any inductive fan.
-
 ### Getting Started
 #### Prerequisites
 

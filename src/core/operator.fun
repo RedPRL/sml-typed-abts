@@ -10,6 +10,7 @@ struct
   fun eq _ = O.eq
   fun toString _ = O.toString
   fun map f x = x
+  fun mapWithSort f x = x
 end
 
 functor AbtEmptyOperator (Ar : ABT_ARITY) : ABT_OPERATOR =
@@ -25,4 +26,5 @@ struct
   fun eq f (WELP x, WELP y) = eq f (x, y)
   fun toString f (WELP x) = toString f x
   fun map f (WELP x) = map f x
+  fun mapWithSort f (WELP x) = mapWithSort f x
 end
