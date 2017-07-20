@@ -29,7 +29,6 @@ Library
   structure UnisortedAbtArity
   functor ContextUtil
   functor Abt
-  functor NewAbt
   functor SimpleAbt
   functor Ast
   functor AstUtil
@@ -48,7 +47,6 @@ is
   basis/basis.cm
   lib/cmlib.cm
 
-  src/core/symbol.sig
   src/core/symbol.fun
   src/core/context_util.sig
   src/core/context_util.fun
@@ -70,6 +68,5 @@ is
   src/core/valence.fun
   src/core/arity.fun
   src/core/abt.fun
-  src/core/new_abt.fun
   src/core/ast.fun
 
