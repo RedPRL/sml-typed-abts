@@ -3,7 +3,6 @@ local
   $(SML_LIB)/mlyacc-lib/mlyacc-lib.mlb
 
   abt.mlb
-  abt-machine.mlb
   lib/cmlib.mlb
   basis/basis.mlb
   example/syntax.sml
