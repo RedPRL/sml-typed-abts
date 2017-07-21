@@ -51,13 +51,13 @@ ABT expressions. Here's an example session:
     Type an expression at the prompt
 
     > \x. x
-    lam([x@10].x@10)  ==>  lam([x@11].x@11)
+    lam([x@10].x@10)
 
     > (\f. f 3) (\x. x)
     Error: Fail: expected exp == nat
 
     > (\f. f #3) (\x. x)
-    ap(lam([f@31].ap(f@31; num(3))); lam([x@32].x@32))  ==>  num(3)
+    ap(lam([f@31].ap(f@31; num(3))); lam([x@32].x@32))
 
 The printer is in "debug mode", which means that all variables and symbols are
 annotated with a unique index; this is useful for convincing oneself that

@@ -10,35 +10,6 @@ structure ExampleParser =
      structure ParserData = ExampleLrVals.ParserData
      structure Lex = ExampleLex)
 
-structure MachineBasis : ABT_MACHINE_BASIS =
-struct
-  type sign = unit
-
-  structure Cl = AbtClosureUtil (AbtClosure (Abt))
-  structure S = AbtMachineState (Cl)
-
-  open Abt Cl O
-  infix 0 \
-  infix 1 <:
-  infix 2 $ `$ $$ $#
-
-  exception InvalidCut
-
-  fun step _ =
-    fn LAM `$ _ <: _ => S.VAL
-     | AP `$ [_ \ m, _ \ n] <: env => S.CUT ((AP `$ [([],[]) \ S.HOLE, ([],[]) \ S.% n], m) <: env)
-     | NUM `$ _ <: _ => S.VAL
-     | LIT _ `$ _ <: _ => S.VAL
-     | _ => raise Fail "Invalid focus"
-
-  fun cut _ =
-    fn (AP `$ [_ \ S.HOLE, _ \ S.% cl], _ \ LAM `$ [(_,[x]) \ mx] <: env) =>
-         mx <: Cl.insertVar env x cl
-     | _ => raise InvalidCut
-end
-
-structure Machine = AbtMachineUtil (AbtMachine (MachineBasis))
-
 structure Example =
 struct
   fun stringreader s =
@@ -77,9 +48,8 @@ struct
                  val (_, tau) = O.arity theta
 
                  val abt = AstToAbt.convert (Abt.Metavar.Ctx.empty, AstToAbt.NameEnv.empty) (Ast.into ast, tau)
-                 val abt' = Machine.eval () abt
                in
-                 print (ShowAbt.toString abt ^ "  ==>  " ^ ShowAbt.toString abt' ^ "\n\n")
+                 print (ShowAbt.toString abt ^ "\n\n")
                end
                handle err => print ("Error: " ^ exnMessage err ^ "\n\n"));
               loop ())

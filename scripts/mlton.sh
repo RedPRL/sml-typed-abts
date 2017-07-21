@@ -7,4 +7,3 @@ mllex example/example.lex
 
 mlton -mlb-path-var "LIBS $LIBS" -output example.out example.mlb
 mlton -mlb-path-var "LIBS $LIBS" -output abt-json.out abt-json.mlb
-mlton -mlb-path-var "LIBS $LIBS" -output abt-machine.out abt-machine.mlb
