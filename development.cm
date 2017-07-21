@@ -29,7 +29,6 @@ Group is
   src/core/operator.fun
   src/core/ast.sig
   src/core/abt.sig
-  src/core/new_abt.fun
 
   src/core/show_abt.fun
   src/core/valence.fun
