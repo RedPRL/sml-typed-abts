@@ -256,13 +256,14 @@ struct
 
     type 'a monoid = {unit : 'a, mul : 'a * 'a -> 'a}
 
-    type ('p, 'a) abt_algebra =
+    type ('p, 'meta, 'a) abt_algebra =
       {debug: string,
        handleSym : int -> (symbol locally * psort) annotated -> 'p,
        handleVar : int -> var_term annotated -> 'a,
+       handleMeta : metavariable * valence -> 'meta,
        shouldTraverse : int * int -> system_annotation -> bool}
 
-    fun abtRec (alg : (symbol locally P.t, abt) abt_algebra) ixs (term <: (ann as {user, system})) : abt =
+    fun abtRec (alg : (symbol locally P.t, metavariable, abt) abt_algebra) ixs (term <: (ann as {user, system})) : abt =
       if not (#shouldTraverse alg ixs system) then term <: ann else 
       case term of
          V (var, tau) => #handleVar alg (#2 ixs) ((var, tau) <: ann)
@@ -277,12 +278,13 @@ struct
          let
            val rs' = List.map (fn (r, sigma) => (P.bind (fn u => #handleSym alg (#1 ixs) ((u, sigma) <: ann)) r, sigma)) rs
            val ms' = List.map (abtRec alg ixs) ms
+           val vl = ((List.map #2 rs', List.map sort ms'), tau)
          in
-           makeMetaTerm ((X, tau), rs', ms') (#user ann)
+           makeMetaTerm ((#handleMeta alg (X, vl), tau), rs', ms') (#user ann)
          end
   
 
-    fun abtAccum (acc : 'a monoid) (alg : ('a, 'a) abt_algebra) ixs (term <: (ann as {user, system})) : 'a =
+    fun abtAccum (acc : 'a monoid) (alg : ('a, 'a, 'a) abt_algebra) ixs (term <: (ann as {user, system})) : 'a =
       if not (#shouldTraverse alg ixs system) then #unit acc else 
       case term of
          V var => #handleVar alg (#2 ixs) (var <: ann)
@@ -306,7 +308,7 @@ struct
                   in
                     List.foldl (fn ((u, sigma), memo) => #mul acc (#handleSym alg (#1 ixs) ((u, sigma) <: ann), memo)) memo support
                   end)
-               (#unit acc)
+               (#handleMeta alg (X, ((List.map #2 rs, List.map sort ms), tau)))
                rs
          in
            List.foldl (fn (m, memo) => #mul acc (abtAccum acc alg ixs m, memo)) memo ms
@@ -347,6 +349,7 @@ struct
           {debug = "instantiate",
            handleSym = instantiateSym,
            handleVar = instantiateVar,
+           handleMeta = fn (X, _) => X,
            shouldTraverse = shouldTraverse}
       in
         abtRec alg ixs
@@ -380,6 +383,7 @@ struct
           {debug = "abstract",
            handleSym = abstractSym,
            handleVar = abstractVar,
+           handleMeta = fn (X, _) => X,
            shouldTraverse = shouldTraverse}
       in
         abtRec alg ixs
@@ -422,6 +426,7 @@ struct
           {debug = "subst",
            handleSym = handleSym,
            handleVar = handleVar,
+           handleMeta = fn (X, _) => X,
            shouldTraverse = shouldTraverse}
       in
         abtRec alg (0,0)
@@ -433,85 +438,102 @@ struct
     fun symctx (_ <: {system = {freeSyms, ...}, ...}) = 
       freeSyms
 
-    val metactx : abt -> metactx =
+    val metactx : abt -> metactx = 
       let
-        fun aux metas (term <: {system = {hasMetas, ...}, ...}) = 
-          if not hasMetas then metas else
-          case term of 
-             V _ => metas
-           | APP (_, args) => auxArgs metas args
-           | META ((X, tau), rs, ms) =>
-             let
-               val vl = ((List.map #2 rs, List.map sort ms), tau)
-               val metas' = Metavar.Ctx.insert metas X vl
-             in
-               auxTerms metas' ms
-             end
-        and auxArgs metas = List.foldl (fn (abs, metas) => auxAbs metas abs) metas
-        and auxAbs metas (ABS (_, _, scope)) = aux metas (Sc.unsafeReadBody scope)
-        and auxTerms metas = List.foldl (fn (term, metas) => aux metas term) metas
+        val monoid : (metactx -> metactx) monoid =
+          {unit = fn ctx => ctx,
+           mul = op o}
+
+        val alg =
+          {debug = "varOccurrences",
+           handleSym = fn _ => fn _ => #unit monoid,
+           handleVar = fn _ => fn _ => #unit monoid,
+           handleMeta = fn (X, vl) => fn ctx => Metavar.Ctx.insert ctx X vl,
+           shouldTraverse = fn _ => fn ({hasMetas, ...} : system_annotation) => hasMetas}
       in
-        aux Metavar.Ctx.empty
+        fn tm => abtAccum monoid alg (0,0) tm Metavar.Ctx.empty
       end
 
     val symOccurrences : abt -> annotation list Sym.ctx = 
       let
+        type occurrences = annotation list Sym.Ctx.dict
+        val monoid : (occurrences -> occurrences) monoid =
+          {unit = fn occs => occs,
+           mul = op o}
+
         fun handleSym _ ((sym, _) <: {user, system}) =
           case (sym, user) of 
-             (FREE u, SOME ann) => Sym.Ctx.singleton u [ann]
-           | _ => Sym.Ctx.empty
-
-        val monoid : annotation list Sym.Ctx.dict monoid =
-          {unit = Sym.Ctx.empty,
-           mul = fn (xs1, xs2) => Sym.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
+             (FREE u, SOME ann) => (fn occs => #3 (Sym.Ctx.operate occs u (fn _ => [ann]) (fn anns => ann :: anns)))
+           | _ => #unit monoid
 
         val alg =
           {debug = "symOccurrences",
            handleSym = handleSym,
-           handleVar = fn _ => fn _ => Sym.Ctx.empty,
+           handleVar = fn _ => fn _ => #unit monoid,
+           handleMeta = fn _ => #unit monoid,
            shouldTraverse = fn _ => fn ({freeSyms, ...} : system_annotation) => not (Sym.Ctx.isEmpty freeSyms)}
       in
-        abtAccum monoid alg (0,0)
+        fn tm => abtAccum monoid alg (0,0) tm Sym.Ctx.empty
       end
 
     val varOccurrences = 
       let
+        type occurrences = annotation list Var.Ctx.dict
+        val monoid : (occurrences -> occurrences) monoid =
+          {unit = fn occs => occs,
+           mul = op o}
+
         fun handleVar _ ((var, _) <: {user, system}) =
           case (var, user) of 
-             (FREE x, SOME ann) => Var.Ctx.singleton x [ann]
-           | _ => Var.Ctx.empty
-
-        val monoid : annotation list Var.Ctx.dict monoid =
-          {unit = Var.Ctx.empty,
-           mul = fn (xs1, xs2) => Var.Ctx.union xs1 xs2 (fn (_, anns1, anns2) => anns1 @ anns2)}
+             (FREE x, SOME ann) => (fn occs => #3 (Var.Ctx.operate occs x (fn _ => [ann]) (fn anns => ann :: anns)))
+           | _ => #unit monoid
 
         val alg =
           {debug = "varOccurrences",
-           handleSym = fn _ => fn _ => Var.Ctx.empty,
+           handleSym = fn _ => fn _ => #unit monoid,
            handleVar = handleVar,
+           handleMeta = fn _ => #unit monoid,
            shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
-      in 
-        abtAccum monoid alg (0,0)
+      in
+        fn tm => abtAccum monoid alg (0,0) tm Var.Ctx.empty
       end
 
     fun renameVars vrho = 
       let
-        fun handleVar _ ((var, tau) <: ann) = 
+        fun handleVar _ ((vt as (var, tau)) <: ann) = 
           case var of
              FREE x =>
              (case Var.Ctx.find vrho x of 
                  SOME y => V (FREE y, tau) <: ann
-               | NONE => V (var, tau) <: ann)
-           | _ => V (var, tau) <: ann
+               | NONE => V vt <: ann)
+           | _ => V vt <: ann
 
         val alg =
           {debug = "renameVars",
-           handleSym = fn _ => fn (sym, tau) <: ann => P.ret sym,
+           handleSym = fn _ => fn (sym, _) <: _ => P.ret sym,
            handleVar = handleVar,
+           handleMeta = fn (X, _) => X,
            shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
       in
         abtRec alg (0,0)
       end
+
+      fun renameMetavars mrho =
+        let
+          fun handleMeta (X, _) = 
+            case Metavar.Ctx.find mrho X of
+               SOME Y => Y
+             | NONE => X
+
+          val alg =
+            {debug = "renameMetavars",
+             handleSym = fn _ => fn (sym, tau) <: _ => P.ret sym,
+             handleVar = fn _ => fn vt <: ann => V vt <: ann,
+             handleMeta = handleMeta,
+             shouldTraverse = fn _ => fn ({hasMetas, ...} : system_annotation) => hasMetas}
+        in
+          abtRec alg (0,0)
+        end
   end
 
   exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}

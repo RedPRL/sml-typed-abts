@@ -107,6 +107,7 @@ sig
   val substVarenv : varenv -> abt -> abt
   val substSymenv : symenv -> abt -> abt
   val renameVars : variable Var.Ctx.dict -> abt -> abt
+  val renameMetavars : metavariable Metavar.Ctx.dict -> abt -> abt
 
   exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
 
