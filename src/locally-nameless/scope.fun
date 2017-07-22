@@ -49,4 +49,5 @@ struct
 
   fun unsafeRead sc = sc
   fun unsafeReadBody (_ \ m) = m
+  fun unsafeMakeScope sc = sc
 end

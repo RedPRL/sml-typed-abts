@@ -29,4 +29,5 @@ sig
   (* O(1) *)
   val unsafeRead : 'a scope -> (string, string, 'a) scope_view
   val unsafeReadBody : 'a scope -> 'a
+  val unsafeMakeScope : (string, string, 'a) scope_view -> 'a scope
 end

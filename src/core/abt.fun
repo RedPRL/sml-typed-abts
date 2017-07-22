@@ -556,6 +556,25 @@ struct
   fun setAnnotation ann (m <: {system, ...}) = m <: {user = ann, system = system}
   fun clearAnnotation (m <: {system, ...}) = m <: {user = NONE, system = system}
 
+  fun metavar (X, ((sigmas, taus), tau)) = 
+    let
+      fun aux f i names results sorts = 
+        case sorts of 
+           [] => (List.rev names, List.rev results)
+         | sort::sorts => 
+           let
+             val r = f (i, sort)
+           in
+             aux f (i + 1) ("?" ^ Int.toString i :: names) (r :: results) sorts
+           end
+
+      val (us, rs) = aux (fn (i, sigma) => (P.ret (BOUND i), sigma)) 0 [] [] sigmas
+      val (xs, ms) = aux (fn (i, tau) => makeVarTerm (BOUND i, tau) NONE) 0 [] [] taus
+      val body = makeMetaTerm ((X, tau), rs, ms) NONE
+      val scope = Sc.\ ((us, xs), body)
+    in
+      ABS (sigmas, taus, Sc.unsafeMakeScope scope)
+    end
 
   fun checkb ((us, xs) \ m, ((ssorts, vsorts), tau)) : abs =
     let

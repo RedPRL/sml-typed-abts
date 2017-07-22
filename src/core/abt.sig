@@ -130,6 +130,8 @@ sig
 
   val $$ : operator * abt bview spine -> abt
 
+  val metavar : metavariable * valence -> abs
+
   (* pattern match on an abt and its sort *)
   val infer : abt -> abt view * sort
   val out : abt -> abt view
