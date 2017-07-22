@@ -386,13 +386,13 @@ struct
       end
 
 
-   val abtBindingSupport : (abt, Sym.t locally P.t, abt) Sc.binding_support = 
-    {abstract = abstractAbt,
-     instantiate = instantiateAbt,
-     freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
-     freeSymbol = fn u => P.ret (FREE u)}
+     val abtBindingSupport : (abt, Sym.t locally P.t, abt) Sc.binding_support = 
+       {abstract = abstractAbt,
+        instantiate = instantiateAbt,
+        freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE,
+        freeSymbol = fn u => P.ret (FREE u)}
 
-     fun subst (srho: symenv, vrho : varenv) =
+     fun substEnv (srho: symenv, vrho : varenv) =
       let
         fun shouldTraverse _ ({freeVars, freeSyms, ...} : system_annotation) =
           let
@@ -517,11 +517,10 @@ struct
   exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
 
   fun substVarenv vrho =
-    subst (Sym.Ctx.empty, vrho)
+    substEnv (Sym.Ctx.empty, vrho)
 
   fun substSymenv srho =
-    subst (srho, Var.Ctx.empty)
-
+    substEnv (srho, Var.Ctx.empty)
 
   fun substVar (m, x) =
     substVarenv (Var.Ctx.singleton x m)

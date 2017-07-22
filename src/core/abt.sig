@@ -103,6 +103,7 @@ sig
    * of hereditary substitution as invented for the Concurrent Logical Framework.
    *)
   val substMetaenv : metaenv -> abt -> abt
+  val substEnv : symenv * varenv -> abt -> abt
   val substVarenv : varenv -> abt -> abt
   val substSymenv : symenv -> abt -> abt
   val renameVars : variable Var.Ctx.dict -> abt -> abt
