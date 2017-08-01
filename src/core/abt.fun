@@ -504,7 +504,7 @@ struct
           case var of
              FREE x =>
              (case Var.Ctx.find vrho x of 
-                 SOME y => V (FREE y, tau) <: ann
+                 SOME y => makeVarTerm (FREE y, tau) (#user ann)
                | NONE => V vt <: ann)
            | _ => V vt <: ann
 
