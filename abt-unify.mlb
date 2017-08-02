@@ -1,6 +1,7 @@
 local
   abt.mlb
-  $(LIB)/cmlib/cmlib.mlb
+  $(SML_LIB)/basis/basis.mlb
+  $(LIBS)/cmlib/cmlib.mlb
   src/unify/set_util.fun
   src/unify/unify.fun
 in

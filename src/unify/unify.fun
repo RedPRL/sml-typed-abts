@@ -128,8 +128,8 @@ struct
       else
         let
           val Y = freshMeta ()
-          val rs' = ListPair.mapPartialEq (fn ((r1, sigma1), (r2, sigma2)) => if O.P.eq Sym.eq (r1, r2) andalso O.Ar.Vl.PS.eq (sigma1, sigma2) then SOME (r1, sigma1) else NONE) (rs1, rs2)
-          val tms' = ListPair.mapPartialEq (fn (tm1, tm2) => if Tm.eq (tm1, tm2) then SOME tm1 else NONE) (tms1, tms2)
+          val rs' = List.mapPartial (fn ((r1, sigma1), (r2, sigma2)) => if O.P.eq Sym.eq (r1, r2) andalso O.Ar.Vl.PS.eq (sigma1, sigma2) then SOME (r1, sigma1) else NONE) @@ ListPair.zipEq (rs1, rs2)
+          val tms' = List.mapPartial (fn (tm1, tm2) => if Tm.eq (tm1, tm2) then SOME tm1 else NONE) @@ ListPair.zipEq (tms1, tms2)
           val bnd = (us1, xs1) \ check (Y $# (rs', tms'), tau)
           val vl = ((List.map #2 rs1, List.map sort tms1), tau)
         in
