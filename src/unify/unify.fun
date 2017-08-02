@@ -7,13 +7,13 @@ sig
 
   val fromList : elem list -> set
   val fromListDistinct : elem list -> set
-end = 
+end =
 struct
   open S
   exception Duplicate
 
-  fun insertDistinct s e = 
-    if member s e then 
+  fun insertDistinct s e =
+    if member s e then
       raise Duplicate
     else
       insert s e
@@ -24,19 +24,17 @@ end
 
 functor Unify (Tm : ABT) :
 sig
-  type substitution = Tm.metaenv
   exception Unify of Tm.abt * Tm.abt
 
   structure Metas : SET where type elem = Tm.metavariable
 
   (* Unify two terms with respect to a set of pattern variables, i.e. metavariables
-     which shall be regarded as flexible. All other metavariables encountered will be 
+     which shall be regarded as flexible. All other metavariables encountered will be
      regarded as rigid. *)
-  val unify : Metas.set -> Tm.abt * Tm.abt -> substitution
-end = 
+  val unify : Metas.set -> Tm.abt * Tm.abt -> Tm.metaenv
+end =
 struct
   open Tm
-  type substitution = metaenv
 
   exception todo
   fun ?e = raise e
@@ -60,7 +58,7 @@ struct
   local
     val counter = ref 0
   in
-    fun freshMeta () = 
+    fun freshMeta () =
       let
         val i = !counter
       in
@@ -69,20 +67,20 @@ struct
       end
   end
 
-  fun asSymbol r = 
-    case r of 
+  fun asSymbol r =
+    case r of
        O.P.VAR u => u
      | _ => raise Pattern
 
-  fun asVariable tm = 
+  fun asVariable tm =
     case out tm of
        `x => x
      | _ => raise Pattern
 
   val paramsToSymbols : (param * psort) list -> symbol list =
     List.map (asSymbol o #1)
-  
-  val termsToVariables : abt list -> variable list = 
+
+  val termsToVariables : abt list -> variable list =
     List.map asVariable
 
   fun proj (pvars, rho) (syms, vars) tm =
@@ -90,7 +88,7 @@ struct
       val tm' = substMetaenv rho tm
       val tau = sort tm'
     in
-      case out tm' of 
+      case out tm' of
          `x => if Vars.member vars x then rho else raise Unbound
        | _ $ bs => List.foldl (fn (b, rho) => projb (pvars, rho) (syms, vars) b) rho bs
        | X $# (rs, tms) =>
@@ -126,17 +124,17 @@ struct
       proj (pvars, rho) (syms', vars') tm
     end
 
-  fun flexRigid (pvars, rho) (X : metavariable, tau, rs : (param * psort) list, tms, t : abt) : substitution =
-    if Metavar.Ctx.member (metactx t) X then 
+  fun flexRigid (pvars, rho) (X, tau, rs, tms, tm) =
+    if Metavar.Ctx.member (metactx tm) X then
       raise Occurs
     else
       let
         val us = paramsToSymbols rs
         val xs = termsToVariables tms
         val vl = ((List.map #2 rs, List.map sort tms), tau)
-        val rho' = Metavar.Ctx.insert rho X @@ checkb ((us, xs) \ t, vl)
+        val rho' = Metavar.Ctx.insert rho X @@ checkb ((us, xs) \ tm, vl)
       in
-        proj (pvars, rho') (Syms.fromListDistinct us, Vars.fromListDistinct xs) t
+        proj (pvars, rho') (Syms.fromListDistinct us, Vars.fromListDistinct xs) tm
           handle Syms.Duplicate => raise Pattern
                | Vars.Duplicate => raise Pattern
       end
@@ -149,7 +147,7 @@ struct
       val xs1 = termsToVariables tms1
       val xs2 = termsToVariables tms2
     in
-      if ListPair.allEq Var.eq (xs1, xs2) andalso ListPair.allEq Sym.eq (us1, us2) then 
+      if ListPair.allEq Var.eq (xs1, xs2) andalso ListPair.allEq Sym.eq (us1, us2) then
         rho
       else
         let
@@ -184,7 +182,7 @@ struct
         in
           Metavar.Ctx.insert rho X2 @@ checkb (bnd, vl2)
         end
-      else if Syms.subset (syms2, syms1) andalso Vars.subset (vars2, vars1) then 
+      else if Syms.subset (syms2, syms1) andalso Vars.subset (vars2, vars1) then
         let
           val bnd = (us1, xs1) \ check (X2 $# (rs2, tms2), tau)
         in
@@ -222,13 +220,13 @@ struct
            fail ()
        | (X1 $# (rs1, tms1), X2 $# (rs2, tms2)) =>
          (case (Metas.member pvars X1, Metas.member pvars X2) of
-            (true, true) => 
-            if Metavar.eq (X1, X2) then 
+            (true, true) =>
+            if Metavar.eq (X1, X2) then
               (flexFlex1 rho (X1, tau, rs1, rs2, tms1, tms2) handle _ => fail ())
             else
               (flexFlex2 rho (X1, X2, tau, rs1, rs2, tms1, tms2) handle _ => fail ())
           | (false, false) =>
-            if Metavar.eq (X1, X2) andalso ListPair.allEq (O.P.eq Sym.eq) (List.map #1 rs1, List.map #1 rs2) then 
+            if Metavar.eq (X1, X2) andalso ListPair.allEq (O.P.eq Sym.eq) (List.map #1 rs1, List.map #1 rs2) then
               ListPair.foldlEq (fn (tm1, tm2, rho) => unify_ (pvars, rho) (tm1, tm2)) rho (tms1, tms2)
             else
               fail ()
