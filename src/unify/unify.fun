@@ -109,10 +109,10 @@ struct
         val xs = termsToVariables tms
         val vl = ((List.map #2 rs, List.map sort tms), tau)
         val rho' = Metavar.Ctx.insert rho X @@ checkb ((us, xs) \ tm, vl)
+        val syms = Syms.fromListDistinct us handle Syms.Duplicate => raise Pattern
+        val vars = Vars.fromListDistinct xs handle Vars.Duplicate => raise Pattern
       in
-        proj (pvars, rho') (Syms.fromListDistinct us, Vars.fromListDistinct xs) tm
-          handle Syms.Duplicate => raise Pattern
-               | Vars.Duplicate => raise Pattern
+        proj (pvars, rho') (syms, vars) tm
       end
 
 
@@ -219,7 +219,7 @@ struct
       val vren = ListPair.foldl (fn (x2, x1, ren) => Var.Ctx.insert ren x2 x1) Var.Ctx.empty (xs2, xs1)
       val tm2' = substSymenv sren @@ renameVars vren tm2
     in
-      unify_ (pvars, rho) (tm1, tm2)
+      unify_ (pvars, rho) (tm1, tm2')
     end
 
   fun unify pvars = unify_ (pvars, Metavar.Ctx.empty)
