@@ -213,9 +213,9 @@ struct
            fail ()
        | (X1 $# (rs1, tms1), X2 $# (rs2, tms2)) =>
          if Metavar.eq (X1, X2) then 
-           flexFlex1 rho (X1, tau, rs1, rs2, tms1, tms2)
+           (flexFlex1 rho (X1, tau, rs1, rs2, tms1, tms2) handle _ => fail ())
          else
-           flexFlex2 rho (X1, X2, tau, rs1, rs2, tms1, tms2)
+           (flexFlex2 rho (X1, X2, tau, rs1, rs2, tms1, tms2) handle _ => fail ())
        | (X $# (rs, tms), _) => (flexRigid rho (X, sort tm1', rs, tms, tm2') handle _ => fail ())
        | (_, X $# (rs, tms)) => (flexRigid rho (X, sort tm1', rs, tms, tm1') handle _ => fail ())
        | _ => fail ()
