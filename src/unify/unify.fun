@@ -90,7 +90,7 @@ struct
       val tau = sort tm'
     in
       case out tm' of
-         `x => if Vars.member vars x then rho else raise Unbound
+         `x => rho
        | _ $ bs => List.foldl (fn (b, rho) => projb (pvars, rho) (syms, vars) b) rho bs
        | X $# (rs, tms) =>
          let
