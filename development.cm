@@ -36,3 +36,5 @@ Group is
   src/core/abt.fun
   src/core/ast.fun
 
+  src/unify/set_util.fun
+  src/unify/unify.fun

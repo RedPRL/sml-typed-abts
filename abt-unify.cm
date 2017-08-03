@@ -1,0 +1,7 @@
+Library
+  functor AbtUnify
+is
+  abt.cm
+  $libs/cmlib/cmlib.cm
+  src/unify/set_util.fun
+  src/unify/unify.fun
