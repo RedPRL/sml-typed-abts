@@ -692,6 +692,12 @@ struct
   fun abtToAbs m = 
     ABS ([],[], Sc.intoScope abtBindingSupport (Sc.\ (([],[]), m)))
 
+
+  fun inheritAnnotation t1 t2 =
+    case getAnnotation t2 of
+        NONE => setAnnotation (getAnnotation t1) t2
+      | _ => t2
+
   fun mapSubterms f m =
     let
       val (view, tau) = infer m
@@ -711,14 +717,14 @@ struct
          fun aux ((us, xs) \ m) = (us,xs) \ substMetaenv mrho m
          val args' = List.map aux args
        in
-         check (theta $ args', tau)
+         inheritAnnotation term (check (theta $ args', tau))
        end
      | (X $# (rs, ms), tau) =>
        let
          val ms' = List.map (substMetaenv mrho) ms
        in
          case Metavar.Ctx.find mrho X of 
-            NONE => check (X $# (rs, ms'), tau)
+            NONE => inheritAnnotation term (check (X $# (rs, ms'), tau))
           | SOME abs => abs // (List.map #1 rs, ms')
        end
 
