@@ -2,7 +2,11 @@ functor AbtUnify (Tm : ABT) :
 sig
   exception Unify of Tm.abt * Tm.abt
 
-  structure Metas : SET where type elem = Tm.metavariable
+  structure Metas :
+  sig
+    include SET where type elem = Tm.metavariable
+    val fromList : elem list -> set
+  end
 
   (* Unify two terms with respect to a set of pattern variables, i.e. metavariables
      which shall be regarded as flexible. All other metavariables encountered will be
@@ -24,7 +28,7 @@ struct
 
   structure Syms = SetUtil (SplaySet (structure Elem = Sym.Ord))
   structure Vars = SetUtil (SplaySet (structure Elem = Var.Ord))
-  structure Metas = SplaySet (structure Elem = Metavar.Ord)
+  structure Metas = SetUtil (SplaySet (structure Elem = Metavar.Ord))
 
   exception Pattern
   exception Occurs
