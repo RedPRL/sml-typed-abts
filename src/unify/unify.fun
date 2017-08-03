@@ -63,9 +63,30 @@ struct
   val termsToVariables : abt list -> variable list =
     List.map asVariable
 
+  fun shallowSubstMetaenv rho tm = 
+    case out tm of 
+       X $# (rs, tms) =>
+       (case Metavar.Ctx.find rho X of 
+           SOME abs => shallowSubstMetaenv rho @@ unbind abs (List.map #1 rs) tms
+         | NONE => tm)
+     | _ => tm
+
+  fun occursInTerm rho (X, tm) =
+    case out tm of
+       Y $# (rs, tms) =>
+       Metavar.eq (X, Y) orelse
+         (case Metavar.Ctx.find rho Y of 
+             SOME abs => occursInTerm rho (X, unbind abs (List.map #1 rs) tms)
+           | NONE => occursInTerms rho (X, tms))
+     | _ $ bs => occursInBinders rho (X, bs)
+     | _ => false
+  and occursInBinder rho (X, _ \ tm) = occursInTerm rho (X, tm)
+  and occursInTerms rho (X, tms) = List.exists (fn tm => occursInTerm rho (X, tm)) tms
+  and occursInBinders rho (X, bs) = List.exists (fn b => occursInBinder rho (X, b)) bs
+
   fun proj (pvars, rho) (syms, vars) tm =
     let
-      val tm' = substMetaenv rho tm
+      val tm' = shallowSubstMetaenv rho tm
       val tau = sort tm'
     in
       case out tm' of
@@ -105,7 +126,7 @@ struct
     end
 
   fun flexRigid (pvars, rho) (X, tau, rs, tms, tm) =
-    if Metavar.Ctx.member (metactx tm) X then
+    if occursInTerm rho (X, tm) then
       raise Occurs
     else
       let
@@ -189,13 +210,11 @@ struct
 
   fun unifyTerm (pvars, rho) (tm1, tm2) =
     let
-      val tm1' = substMetaenv rho tm1
-      val tm2' = substMetaenv rho tm2
-      fun fail () = raise Unify (tm1', tm2')
-
       val tau = sort tm1
       val _ = if O.Ar.Vl.S.eq (tau, sort tm2) then () else raise Sort
 
+      val tm1' = shallowSubstMetaenv rho tm1
+      val tm2' = shallowSubstMetaenv rho tm2
     in
       unifyView (pvars, rho) tau (out tm1', out tm2')
       handle exn as Unify _ => raise exn
