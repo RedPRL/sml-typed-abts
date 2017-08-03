@@ -178,7 +178,12 @@ struct
         end
     end
 
-  fun unify_ (pvars, rho) (tm1, tm2) =
+  exception VariableMismatch
+  exception OperatorMismatch
+  exception MetavariableMismatch
+  exception StructuralMismatch
+
+  fun unifyTerm (pvars, rho) (tm1, tm2) =
     let
       val tm1' = substMetaenv rho tm1
       val tm2' = substMetaenv rho tm2
@@ -186,41 +191,65 @@ struct
 
       val tau = sort tm1
       val _ = if O.Ar.Vl.S.eq (tau, sort tm2) then () else raise Sort
+
     in
-      case (out tm1', out tm2') of
-         (`x1, `x2) => if Var.eq (x1, x2) then rho else fail ()
-       | (theta1 $ bs1, theta2 $ bs2) =>
-         if O.eq Sym.eq (theta1, theta2) then
-           ListPair.foldlEq (fn (b1, b2, rho) => unifyb (pvars, rho) (b1, b2)) rho (bs1, bs2)
-         else
-           fail ()
-       | (X1 $# (rs1, tms1), X2 $# (rs2, tms2)) =>
-         (case (Metas.member pvars X1, Metas.member pvars X2) of
-            (true, true) =>
-            if Metavar.eq (X1, X2) then
-              (flexFlex1 rho (X1, tau, rs1, rs2, tms1, tms2) handle _ => fail ())
-            else
-              (flexFlex2 rho (X1, X2, tau, rs1, rs2, tms1, tms2) handle _ => fail ())
-          | (false, false) =>
-            if Metavar.eq (X1, X2) andalso ListPair.allEq (O.P.eq Sym.eq) (List.map #1 rs1, List.map #1 rs2) then
-              ListPair.foldlEq (fn (tm1, tm2, rho) => unify_ (pvars, rho) (tm1, tm2)) rho (tms1, tms2)
-            else
-              fail ()
-          | (true, false) => (flexRigid (pvars, rho) (X1, sort tm1', rs1, tms1, tm2') handle _ => fail ())
-          | (false, true) => (flexRigid (pvars, rho) (X2, sort tm2', rs2, tms2, tm1') handle _ => fail ()))
-       | (X $# (rs, tms), _) => (flexRigid (pvars, rho) (X, sort tm1', rs, tms, tm2') handle _ => fail ())
-       | (_, X $# (rs, tms)) => (flexRigid (pvars, rho) (X, sort tm1', rs, tms, tm1') handle _ => fail ())
-       | _ => fail ()
+      unifyView (pvars, rho) tau (out tm1', out tm2')
+      handle exn as Unify _ => raise exn
+           | exn => raise Unify (tm1', tm2')
     end
 
-  and unifyb (pvars, rho) ((us1, xs1) \ tm1, (us2, xs2) \ tm2) =
+  and unifyView (pvars, rho) tau = 
+    fn (`x1, `x2) =>
+        if Var.eq (x1, x2) then rho else raise VariableMismatch
+      | (theta1 $ bs1, theta2 $ bs2) => 
+        if O.eq Sym.eq (theta1, theta2) then 
+          unifyBinders (pvars, rho) (bs1, bs2)
+        else
+          raise OperatorMismatch
+      | (view1 as X1 $# (rs1, tms1), view2 as X2 $# (rs2, tms2)) =>
+        (case (Metas.member pvars X1, Metas.member pvars X2) of 
+            (true, true) =>
+            if Metavar.eq (X1, X2) then 
+              flexFlex1 rho (X1, tau, rs1, rs2, tms1, tms2)
+            else
+              flexFlex2 rho (X1, X2, tau, rs1, rs2, tms1, tms2)
+          | (false, false) =>
+            if Metavar.eq (X1, X2) then 
+              unifyTerms (pvars, rho) (tms1, tms2)
+            else
+              raise MetavariableMismatch
+          | (true, false) => flexRigid (pvars, rho) (X1, tau, rs1, tms1, check (view2, tau))
+          | (false, true) => flexRigid (pvars, rho) (X2, tau, rs2, tms2, check (view1, tau)))
+       | (X1 $# (rs1, tms1), view) => 
+         if Metas.member pvars X1 then
+           flexRigid (pvars, rho) (X1, tau, rs1, tms1, check (view, tau))
+         else
+           raise StructuralMismatch
+       | (view, X2 $# (rs2, tms2)) =>
+         if Metas.member pvars X2 then 
+           flexRigid (pvars, rho) (X2, tau, rs2, tms2, check (view, tau))
+         else
+           raise StructuralMismatch
+       | _ => raise StructuralMismatch
+
+  and unifyBinder (pvars, rho) ((us1, xs1) \ tm1, (us2, xs2) \ tm2) =
     let
       val sren = ListPair.foldl (fn (u2, u1, ren) => Sym.Ctx.insert ren u2 @@ O.P.ret u1) Sym.Ctx.empty (us2, us1)
       val vren = ListPair.foldl (fn (x2, x1, ren) => Var.Ctx.insert ren x2 x1) Var.Ctx.empty (xs2, xs1)
       val tm2' = substSymenv sren @@ renameVars vren tm2
     in
-      unify_ (pvars, rho) (tm1, tm2')
+      unifyTerm (pvars, rho) (tm1, tm2')
     end
 
-  fun unify pvars = unify_ (pvars, Metavar.Ctx.empty)
+  and unifyBinders (pvars, rho) = 
+    ListPair.foldlEq
+      (fn (b1, b2, rho) => unifyBinder (pvars, rho) (b1, b2))
+      rho
+
+  and unifyTerms (pvars, rho) = 
+    ListPair.foldlEq
+      (fn (tm1, tm2, rho) => unifyTerm (pvars, rho) (tm1, tm2))
+      rho
+
+  fun unify pvars = unifyTerm (pvars, Metavar.Ctx.empty)
 end
