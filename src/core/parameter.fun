@@ -31,6 +31,8 @@ struct
   fun collectSubterms t =
     Sig.join [] op@ (Sig.map ListMonad.ret t)
 
+  exception SortError
+
   fun check tau =
     fn VAR x => [(x, tau)]
      | APP t =>
@@ -43,7 +45,7 @@ struct
                (fn (m, sigma) => check sigma m)
                annotatedSubterms
            else
-             raise Fail "Parameter sort mismatch"
+             raise SortError
          end
 
   fun freeVars t =
