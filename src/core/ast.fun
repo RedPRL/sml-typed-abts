@@ -81,13 +81,9 @@ struct
 
   fun variable vnames x =
     NameEnv.lookup vnames x
-    handle _ =>
-      Abt.Var.named x
 
   fun symbol snames u =
     NameEnv.lookup snames u
-    handle _ =>
-      Abt.Sym.named u
 
   exception BadConversion of string * Ast.annotation option
 
