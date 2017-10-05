@@ -1,10 +1,9 @@
 functor AbtArity (Vl : ABT_VALENCE) : ABT_ARITY =
 struct
-  structure Vl = Vl and PS = Vl.PS and S = Vl.S
+  structure Vl = Vl and S = Vl.S
 
   type valence = Vl.t
   type sort = Vl.sort
-  type psort = Vl.psort
   type 'a spine = 'a Vl.spine
   type t = valence spine * sort
 

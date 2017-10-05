@@ -1,10 +1,8 @@
 signature AST =
 sig
-  type 'i operator
-  type 'i param
+  type operator
   type 'a spine = 'a list
 
-  type symbol = string
   type variable = string
   type metavariable = string
 
@@ -13,9 +11,9 @@ sig
 
   datatype 'a view =
       ` of variable
-    | $ of symbol operator * 'a abs spine
-    | $# of metavariable * (symbol param spine * 'a spine)
-  and 'a abs = \ of (symbol spine * variable spine) * 'a
+    | $ of operator * 'a abs spine
+    | $# of metavariable * 'a spine
+  and 'a abs = \ of variable spine * 'a
 
   val into : ast view -> ast
   val out : ast -> ast view
@@ -33,8 +31,8 @@ sig
   include AST
 
   val `` : variable -> ast
-  val $$ : symbol operator * ast abs spine -> ast
-  val $$# : metavariable * (symbol param spine * ast spine) -> ast
+  val $$ : operator * ast abs spine -> ast
+  val $$# : metavariable * ast spine -> ast
 end
 
 signature AST_ABT =
@@ -44,7 +42,6 @@ sig
 
   sharing type Ast.operator = Abt.O.t
   sharing type Ast.annotation = Abt.annotation
-  sharing type Ast.param = Abt.O.P.term
 end
 
 signature AST_TO_ABT =
@@ -64,7 +61,7 @@ sig
   (* convert an open ast to an abt *)
   val convertOpen
     : Abt.metactx * Abt.metavariable NameEnv.dict
-    -> Abt.symbol NameEnv.dict * Abt.variable NameEnv.dict
+    -> Abt.variable NameEnv.dict
     -> Ast.ast * Abt.sort
     -> Abt.abt
 end

@@ -13,7 +13,6 @@ sig
 
   type valence = Vl.t
   type sort = Vl.sort
-  type psort = Vl.psort
   type 'a spine = 'a Vl.spine
 
   type t = valence spine * sort
@@ -25,7 +24,6 @@ signature UNISORTED_ABT_ARITY =
 sig
   include ABT_ARITY
     where type Vl.S.t = unit
-    where type Vl.PS.t = unit
 
-  val make : (int * int) list -> t
+  val make : int list -> t
 end

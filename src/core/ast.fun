@@ -2,22 +2,18 @@ functor Ast
   (structure Operator : ABT_OPERATOR
    type annotation) : AST =
 struct
-  type symbol = string
   type variable = string
   type metavariable = string
   type annotation = annotation
 
-  structure P = Operator.P
-
-  type 'i operator = 'i Operator.t
-  type 'i param = 'i Operator.P.term
+  type operator = Operator.t
   type 'a spine = 'a list
 
   datatype 'a view =
       ` of variable
-    | $ of symbol operator * 'a abs spine
-    | $# of metavariable * (symbol param spine * 'a spine)
-  and 'a abs = \ of (symbol spine * variable spine) * 'a
+    | $ of operator * 'a abs spine
+    | $# of metavariable * 'a spine
+  and 'a abs = \ of variable spine * 'a
 
   datatype ast = @: of ast view * annotation option
 
@@ -34,31 +30,25 @@ struct
 
   val rec toString =
     fn `x @: _ => x
-     | theta $ [] @: _ => Operator.toString (fn x => x) theta
+     | theta $ [] @: _ => Operator.toString theta
      | theta $ es @: _ => 
-         Operator.toString (fn x => x) theta
+         Operator.toString theta
            ^ "(" ^ ListSpine.pretty toStringB "; " es ^ ")"
-     | mv $# (us, es) @: _ =>
+     | mv $# es @: _ =>
          let
-           val us' = ListSpine.pretty (P.toString (fn x => x)) "," us
            val es' = ListSpine.pretty toString "," es
          in
            "#" ^ mv
-               ^ (if ListSpine.isEmpty us then "" else "{" ^ us' ^ "}")
                ^ (if ListSpine.isEmpty es then "" else "[" ^ es' ^ "]")
          end
 
   and toStringB =
-    fn ((us, xs) \ M) =>
+    fn (xs \ M) =>
       let
-        val symEmpty = ListSpine.isEmpty us
         val varEmpty = ListSpine.isEmpty xs
-        val us' = ListSpine.pretty (fn x => x) "," us
         val xs' = ListSpine.pretty (fn x => x) "," xs
       in
-        (if symEmpty then "" else "{" ^ us' ^ "}")
-          ^ (if varEmpty then "" else "[" ^ xs' ^ "]")
-          ^ (if symEmpty andalso varEmpty then "" else ".")
+         (if varEmpty then "" else "[" ^ xs' ^ "].")
           ^ toString M
       end
 end
@@ -77,17 +67,13 @@ struct
   open X
 
   structure NameEnv = SplayDict (structure Key = StringOrdered)
-  structure PF = MonadApplicative (Abt.O.P)
 
   fun variable vnames x =
     NameEnv.lookup vnames x
 
-  fun symbol snames u =
-    NameEnv.lookup snames u
-
   exception BadConversion of string * Ast.annotation option
 
-  fun convertOpen (psi, mnames) (snames, vnames) (m, tau) =
+  fun convertOpen (psi, mnames) vnames (m, tau) =
     let
       val oann = Ast.getAnnotation m
       val abt =
@@ -96,24 +82,22 @@ struct
            | Ast.$ (theta, es) =>
               let
                 val (vls, _) = Abt.O.arity theta
-                val theta' = Abt.O.map (PF.pure o symbol snames) theta
-                val es' = ListPair.mapEq (convertOpenAbs (psi, mnames) (snames, vnames)) (es, vls)
+                val es' = ListPair.mapEq (convertOpenAbs (psi, mnames) vnames) (es, vls)
                           handle ListPair.UnequalLengths =>
-                                 raise BadConversion ("Arity mismatch for operator " ^ Abt.O.toString (fn x => x) theta, oann)
+                                 raise BadConversion ("Arity mismatch for operator " ^ Abt.O.toString theta, oann)
               in
-                Abt.check (Abt.$ (theta', es'), tau)
+                Abt.check (Abt.$ (theta, es'), tau)
               end
-           | Ast.$# (mv, (ps, ms)) =>
+           | Ast.$# (mv, ms) =>
                let
                  val mv' = NameEnv.lookup mnames mv
                            handle NameEnv.Absent =>
                                   raise BadConversion ("Free metavariable " ^ mv, oann)
-                 val ((ssorts, vsorts), tau') = Abt.Metavar.Ctx.lookup psi mv'
+                 val (vsorts, tau') = Abt.Metavar.Ctx.lookup psi mv'
                  val _ = if Abt.O.Ar.Vl.S.eq (tau, tau') then () else raise Fail "Convert: metavariable sort mismatch"
-                 val ps' = ListPair.zipEq (List.map (PF.map (symbol snames)) ps, ssorts)
-                 val ms' = ListPair.mapEq (convertOpen (psi, mnames) (snames, vnames)) (ms, vsorts)
+                 val ms' = ListPair.mapEq (convertOpen (psi, mnames) vnames) (ms, vsorts)
                in
-                 Abt.check (Abt.$# (mv', (ps', ms')), tau)
+                 Abt.check (Abt.$# (mv', ms'), tau)
                end
     in
       case oann of
@@ -121,17 +105,15 @@ struct
        | NONE => abt
     end
 
-  and convertOpenAbs (psi, mnames) (snames, vnames) (Ast.\ ((us, xs), m), vl) : Abt.abt Abt.bview =
+  and convertOpenAbs (psi, mnames) vnames (Ast.\ (xs, m), vl) : Abt.abt Abt.bview =
     let
-      val ((ssorts, vsorts), tau) = vl
-      val us' = List.map Abt.Sym.named us
+      val (vsorts, tau) = vl
       val xs' = List.map Abt.Var.named xs
-      val snames' = List.foldr (fn ((u, u'), snames') => NameEnv.insert snames' u u') snames (ListPair.zipEq (us, us'))
       val vnames' = List.foldr (fn ((x, x'), vnames') => NameEnv.insert vnames' x x') vnames (ListPair.zipEq (xs, xs'))
     in
-      Abt.\ ((us', xs'), convertOpen (psi, mnames) (snames', vnames') (m, tau))
+      Abt.\ (xs', convertOpen (psi, mnames) vnames' (m, tau))
     end
 
   fun convert (psi, mnames) =
-    convertOpen (psi, mnames) (NameEnv.empty, NameEnv.empty)
+    convertOpen (psi, mnames) NameEnv.empty
 end

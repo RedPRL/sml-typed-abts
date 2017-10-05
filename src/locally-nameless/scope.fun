@@ -1,50 +1,42 @@
 functor LnScope
   (structure Metavar : ABT_SYMBOL
    structure Var : ABT_SYMBOL
-   structure Sym : ABT_SYMBOL
-   type sort
-   type psort) : LN_SCOPE =
+   type sort) : LN_SCOPE =
 struct
   type variable = Var.t
-  type symbol = Sym.t
   type sort = sort
-  type psort = psort
-  type valence = (psort list * sort list) * sort
+  type valence = sort list * sort
 
-  datatype ('s, 'v, 'a) scope_view = \ of ('s list * 'v list) * 'a
-  type 'a scope = (string, string, 'a) scope_view
+  datatype ('v, 'a) scope_view = \ of 'v list * 'a
+  type 'a scope = (string, 'a) scope_view
   infix \
 
   exception Instantiate
 
-  type ('m, 'p, 'a) binding_support = 
-    {abstract: int * int -> symbol list * variable list -> 'a -> 'a,
-     instantiate: int * int -> 'p list * 'm list -> 'a -> 'a,
-     freeVariable : variable * sort -> 'm,
-     freeSymbol : symbol -> 'p}
+  type ('m, 'a) binding_support = 
+    {abstract: int -> variable list -> 'a -> 'a,
+     instantiate: int -> 'm list -> 'a -> 'a,
+     freeVariable : variable * sort -> 'm}
 
-  fun liftTraversal f (i, j) ((us, xs) \ m) = 
+  fun liftTraversal f j (xs \ m) = 
     let
-      val symCount = List.length us
       val varCount = List.length xs
     in
-      (us, xs) \ f (i + symCount, j + varCount) m
+      xs \ f (j + varCount) m
     end
 
   fun eq f (_ \ m, _ \ n) = 
     f (m, n)
 
-  fun intoScope (driver : ('m, 'p, 'a) binding_support) ((us, xs) \ m) =
-    (List.map Sym.toString us, List.map Var.toString xs) \ #abstract driver (0,0) (us, xs) m
+  fun intoScope (driver : ('m, 'a) binding_support) (xs \ m) =
+    (List.map Var.toString xs) \ #abstract driver 0 xs m
 
-  fun outScope (driver : ('m, 'p, 'a) binding_support) (_, taus) ((us, xs) \ m) =
+  fun outScope (driver : ('m, 'a) binding_support) taus (xs \ m) =
     let
-      val us' = List.map Sym.named us
       val xs' = List.map Var.named xs
-      val rs = List.map (#freeSymbol driver) us'
       val ms = ListPair.mapEq (#freeVariable driver) (xs', taus)
     in
-      (us', xs') \ #instantiate driver (0,0) (rs, ms) m
+      xs' \ #instantiate driver 0 ms m
     end
 
   fun unsafeRead sc = sc

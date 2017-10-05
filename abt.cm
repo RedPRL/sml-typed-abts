@@ -2,8 +2,6 @@ Library
   signature ABT
   signature AST
   signature AST_UTIL
-  signature ABT_PARAMETER
-  signature ABT_PARAMETER_TERM
   signature ABT_OPERATOR
   signature ABT_SIMPLE_OPERATOR
   signature ABT_SYMBOL
@@ -16,8 +14,6 @@ Library
   signature UNISORTED_ABT_ARITY
   signature CONTEXT_UTIL
 
-  functor AbtParameterTerm
-  functor AbtEmptyParameter
   functor AbtSymbol
   structure AbtEmptySort
   structure StringAbtSymbol
@@ -58,8 +54,6 @@ is
   src/core/views.sig
   src/core/views.fun
   src/core/arity.sig
-  src/core/parameter.sig
-  src/core/parameter.fun
   src/core/operator.sig
   src/core/operator.fun
   src/core/ast.sig

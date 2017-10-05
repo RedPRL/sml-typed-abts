@@ -1,7 +1,6 @@
 functor ShowAbt
   (structure Abt : ABT
-   structure ShowVar : SHOW where type t = Abt.variable
-   structure ShowSym : SHOW where type t = Abt.symbol) :>
+   structure ShowVar : SHOW where type t = Abt.variable) :>
 sig
   include SHOW where type t = Abt.abt
   val toStringAbs : Abt.abs -> string
@@ -13,30 +12,24 @@ struct
   fun toString M =
     case #1 (infer M) of
          `x => ShowVar.toString x
-       | theta $ [] => O.toString ShowSym.toString theta
+       | theta $ [] => O.toString theta
        | theta $ es =>
-          O.toString ShowSym.toString theta
+          O.toString theta
             ^ "(" ^ ListSpine.pretty toStringB "; " es ^ ")"
-       | mv $# (ps, ms) =>
+       | mv $# ms =>
            let
-             val ps' = ListSpine.pretty (Abt.O.P.toString Sym.toString o #1) "," ps
              val ms' = ListSpine.pretty toString "," ms
            in
              "#" ^ Abt.Metavar.toString mv
-                 ^ (if ListSpine.isEmpty ps then "" else "{" ^ ps' ^ "}")
                  ^ (if ListSpine.isEmpty ms then "" else "[" ^ ms' ^ "]")
            end
 
-  and toStringB ((us, xs) \ M) =
+  and toStringB (xs \ M) =
     let
-      val symEmpty = ListSpine.isEmpty us
       val varEmpty = ListSpine.isEmpty xs
-      val us' = ListSpine.pretty ShowSym.toString "," us
       val xs' = ListSpine.pretty ShowVar.toString "," xs
     in
-      (if symEmpty then "" else "{" ^ us' ^ "}")
-        ^ (if varEmpty then "" else "[" ^ xs' ^ "]")
-        ^ (if symEmpty andalso varEmpty then "" else ".")
+      (if varEmpty then "" else "[" ^ xs' ^ "].")
         ^ toString M
     end
 
@@ -47,11 +40,9 @@ end
 functor PlainShowAbt (Abt : ABT) =
   ShowAbt
     (structure Abt = Abt
-     and ShowVar = Abt.Var
-     and ShowSym = Abt.Sym)
+     and ShowVar = Abt.Var)
 
 functor DebugShowAbt (Abt : ABT) =
   ShowAbt
     (structure Abt = Abt
-     and ShowVar = Abt.Var.DebugShow
-     and ShowSym = Abt.Sym.DebugShow)
+     and ShowVar = Abt.Var.DebugShow)
