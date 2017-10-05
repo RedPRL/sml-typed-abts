@@ -1,5 +1,5 @@
 local
-  cmlib/cmlib.mlb
+  $(LIBS)/cmlib/cmlib.mlb
 in
   signature DICT
   signature ORDERED

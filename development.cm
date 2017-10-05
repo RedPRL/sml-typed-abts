@@ -2,14 +2,10 @@ Group is
   $/basis.cm
   lib/sml-cats/cats.cm
   basis/basis.cm
-  lib/cmlib.cm
+  lib/cmlib.cm (bind:(anchor:libs value:lib))
 
-  src/locally-nameless/coord.sig
-  src/locally-nameless/coord.sml
   src/locally-nameless/scope.sig
   src/locally-nameless/scope.fun
-  src/locally-nameless/locally_nameless.sig
-  src/locally-nameless/locally_nameless.fun
   src/locally-nameless/symbol.sig
 
   src/core/symbol.fun

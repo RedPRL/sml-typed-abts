@@ -14,4 +14,4 @@ Library
   structure Pos
   structure Coord
 is
-  cmlib/cmlib.cm
+  $libs/cmlib/cmlib.cm
