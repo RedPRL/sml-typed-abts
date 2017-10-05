@@ -1,6 +1,6 @@
 ### sml-typed-abts
 
-This is a full implementation of Abstract Binding Trees from [Robert
+This is an implementation of Abstract Binding Trees from [Robert
 Harper](https://www.cs.cmu.edu/~rwh/)'s book, [Practical Foundations for
 Programming Languages](https://www.cs.cmu.edu/~rwh/plbook/2nded.pdf).
 
@@ -9,14 +9,6 @@ respects:
 
 - Unlike Nuprl-style ABTs, this is a library for *many-sorted* abstract binding
   trees.
-
-- We include a proper treatment of symbols and parameters in addition to
-  variables. Recall that whilst variables support substitution, symbols support
-  only fresh renaming. Operators are fibred over finite sets of symbols and sort
-  assignments, and sort-preserving injective maps of symbols lift to renamings of
-  operators' parameters. Valences account for the binding of both variables and
-  symbols. *Symbols are necessary in order to correctly implement assignables and
-  exceptions.*
 
 ### Getting Started
 #### Prerequisites
@@ -59,9 +51,9 @@ ABT expressions. Here's an example session:
     > (\f. f #3) (\x. x)
     ap(lam([f@31].ap(f@31; num(3))); lam([x@32].x@32))
 
-The printer is in "debug mode", which means that all variables and symbols are
+The printer is in "debug mode", which means that all variables are
 annotated with a unique index; this is useful for convincing oneself that
-variables and symbols are being bound properly.
+variables are being bound properly.
 
 #### Running the example in SML/NJ
 
