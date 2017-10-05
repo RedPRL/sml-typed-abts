@@ -2,7 +2,7 @@
  * to operators. It contains two parts
  *
  *  - The actual sort that the operator belongs to when it's fully applied.
- *  - The valence (sorts of bound symbols + sorts of bound variables + sort of term)
+ *  - The valence (sorts of bound variables + sort of term)
  *    of each subterm of the operator
  *
  * An operator is fully determined by its name + arity

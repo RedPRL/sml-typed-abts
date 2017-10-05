@@ -8,7 +8,7 @@ end
 
 structure O =
 struct
-  structure Ar = ListAbtArity (structure S = Sort and PS = AbtEmptySort)
+  structure Ar = ListAbtArity (structure S = Sort)
   datatype t = LAM | AP | NUM | LIT of int
 
   val eq : t * t -> bool = op=
@@ -20,24 +20,23 @@ struct
 
   local
     open Sort
-    fun mkValence p q s = ((p, q), s)
+    fun mkValence q s = (q, s)
   in
     val arity =
-      fn LAM => ([mkValence [] [EXP] EXP], EXP)
-       | AP => ([mkValence [] [] EXP, mkValence [] [] EXP], EXP)
-       | NUM => ([mkValence [] [] NAT], EXP)
+      fn LAM => ([mkValence [EXP] EXP], EXP)
+       | AP => ([mkValence [] EXP, mkValence [] EXP], EXP)
+       | NUM => ([mkValence [] NAT], EXP)
        | LIT _ => ([], NAT)
   end
 end
 
-structure Operator = AbtSimpleOperator (O)
+structure Operator = O
 
 structure AbtKit =
 struct
   structure O = Operator
     and Metavar = AbtSymbol ()
     and Var = AbtSymbol ()
-    and Sym = AbtSymbol ()
   type annotation = Pos.t
 end
 

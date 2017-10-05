@@ -73,8 +73,8 @@ sig
   val metactx : abt -> metactx
   val varctx : abt -> varctx
 
-  (* Finding occurrences (ie, annotations) of free variables, symbols,
-   * and metavariables. Note that if a variable, symbol, or metavariable
+  (* Finding occurrences (ie, annotations) of free variables
+   * and metavariables. Note that if a variable or metavariable
    * is unannotated, it will *not* be included in the result. Thus, these
    * functions are not substitutes to the *ctx functions above, but should
    * only be used in a best-effort attempt to produce useful annotation
@@ -85,8 +85,8 @@ sig
   val unbind : abs -> abt spine -> abt
   val // : abs * abt spine -> abt
 
-  (* Substitution of metavariables instantiates the bound variables and
-   * symbols of the abstraction with the operands of applications of
+  (* Substitution of metavariables instantiates the bound variables
+   * of the abstraction with the operands of applications of
    * the metavariable. This operation is related to Kevin Watkins' method
    * of hereditary substitution as invented for the Concurrent Logical Framework.
    *)

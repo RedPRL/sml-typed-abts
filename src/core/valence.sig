@@ -1,7 +1,6 @@
 (* A valence is the "type" assigned to each abstraction in the framework
  * of abts. It includes 3 things
  *
- *  - The sorts of all the bound symbols
  *  - The sorts of all the bound variables
  *  - The sort of the actual term once it's been instantiated with all
  *    the appropriate missing pieces
@@ -13,7 +12,7 @@ sig
   type sort = S.t
   type 'a spine = 'a list
 
-  (* bindings are spines of symbol sorts and variable sorts respectively *)
+  (* bindings are lists of variable sorts respectively *)
   type bindings = sort spine
   type t = bindings * sort
 

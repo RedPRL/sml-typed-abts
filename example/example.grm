@@ -31,12 +31,12 @@ open Ast
 start : term (term)
 
 term
-  : term atomicTerm %prec FUN_APP (Ast.$$ (O.AP, [\ (([],[]), term), \ (([],[]), atomicTerm)]))
+  : term atomicTerm %prec FUN_APP (Ast.$$ (O.AP, [\ ([], term), \ ([], atomicTerm)]))
   | atomicTerm (atomicTerm)
 
 atomicTerm
-  : LAMBDA IDENT DOT term (Ast.$$ (O.LAM, [\ (([], [IDENT]), term)]))
+  : LAMBDA IDENT DOT term (Ast.$$ (O.LAM, [\ ([IDENT], term)]))
   | NUMERAL (Ast.$$ (O.LIT NUMERAL, []))
   | IDENT (Ast.`` IDENT)
-  | HASH atomicTerm (Ast.$$ (O.NUM, [\ (([],[]), atomicTerm)]))
+  | HASH atomicTerm (Ast.$$ (O.NUM, [\ ([], atomicTerm)]))
   | LPAREN term RPAREN (term)

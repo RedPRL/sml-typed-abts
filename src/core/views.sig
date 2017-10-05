@@ -3,7 +3,7 @@ sig
   type 'a spine = 'a list
 
   (* A [bindf] is a view of a abstraction. This is NOT an abt;
-   * a binding is a spine of symbols and variables as well as the
+   * a binding is a list of variables as well as the
    * underlying 'a (usually an abt) that uses them.
    *)
   datatype ('v, 'a) bindf =
@@ -12,8 +12,7 @@ sig
   (* This is the main interface to be used for interacting with
    * an ABT. When inspected, an standard ABT is just a variable or
    * an operator (the binding case is always wrapped in an operators
-   * argument) or a metavariable applied to some collection of
-   * symbols and terms
+   * argument) or a metavariable applied to some list of terms
    *)
   datatype ('var, 'mvar, 'op, 'a) termf =
       ` of 'var
