@@ -20,10 +20,10 @@ struct
       end
 end
 
-functor ListAbtArity (structure S : ABT_SORT and PS : ABT_SORT) : ABT_ARITY =
+functor ListAbtArity (structure S : ABT_SORT) : ABT_ARITY =
   AbtArity
     (AbtValence
-      (structure S = S and PS = PS and Sp = ListSpine))
+      (structure S = S and Sp = ListSpine))
 
 structure UnisortedAbtArity : UNISORTED_ABT_ARITY =
 struct
