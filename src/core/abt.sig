@@ -95,8 +95,6 @@ sig
   val renameVars : variable Var.Ctx.dict -> abt -> abt
   val renameMetavars : metavariable Metavar.Ctx.dict -> abt -> abt
 
-  exception BadSubstMetaenv of {metaenv : metaenv, term : abt, description : string}
-
   (* Below we provide unary versions of the simultaneous substitution operations *)
   val substMetavar : abs * metavariable -> abt -> abt
   val substVar : abt * variable -> abt -> abt
@@ -105,6 +103,8 @@ sig
   val getAnnotation : abt -> annotation option
   val setAnnotation : annotation option -> abt -> abt
   val clearAnnotation : abt -> abt
+
+  exception SortError of {annotation: annotation option, description: string}
 
   (* Note: The [check] operation corresponds to the [into] operation found in
    * the Carnegie Mellon ABT libraries.
