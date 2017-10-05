@@ -29,7 +29,6 @@ local
 
 in
   signature ABT_OPERATOR
-  signature ABT_SIMPLE_OPERATOR
   signature ABT
   signature AST
   signature AST_UTIL
@@ -59,7 +58,6 @@ in
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
-  functor AbtSimpleOperator
   functor AbtEmptyOperator
   functor Ast
   functor AstUtil

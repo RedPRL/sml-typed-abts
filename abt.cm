@@ -3,7 +3,6 @@ Library
   signature AST
   signature AST_UTIL
   signature ABT_OPERATOR
-  signature ABT_SIMPLE_OPERATOR
   signature ABT_SYMBOL
   signature ABT_IMPERATIVE_SYMBOL
   signature ABT_VALENCE
@@ -31,7 +30,6 @@ Library
   functor ShowAbt
   functor PlainShowAbt
   functor DebugShowAbt
-  functor AbtSimpleOperator
   functor AbtEmptyOperator
 
   signature AST_TO_ABT
