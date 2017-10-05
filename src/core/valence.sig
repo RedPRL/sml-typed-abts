@@ -8,17 +8,13 @@
  *)
 signature ABT_VALENCE =
 sig
-  (* parameter sorts *)
-  structure PS : ABT_SORT
-
   structure S : ABT_SORT
 
   type sort = S.t
-  type psort = PS.t
   type 'a spine = 'a list
 
   (* bindings are spines of symbol sorts and variable sorts respectively *)
-  type bindings = psort spine * sort spine
+  type bindings = sort spine
   type t = bindings * sort
 
   val toString : t -> string
@@ -29,7 +25,6 @@ signature UNISORTED_ABT_VALENCE =
 sig
   include ABT_VALENCE
     where type S.t = unit
-    where type PS.t = unit
 
-  val make : int * int -> t
+  val make : int -> t
 end

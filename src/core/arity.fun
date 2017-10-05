@@ -1,10 +1,9 @@
 functor AbtArity (Vl : ABT_VALENCE) : ABT_ARITY =
 struct
-  structure Vl = Vl and PS = Vl.PS and S = Vl.S
+  structure Vl = Vl and S = Vl.S
 
   type valence = Vl.t
   type sort = Vl.sort
-  type psort = Vl.psort
   type 'a spine = 'a Vl.spine
   type t = valence spine * sort
 
@@ -21,10 +20,10 @@ struct
       end
 end
 
-functor ListAbtArity (structure S : ABT_SORT and PS : ABT_SORT) : ABT_ARITY =
+functor ListAbtArity (structure S : ABT_SORT) : ABT_ARITY =
   AbtArity
     (AbtValence
-      (structure S = S and PS = PS and Sp = ListSpine))
+      (structure S = S and Sp = ListSpine))
 
 structure UnisortedAbtArity : UNISORTED_ABT_ARITY =
 struct

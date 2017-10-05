@@ -6,11 +6,6 @@ signature ABT =
 sig
   structure Var : ABT_SYMBOL
 
-  (* Symbols are not variables; they parameterize operators and do not appear as
-   * terms in the syntax of abstract binding trees. Therefore, they are subject
-   * to apartness-preserving (injective) renamings, and not substitution. *)
-  structure Sym : ABT_SYMBOL
-
   (* Just as variables can be used to stand in for an abt, metavariables can be
    * used to stand in for an abstraction/binder of any valence. Metavars
    * are also sometimes called "second-order variables". *)
@@ -27,23 +22,20 @@ sig
   type annotation
 
   (* Convienent shorthands for the types found in the above structures *)
-  type symbol = Sym.t
   type variable = Var.t
   type metavariable = Metavar.t
-  type operator = symbol O.t
+  type operator = O.t
   type sort = O.Ar.sort
-  type psort = O.Ar.psort
   type valence = O.Ar.valence
-  type param = symbol O.P.term
 
   (* The core type of the signature. This is the type of the ABTs that
-   * can be built from the given [operator]s, [variable]s, [symbol]s and
+   * can be built from the given [operator]s, [variable]s, and
    * [metavariable]s
    *)
   type abt
 
   (* An abs is an *abs*straction. It's the portion of syntax which binds
-   * variables and symbols for use in a term. It's conceptually separate
+   * variables for use in a term. It's conceptually separate
    * from the abt type because abstractions only occur as the arguments to
    * an operator.
    *)
@@ -51,17 +43,15 @@ sig
 
   (* Patterns for abstract binding trees. *)
   include ABT_VIEWS
-  type 'a view = (param, psort, symbol, variable, metavariable, operator, 'a) termf
-  type 'a bview = (symbol, variable, 'a) bindf
-  type 'a appview = (symbol, variable, operator, 'a) appf
+  type 'a view = (variable, metavariable, operator, 'a) termf
+  type 'a bview = (variable, 'a) bindf
+  type 'a appview = (variable, operator, 'a) appf
 
   type metactx = valence Metavar.ctx
   type varctx = sort Var.ctx
-  type symctx = psort Sym.ctx
 
   type metaenv = abs Metavar.ctx
   type varenv = abt Var.ctx
-  type symenv = param Sym.ctx
 
   (* Modify the term inside an abstraction*)
   val mapAbs : (abt -> abt) -> abs -> abs
@@ -79,10 +69,9 @@ sig
   val eq : abt * abt -> bool
   val eqAbs : abs * abs -> bool
 
-  (* Calculating free metavariables, free variables and free symbols *)
+  (* Calculating free metavariables, free variables *)
   val metactx : abt -> metactx
   val varctx : abt -> varctx
-  val symctx : abt -> symctx
 
   (* Finding occurrences (ie, annotations) of free variables, symbols,
    * and metavariables. Note that if a variable, symbol, or metavariable
@@ -92,10 +81,9 @@ sig
    * information on an element of the corresponding *ctx.
    *)
   val varOccurrences : abt -> annotation list Var.ctx
-  val symOccurrences : abt -> annotation list Sym.ctx
 
-  val unbind : abs -> param spine -> abt spine -> abt
-  val // : abs * (param spine * abt spine) -> abt
+  val unbind : abs -> abt spine -> abt
+  val // : abs * abt spine -> abt
 
   (* Substitution of metavariables instantiates the bound variables and
    * symbols of the abstraction with the operands of applications of
@@ -103,9 +91,7 @@ sig
    * of hereditary substitution as invented for the Concurrent Logical Framework.
    *)
   val substMetaenv : metaenv -> abt -> abt
-  val substEnv : symenv * varenv -> abt -> abt
   val substVarenv : varenv -> abt -> abt
-  val substSymenv : symenv -> abt -> abt
   val renameVars : variable Var.Ctx.dict -> abt -> abt
   val renameMetavars : metavariable Metavar.Ctx.dict -> abt -> abt
 
@@ -114,7 +100,6 @@ sig
   (* Below we provide unary versions of the simultaneous substitution operations *)
   val substMetavar : abs * metavariable -> abt -> abt
   val substVar : abt * variable -> abt -> abt
-  val substSymbol : param * symbol -> abt -> abt
 
   val annotate : annotation -> abt -> abt
   val getAnnotation : abt -> annotation option
