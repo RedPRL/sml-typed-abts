@@ -2,8 +2,7 @@ functor AbtValence (structure S : ABT_SORT) : ABT_VALENCE =
 struct
   structure S = S
   type sort = S.t
-  type 'a spine = 'a list
-  type bindings = sort spine
+  type bindings = sort list
   type t = bindings * sort
 
   fun eq ((variableSorts, sigma), (variableSorts', sigma')) =
@@ -12,7 +11,7 @@ struct
 
   fun toString (variableSorts, sigma) =
     let
-      val variables' = ListSpine.pretty S.toString ", " variableSorts
+      val variables' = ListUtil.joinWith S.toString ", " variableSorts
       val sigma' = S.toString sigma
     in
       "[" ^ variables' ^ "]." ^ sigma'
@@ -29,7 +28,7 @@ struct
       fun toString _ = "_"
     end
 
-    structure Valence = AbtValence (structure S = S and Sp = ListSpine)
+    structure Valence = AbtValence (structure S = S)
   in
     open Valence
   end

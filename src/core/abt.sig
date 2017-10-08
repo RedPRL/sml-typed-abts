@@ -82,8 +82,8 @@ sig
    *)
   val varOccurrences : abt -> annotation list Var.ctx
 
-  val unbind : abs -> abt spine -> abt
-  val // : abs * abt spine -> abt
+  val unbind : abs -> abt list -> abt
+  val // : abs * abt list -> abt
 
   (* Substitution of metavariables instantiates the bound variables
    * of the abstraction with the operands of applications of
@@ -113,7 +113,7 @@ sig
   (* construct an abt from a view by checking it against a sort. *)
   val check : abt view * sort -> abt
 
-  val $$ : operator * abt bview spine -> abt
+  val $$ : operator * abt bview list -> abt
 
   val metavar : metavariable * valence -> abs
 

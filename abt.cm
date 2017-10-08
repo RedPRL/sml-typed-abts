@@ -40,6 +40,9 @@ is
   basis/basis.cm
   lib/cmlib.cm
 
+  src/core/list_util.sig
+  src/core/list_util.sml
+
   src/core/symbol.fun
   src/core/context_util.sig
   src/core/context_util.fun

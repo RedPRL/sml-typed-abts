@@ -74,7 +74,7 @@ struct
   fun prettyList f l c r xs = 
     case xs of 
        [] => ""
-     | _ => l ^ ListSpine.pretty f c xs ^ r
+     | _ => l ^ ListUtil.joinWith f c xs ^ r
 
   fun primVarToString xs = 
     fn FREE x => Var.toString x

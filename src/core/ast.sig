@@ -1,7 +1,6 @@
 signature AST =
 sig
   type operator
-  type 'a spine = 'a list
 
   type variable = string
   type metavariable = string
@@ -11,9 +10,9 @@ sig
 
   datatype 'a view =
       ` of variable
-    | $ of operator * 'a abs spine
-    | $# of metavariable * 'a spine
-  and 'a abs = \ of variable spine * 'a
+    | $ of operator * 'a abs list
+    | $# of metavariable * 'a list
+  and 'a abs = \ of variable list * 'a
 
   val into : ast view -> ast
   val out : ast -> ast view
@@ -31,8 +30,8 @@ sig
   include AST
 
   val `` : variable -> ast
-  val $$ : operator * ast abs spine -> ast
-  val $$# : metavariable * ast spine -> ast
+  val $$ : operator * ast abs list -> ast
+  val $$# : metavariable * ast list -> ast
 end
 
 signature AST_ABT =

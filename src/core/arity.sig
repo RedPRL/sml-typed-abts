@@ -13,9 +13,8 @@ sig
 
   type valence = Vl.t
   type sort = Vl.sort
-  type 'a spine = 'a Vl.spine
 
-  type t = valence spine * sort
+  type t = valence list * sort
   val toString : t -> string
   val eq : t * t -> bool
 end

@@ -7,13 +7,12 @@ struct
   type annotation = annotation
 
   type operator = Operator.t
-  type 'a spine = 'a list
 
   datatype 'a view =
       ` of variable
-    | $ of operator * 'a abs spine
-    | $# of metavariable * 'a spine
-  and 'a abs = \ of variable spine * 'a
+    | $ of operator * 'a abs list
+    | $# of metavariable * 'a list
+  and 'a abs = \ of variable list * 'a
 
   datatype ast = @: of ast view * annotation option
 
@@ -33,20 +32,20 @@ struct
      | theta $ [] @: _ => Operator.toString theta
      | theta $ es @: _ => 
          Operator.toString theta
-           ^ "(" ^ ListSpine.pretty toStringB "; " es ^ ")"
+           ^ "(" ^ ListUtil.joinWith toStringB "; " es ^ ")"
      | mv $# es @: _ =>
          let
-           val es' = ListSpine.pretty toString "," es
+           val es' = ListUtil.joinWith toString "," es
          in
            "#" ^ mv
-               ^ (if ListSpine.isEmpty es then "" else "[" ^ es' ^ "]")
+               ^ (if ListUtil.isEmpty es then "" else "[" ^ es' ^ "]")
          end
 
   and toStringB =
     fn (xs \ M) =>
       let
-        val varEmpty = ListSpine.isEmpty xs
-        val xs' = ListSpine.pretty (fn x => x) "," xs
+        val varEmpty = ListUtil.isEmpty xs
+        val xs' = ListUtil.joinWith (fn x => x) "," xs
       in
          (if varEmpty then "" else "[" ^ xs' ^ "].")
           ^ toString M

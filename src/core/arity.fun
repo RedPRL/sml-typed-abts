@@ -4,8 +4,7 @@ struct
 
   type valence = Vl.t
   type sort = Vl.sort
-  type 'a spine = 'a Vl.spine
-  type t = valence spine * sort
+  type t = valence list * sort
 
   fun eq ((valences, sigma), (valences', sigma')) =
     ListPair.allEq Vl.eq (valences, valences')
@@ -13,7 +12,7 @@ struct
 
   fun toString (valences, sigma) =
       let
-        val valences' = ListSpine.pretty Vl.toString ", " valences
+        val valences' = ListUtil.joinWith Vl.toString ", " valences
         val sigma' = S.toString sigma
       in
         "(" ^ valences' ^ ")" ^ sigma'
@@ -23,7 +22,7 @@ end
 functor ListAbtArity (structure S : ABT_SORT) : ABT_ARITY =
   AbtArity
     (AbtValence
-      (structure S = S and Sp = ListSpine))
+      (structure S = S))
 
 structure UnisortedAbtArity : UNISORTED_ABT_ARITY =
 struct
