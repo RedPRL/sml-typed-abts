@@ -10,10 +10,9 @@ sig
   structure S : ABT_SORT
 
   type sort = S.t
-  type 'a spine = 'a list
 
   (* bindings are lists of variable sorts respectively *)
-  type bindings = sort spine
+  type bindings = sort list
   type t = bindings * sort
 
   val toString : t -> string

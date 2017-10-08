@@ -15,19 +15,19 @@ struct
        | theta $ [] => O.toString theta
        | theta $ es =>
           O.toString theta
-            ^ "(" ^ ListSpine.pretty toStringB "; " es ^ ")"
+            ^ "(" ^ ListUtil.joinWith toStringB "; " es ^ ")"
        | mv $# ms =>
            let
-             val ms' = ListSpine.pretty toString "," ms
+             val ms' = ListUtil.joinWith toString "," ms
            in
              "#" ^ Abt.Metavar.toString mv
-                 ^ (if ListSpine.isEmpty ms then "" else "[" ^ ms' ^ "]")
+                 ^ (if ListUtil.isEmpty ms then "" else "[" ^ ms' ^ "]")
            end
 
   and toStringB (xs \ M) =
     let
-      val varEmpty = ListSpine.isEmpty xs
-      val xs' = ListSpine.pretty ShowVar.toString "," xs
+      val varEmpty = ListUtil.isEmpty xs
+      val xs' = ListUtil.joinWith ShowVar.toString "," xs
     in
       (if varEmpty then "" else "[" ^ xs' ^ "].")
         ^ toString M

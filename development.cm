@@ -7,6 +7,8 @@ Group is
   src/locally-nameless/scope.fun
   src/locally-nameless/symbol.sig
 
+  src/core/list_util.sig
+  src/core/list_util.sml
   src/core/symbol.fun
   src/core/context_util.sig
   src/core/context_util.fun

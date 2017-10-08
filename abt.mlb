@@ -4,14 +4,14 @@ local
   lib/cmlib.mlb
   locally-nameless.mlb
 
+  src/core/list_util.sig
+  src/core/list_util.sml
   src/core/symbol.fun
   src/core/context_util.sig
   src/core/context_util.fun
   src/core/sort.sig
   src/core/sort.sml
-  src/core/spine.sig
   src/core/valence.sig
-  src/core/spine.sml
   src/core/views.sig
   src/core/views.fun
   src/core/arity.sig
@@ -34,7 +34,6 @@ in
   signature ABT_SYMBOL
   signature ABT_IMPERATIVE_SYMBOL
   signature ABT_SORT
-  signature SPINE
   signature ABT_VALENCE
   signature UNISORTED_ABT_VALENCE
   signature ABT_ARITY
@@ -44,7 +43,6 @@ in
   structure AbtEmptySort
   functor AbtSymbol
   structure StringAbtSymbol
-  structure ListSpine
   functor AbtValence
   structure UnisortedAbtValence
   functor AbtArity

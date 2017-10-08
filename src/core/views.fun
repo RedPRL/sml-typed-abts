@@ -1,17 +1,15 @@
 structure AbtViews : ABT_VIEWS =
 struct
-  type 'a spine = 'a list
-
   datatype ('v, 'a) bindf =
-     \ of ('v spine) * 'a
+     \ of ('v list) * 'a
 
   datatype ('var, 'mvar, 'op, 'a) termf =
       ` of 'var
-    | $ of 'op * ('var, 'a) bindf spine
-    | $# of 'mvar * 'a spine
+    | $ of 'op * ('var, 'a) bindf list
+    | $# of 'mvar * 'a list
 
   datatype ('var, 'op, 'a) appf =
-     `$ of 'op * ('var, 'a) bindf spine
+     `$ of 'op * ('var, 'a) bindf list
 
   infix \ $ $# `$
 
