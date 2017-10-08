@@ -8,7 +8,6 @@ Library
   signature ABT_VALENCE
   signature UNISORTED_ABT_VALENCE
   signature ABT_SORT
-  signature SPINE
   signature ABT_ARITY
   signature UNISORTED_ABT_ARITY
   signature CONTEXT_UTIL
@@ -16,7 +15,6 @@ Library
   functor AbtSymbol
   structure AbtEmptySort
   structure StringAbtSymbol
-  structure ListSpine
   functor AbtValence
   structure UnisortedAbtValence
   functor AbtArity
@@ -49,8 +47,6 @@ is
   src/core/sort.sig
   src/core/sort.sml
   src/core/valence.sig
-  src/core/spine.sig
-  src/core/spine.sml
   src/core/views.sig
   src/core/views.fun
   src/core/arity.sig

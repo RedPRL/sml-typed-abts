@@ -15,8 +15,6 @@ Group is
   src/core/sort.sig
   src/core/sort.sml
   src/core/valence.sig
-  src/core/spine.sig
-  src/core/spine.sml
   src/core/views.sig
   src/core/views.fun
   src/core/arity.sig
