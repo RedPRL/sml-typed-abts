@@ -36,7 +36,6 @@ Library
   functor AstToAbt
 is
   $/basis.cm
-  $libs/sml-cats/cats.cm
   locally-nameless.cm
   basis/basis.cm
   lib/cmlib.cm
