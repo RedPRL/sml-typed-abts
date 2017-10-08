@@ -1,7 +1,5 @@
 local
   $(SML_LIB)/basis/basis.mlb
-
-  $(LIBS)/sml-cats/cats.mlb
   basis/basis.mlb
   lib/cmlib.mlb
   locally-nameless.mlb
