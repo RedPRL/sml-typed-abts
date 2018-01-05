@@ -12,7 +12,12 @@ struct
     end
 
   fun new () =
-    named "@"
+    let
+      val i = !counter
+      val _ = counter := i + 1
+    in
+      (i, "$" ^ Int.toString i)
+    end
 
   fun fresh _ =
     named
