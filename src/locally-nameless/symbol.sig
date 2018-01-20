@@ -20,6 +20,8 @@ sig
 
   val fresh : 'a Ctx.dict -> string -> t
 
+  val name : t -> string option
+
   (* DebugShow will pretty print more than a symbol's name so
    * that one can distinguish between identically named symbols.
    *)
