@@ -22,15 +22,12 @@ sig
 
   val name : t -> string option
 
+  val new : unit -> t
+  val clone : t -> t
+
   (* DebugShow will pretty print more than a symbol's name so
    * that one can distinguish between identically named symbols.
    *)
   structure DebugShow : SHOW where type t = t
 end
 
-signature ABT_IMPERATIVE_SYMBOL =
-sig
-  include ABT_SYMBOL
-
-  val new : unit -> t
-end

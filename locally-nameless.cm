@@ -3,7 +3,6 @@ Library
   functor LnScope
 
   signature ABT_SYMBOL
-  signature ABT_IMPERATIVE_SYMBOL
 is
   $/basis.cm
   lib/cmlib.cm

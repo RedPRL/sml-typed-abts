@@ -80,7 +80,10 @@ struct
     fn FREE x => Var.toString x
      | BOUND i =>
           if i < List.length xs then 
-            "!" ^ List.nth (xs, List.length xs - i - 1)
+            "!" ^ 
+              (case List.nth (xs, List.length xs - i - 1) of 
+                  SOME s => s
+                | NONE => "?")
           else
             "%" ^ Int.toString i
 
@@ -100,7 +103,7 @@ struct
          let
            val Sc.\ (xs', body) = Sc.unsafeRead sc
          in
-           prettyList (fn x => x) "[" ", " "]" xs' ^ 
+           prettyList (fn SOME x => x | NONE => "?") "[" ", " "]" xs' ^ 
            "." ^ primToString' (xs @ xs') body
          end
 
@@ -393,7 +396,7 @@ struct
            let
              val r = f (i, sort)
            in
-             aux f (i + 1) ("?" ^ Int.toString i :: names) (r :: results) sorts
+             aux f (i + 1) (SOME ("?" ^ Int.toString i) :: names) (r :: results) sorts
            end
 
       val (xs, ms) = aux (fn (i, tau) => makeVarTerm (BOUND i, tau) NONE) 0 [] [] taus

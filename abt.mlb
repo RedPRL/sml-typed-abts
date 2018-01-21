@@ -32,7 +32,6 @@ in
   signature AST_UTIL
   signature AST_TO_ABT
   signature ABT_SYMBOL
-  signature ABT_IMPERATIVE_SYMBOL
   signature ABT_SORT
   signature ABT_VALENCE
   signature UNISORTED_ABT_VALENCE
@@ -42,7 +41,6 @@ in
 
   structure AbtEmptySort
   functor AbtSymbol
-  structure StringAbtSymbol
   functor AbtValence
   structure UnisortedAbtValence
   functor AbtArity

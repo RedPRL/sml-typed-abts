@@ -8,7 +8,7 @@ struct
   type valence = sort list * sort
 
   datatype ('v, 'a) scope_view = \ of 'v list * 'a
-  type 'a scope = (string, 'a) scope_view
+  type 'a scope = (string option, 'a) scope_view
   infix \
 
   exception Instantiate
@@ -29,11 +29,11 @@ struct
     f (m, n)
 
   fun intoScope (driver : ('m, 'a) binding_support) (xs \ m) =
-    (List.map Var.toString xs) \ #abstract driver 0 xs m
+    (List.map Var.name xs) \ #abstract driver 0 xs m
 
   fun outScope (driver : ('m, 'a) binding_support) taus (xs \ m) =
     let
-      val xs' = List.map Var.named xs
+      val xs' = List.map (fn SOME x => Var.named x | NONE => Var.new ()) xs
       val ms = ListPair.mapEq (#freeVariable driver) (xs', taus)
     in
       xs' \ #instantiate driver 0 ms m
