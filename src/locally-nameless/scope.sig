@@ -23,7 +23,7 @@ sig
   val outScope : ('m, 'a) binding_support -> sort list -> 'a scope -> (variable, 'a) scope_view
 
   (* O(1) *)
-  val unsafeRead : 'a scope -> (string, 'a) scope_view
+  val unsafeRead : 'a scope -> (string option, 'a) scope_view
   val unsafeReadBody : 'a scope -> 'a
-  val unsafeMakeScope : (string, 'a) scope_view -> 'a scope
+  val unsafeMakeScope : (string option, 'a) scope_view -> 'a scope
 end

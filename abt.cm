@@ -4,7 +4,6 @@ Library
   signature AST_UTIL
   signature ABT_OPERATOR
   signature ABT_SYMBOL
-  signature ABT_IMPERATIVE_SYMBOL
   signature ABT_VALENCE
   signature UNISORTED_ABT_VALENCE
   signature ABT_SORT
@@ -14,7 +13,6 @@ Library
 
   functor AbtSymbol
   structure AbtEmptySort
-  structure StringAbtSymbol
   functor AbtValence
   structure UnisortedAbtValence
   functor AbtArity

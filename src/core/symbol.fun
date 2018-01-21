@@ -1,4 +1,4 @@
-functor AbtSymbol () :> ABT_IMPERATIVE_SYMBOL =
+functor AbtSymbol () :> ABT_SYMBOL =
 struct
   type t = int * string option
   val counter = ref 0
@@ -26,7 +26,7 @@ struct
     | clone (_, NONE) = new ()
 
   fun toString (_, SOME a) = a
-    | toString (i, NONE) = "$" ^ Int.toString i
+    | toString (i, NONE) = "@#$@"
 
   fun name (_, x) = x
 
@@ -51,32 +51,5 @@ struct
     type t = t
     fun toString (i, SOME a) = a ^ "@" ^ Int.toString i
       | toString (i, NONE) = "$" ^ Int.toString i
-  end
-end
-
-structure StringAbtSymbol : ABT_SYMBOL =
-struct
-  type t = string
-
-  structure Ord = StringOrdered
-  structure Ctx = SplayDict (structure Key = Ord)
-  type 'a ctx = 'a Ctx.dict
-
-  open Ord
-
-  fun named x = x
-  fun toString x = x
-  fun name x = SOME x
-
-  fun fresh ctx x =
-    if Ctx.member ctx x then
-      fresh ctx (x ^ "'")
-    else
-      x
-
-  structure DebugShow =
-  struct
-    type t = t
-    fun toString x = x
   end
 end

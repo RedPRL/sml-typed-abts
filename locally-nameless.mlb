@@ -10,5 +10,4 @@ in
   functor LnScope
 
   signature ABT_SYMBOL
-  signature ABT_IMPERATIVE_SYMBOL
 end
