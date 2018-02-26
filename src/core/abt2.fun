@@ -576,10 +576,3 @@ struct
     substMetaenv (Metavar.Ctx.singleton X scope)
 
 end
-
-functor SimpleAbt (O : ABT_OPERATOR) =
-  Abt (structure Sym = AbtSymbol ()
-       structure Var = AbtSymbol ()
-       structure Metavar = AbtSymbol ()
-       structure O = O
-       type annotation = unit)
