@@ -51,7 +51,7 @@ struct
      V of var_term
    | APP of app_term
    | META of meta_term
-  and abs = ABS of sort list * abt scope
+  and abs = ABS of sort list * abt_susp annotated ref scope
   and abt_susp = DEFER of abt_repr * task Queue.queue
 
   and task =
@@ -64,9 +64,9 @@ struct
 
   and var_term = Var.t locally * sort
   and app_term = O.t * abs list
-  and meta_term = (Metavar.t * sort) * abt list
+  and meta_term = (Metavar.t * sort) * abt_susp annotated ref list
   and metaenv = abs Metavar.Ctx.dict
-  and varenv = abt Var.Ctx.dict
+  and varenv = abt_susp annotated ref Var.Ctx.dict
 
   fun @@ (f, x) = f x
   infixr @@
@@ -176,7 +176,10 @@ struct
            let
              val j = i - n
            in
-             if j >= 0 andalso j < len then List.nth (reprs, j) else repr <: ann
+             if j >= 0 andalso j < len then
+               List.nth (reprs, j)
+             else
+               repr <: ann
            end
          | V (FREE _, _) =>
            repr <: ann
@@ -534,6 +537,7 @@ struct
        O.eq (th0, th1) andalso ListPair.allEq (eqAbs_ n) (abss0, abss1)
      | (META ((X0,_), abts0) <: _, META ((X1,_), abts1) <: _) =>
        Metavar.eq (X0, X1) andalso ListPair.allEq (eq_ n) (abts0, abts1)
+     | _ => false
 
   and eqAbs_ n (abs0 : abs, abs1 : abs) : bool =
     let

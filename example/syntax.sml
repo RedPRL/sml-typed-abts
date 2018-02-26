@@ -46,7 +46,7 @@ structure ShowAbt = DebugShowAbt (Abt)
 structure AstKit =
 struct
   structure Operator = Operator
-  structure Metavar = StringAbtSymbol
+
   type annotation = Pos.t
 end
 
