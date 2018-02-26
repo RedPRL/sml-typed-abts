@@ -3,6 +3,8 @@ local
 in
   signature DICT
   signature ORDERED
+  signature QUEUE
+  structure Queue
   functor SplayDict
   functor SplaySet
   structure StringOrdered

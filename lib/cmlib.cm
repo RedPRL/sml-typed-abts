@@ -8,6 +8,8 @@ Library
   structure String
   structure StringHashable
   structure IntOrdered
+  structure Queue
+  signature QUEUE
   functor HashTable
   structure Sum
   structure Susp

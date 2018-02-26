@@ -23,6 +23,7 @@ local
   src/core/valence.fun
   src/core/arity.fun
   src/core/abt.fun
+  src/core/abt2.fun
   src/core/ast.fun
 
 in
@@ -48,6 +49,7 @@ in
   structure UnisortedAbtArity
   functor ContextUtil
   functor Abt
+  functor Abt2
   functor SimpleAbt
   functor ShowAbt
   functor PlainShowAbt
