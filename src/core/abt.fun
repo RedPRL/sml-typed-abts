@@ -41,7 +41,7 @@ struct
 
   type system_annotation =
     {varIdxBound: int,
-     freeVars: varctx,
+     hasVars: bool,
      hasMetas: bool}
 
   type annotation = annotation
@@ -51,7 +51,7 @@ struct
 
   fun systemAnnLub (ann1 : system_annotation, ann2 : system_annotation) : system_annotation =
     {varIdxBound = Int.max (#varIdxBound ann1, #varIdxBound ann2),
-     freeVars = VarCtxUtil.union (#freeVars ann1, #freeVars ann2),
+     hasVars = #hasVars ann1 orelse #hasVars ann2,
      hasMetas = #hasMetas ann1 orelse #hasMetas ann2}
 
   datatype 'a annotated = <: of 'a * internal_annotation
@@ -129,11 +129,11 @@ struct
   fun scopeReadAnn scope =
     let
       val Sc.\ (xs, body <: ann) = Sc.unsafeRead scope
-      val {varIdxBound, freeVars, hasMetas} = #system ann
+      val {varIdxBound, hasVars, hasMetas} = #system ann
       val varIdxBound' = varIdxBound - List.length xs
     in
       {user = #user ann,
-       system = {varIdxBound = varIdxBound', freeVars = freeVars, hasMetas = hasMetas}}
+       system = {varIdxBound = varIdxBound', hasVars = hasVars, hasMetas = hasMetas}}
     end
 
   fun makeVarTerm (var, tau) userAnn =
@@ -141,16 +141,16 @@ struct
        FREE x =>
          V (var, tau) <:
            {user = userAnn,
-            system = {varIdxBound = 0, freeVars = Var.Ctx.singleton x tau, hasMetas = false}}
+            system = {varIdxBound = 0, hasVars = true, hasMetas = false}}
 
      | BOUND i =>
          V (var, tau) <:
            {user = userAnn,
-            system = {varIdxBound = i + 1, freeVars = Var.Ctx.empty, hasMetas = false}}
+            system = {varIdxBound = i + 1, hasVars = false, hasMetas = false}}
 
   fun makeAppTerm (theta, scopes) userAnn =
     let
-      val operatorAnn = {varIdxBound = 0, freeVars = Var.Ctx.empty, hasMetas = false}
+      val operatorAnn = {varIdxBound = 0, hasVars = false, hasMetas = false}
       val systemAnn =
         List.foldl
           (fn (ABS (_, scope), ann) => systemAnnLub (ann, #system (scopeReadAnn scope)))
@@ -162,7 +162,7 @@ struct
 
   fun makeMetaTerm (((X, tau), ms) : meta_term) userAnn =
     let
-      val metaSystemAnn = {varIdxBound = 0, freeVars = Var.Ctx.empty, hasMetas = true}
+      val metaSystemAnn = {varIdxBound = 0, hasVars = false, hasMetas = true}
       val systemAnn =
         List.foldl
           (fn (_ <: termAnn, ann) => systemAnnLub (ann, #system termAnn))
@@ -256,8 +256,8 @@ struct
 
     fun abstractAbt (ix : int)  xs =
       let
-        fun shouldTraverse ix ({freeVars, hasMetas, ...} : system_annotation) =
-          case xs of [] => false | _ => not (Var.Ctx.isEmpty freeVars)
+        fun shouldTraverse ix ({hasVars, hasMetas, ...} : system_annotation) =
+          case xs of [] => false | _ => hasVars
 
         fun abstractVar j =
           fn (vt as (FREE x, tau)) <: ann =>
@@ -282,9 +282,6 @@ struct
         freeVariable = fn (x, tau) => makeVarTerm (FREE x, tau) NONE}
 
 
-    fun varctx (_ <: {system = {freeVars, ...}, ...}) = 
-      freeVars
-
     val metactx : abt -> metactx = 
       let
         val monoid : (metactx -> metactx) monoid =
@@ -298,6 +295,26 @@ struct
            shouldTraverse = fn _ => fn ({hasMetas, ...} : system_annotation) => hasMetas}
       in
         fn tm => abtAccum monoid alg 0 tm Metavar.Ctx.empty
+      end
+
+    val varctx : abt -> varctx = 
+      let
+        val monoid : (varctx -> varctx) monoid = 
+          {unit = fn ctx => ctx,
+           mul = op o}
+
+        fun handleVar _ ((var, tau) <: _) =
+          case var of
+             FREE x => (fn ctx => Var.Ctx.insert ctx x tau)
+           | _ => #unit monoid
+
+        val alg = 
+          {debug = "varctx",
+           handleVar = handleVar,
+           handleMeta = fn _ => #unit monoid,
+           shouldTraverse = fn _ => fn ({hasVars, ...} : system_annotation) => hasVars}
+      in
+        fn tm => abtAccum monoid alg 0 tm Var.Ctx.empty
       end
 
     val varOccurrences = 
@@ -316,7 +333,7 @@ struct
           {debug = "varOccurrences",
            handleVar = handleVar,
            handleMeta = fn _ => #unit monoid,
-           shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
+           shouldTraverse = fn _ => fn ({hasVars, ...} : system_annotation) => hasVars}
       in
         fn tm => abtAccum monoid alg 0 tm Var.Ctx.empty
       end
@@ -335,9 +352,9 @@ struct
           {debug = "renameVars",
            handleVar = handleVar,
            handleMeta = fn (X, _) => X,
-           shouldTraverse = fn _ => fn ({freeVars, ...} : system_annotation) => not (Var.Ctx.isEmpty freeVars)}
+           shouldTraverse = fn _ => fn ({hasVars, ...} : system_annotation) => hasVars}
       in
-        abtRec alg 0
+        if Var.Ctx.isEmpty vrho then (fn x => x) else abtRec alg 0
       end
 
       fun renameMetavars mrho =
@@ -353,13 +370,13 @@ struct
              handleMeta = handleMeta,
              shouldTraverse = fn _ => fn ({hasMetas, ...} : system_annotation) => hasMetas}
         in
-          abtRec alg 0
+          if Metavar.Ctx.isEmpty mrho then (fn x => x) else abtRec alg 0
         end
 
       fun substVarenv (vrho : varenv) =
       let
-        fun shouldTraverse _ ({freeVars, ...} : system_annotation) =
-          not (Var.Ctx.isEmpty freeVars orelse Var.Ctx.isEmpty vrho)
+        fun shouldTraverse _ ({hasVars, ...} : system_annotation) =
+          hasVars
 
         fun handleVar _ ((vt as (var, tau)) <: ann) =
           case var of
@@ -375,7 +392,7 @@ struct
             handleMeta = fn (X, _) => X,
             shouldTraverse = shouldTraverse}
       in
-        abtRec alg 0
+        if Var.Ctx.isEmpty vrho then (fn x => x) else abtRec alg 0
       end
   end
 
