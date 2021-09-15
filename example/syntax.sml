@@ -46,10 +46,8 @@ structure ShowAbt = DebugShowAbt (Abt)
 structure AstKit =
 struct
   structure Operator = Operator
-  structure Metavar = StringAbtSymbol
   type annotation = Pos.t
 end
 
 structure Ast = AstUtil (Ast (AstKit))
 structure AstToAbt = AstToAbt (structure Abt = Abt and Ast = Ast)
-
